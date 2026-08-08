@@ -1,0 +1,23 @@
+# Binaries
+/api
+ziadapos
+*.exe
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+
+# Go
+*.test
+*.out
+coverage.*
+
+# Logs
+*.log
+logs/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
