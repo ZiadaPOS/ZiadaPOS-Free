@@ -24,6 +24,7 @@ import (
 	// apps (registered as they are built)
 	"github.com/troubleman96/ziadapos/apps/accounts"
 	"github.com/troubleman96/ziadapos/apps/inventory"
+	"github.com/troubleman96/ziadapos/apps/transactions"
 	"gorm.io/gorm"
 )
 
@@ -113,4 +114,9 @@ func registerApps(db *gorm.DB, deps *server.Deps, srv *server.Server) {
 		log.Fatalf("inventory migrate: %v", err)
 	}
 	inventory.RegisterRoutes(srv.Base, deps)
+
+	if err := transactions.Migrate(db); err != nil {
+		log.Fatalf("transactions migrate: %v", err)
+	}
+	transactions.RegisterRoutes(srv.Base, deps)
 }

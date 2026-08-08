@@ -22,6 +22,8 @@ const (
 	ReasonDamage     = "damage"
 	ReasonCorrection = "correction"
 	ReasonTheft      = "theft"
+	ReasonSale       = "sale"
+	ReasonRefund     = "refund"
 )
 
 // Service implements inventory business rules with Redis caching.
@@ -52,6 +54,7 @@ func (s *Service) invalidate(storeID, orgID *uuid.UUID, productIDs ...uuid.UUID)
 	ctx := context.Background()
 	if storeID != nil {
 		_ = s.cache.DeletePattern(ctx, "inv:products:"+storeID.String()+":*")
+		_ = s.cache.DeletePattern(ctx, "inv:barcode:"+storeID.String()+":*")
 		_ = s.cache.Del(ctx, s.lowStockKey(*storeID))
 	}
 	if orgID != nil {
@@ -60,6 +63,12 @@ func (s *Service) invalidate(storeID, orgID *uuid.UUID, productIDs ...uuid.UUID)
 	for _, id := range productIDs {
 		_ = s.cache.Del(ctx, s.productKey(id))
 	}
+}
+
+// InvalidateProductCache is exported for other apps (e.g. transactions) to
+// evict product/low-stock/category entries after they mutate stock.
+func (s *Service) InvalidateProductCache(storeID, orgID *uuid.UUID, productIDs ...uuid.UUID) {
+	s.invalidate(storeID, orgID, productIDs...)
 }
 
 // ── Category operations ─────────────────────────────────────────────────────
@@ -378,6 +387,8 @@ func (s *Service) AdjustStock(ctx context.Context, storeID, productID, userID uu
 	default:
 		return nil, apierr.BadRequest("Invalid reason").WithField("reason", "must be restock, damage, correction or theft")
 	}
+
+	// sale/refund adjustments are recorded by the transactions app.
 	p, err := s.repo.GetProduct(storeID, productID)
 	if err != nil {
 		return nil, apierr.NotFound("Product not found")
