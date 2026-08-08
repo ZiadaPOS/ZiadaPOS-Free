@@ -203,8 +203,18 @@ func (s *Service) CompleteSale(ctx context.Context, orgID, storeID, cashierID uu
 
 	s.invalidateStoreCaches(storeID, orgID, ids...)
 	s.bus.Publish("transaction.created", map[string]interface{}{
-		"transaction_id": txn.ID, "store_id": storeID, "org_id": orgID,
-		"total": txn.Total, "method": method, "status": txn.Status,
+		"transaction_id": txn.ID,
+		"store_id":       storeID,
+		"org_id":         orgID,
+		"total":          txn.Total,
+		"method":         method,
+		"status":         txn.Status,
+		"customer_id":    txn.CustomerID,
+		"customer_phone": txn.CustomerPhone,
+		"customer_name":  txn.CustomerName,
+		"cashier_id":     cashierID,
+		"till_number":    txn.TillNumber,
+		"txn_number":     txn.TxnNumber,
 	})
 	return txn, nil
 }
@@ -309,6 +319,7 @@ func (s *Service) Refund(ctx context.Context, orgID, storeID, userID, id uuid.UU
 	s.invalidateStoreCaches(storeID, orgID, productIDs...)
 	s.bus.Publish("transaction.refunded", map[string]interface{}{
 		"transaction_id": id, "store_id": storeID, "reason": reason,
+		"total": txn.Total, "customer_id": txn.CustomerID,
 	})
 	return txn, nil
 }
@@ -359,6 +370,10 @@ func (s *Service) Void(ctx context.Context, orgID, storeID, id uuid.UUID, reason
 		}
 	}
 	s.invalidateStoreCaches(storeID, orgID, productIDs...)
+	s.bus.Publish("transaction.voided", map[string]interface{}{
+		"transaction_id": id, "store_id": storeID, "reason": reason,
+		"total": txn.Total, "customer_id": txn.CustomerID,
+	})
 	return txn, nil
 }
 
@@ -402,16 +417,16 @@ func (s *Service) Summary(ctx context.Context, storeID uuid.UUID, from, to time.
 	}
 
 	out := map[string]interface{}{
-		"date_from":        from,
-		"date_to":          to,
-		"gross_sales":      gross,
-		"refunded":         refunded,
-		"net_sales":        net,
-		"profit":           profit,
-		"tax":              tax,
-		"transactions":     txns,
-		"by_method":        methods,
-		"top_products":     top,
+		"date_from":    from,
+		"date_to":      to,
+		"gross_sales":  gross,
+		"refunded":     refunded,
+		"net_sales":    net,
+		"profit":       profit,
+		"tax":          tax,
+		"transactions": txns,
+		"by_method":    methods,
+		"top_products": top,
 	}
 	if s.cache != nil {
 		_ = s.cache.SetJSONTTL(ctx, key, out, 30*time.Second)

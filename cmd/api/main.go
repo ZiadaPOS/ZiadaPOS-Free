@@ -23,6 +23,8 @@ import (
 
 	// apps (registered as they are built)
 	"github.com/troubleman96/ziadapos/apps/accounts"
+	"github.com/troubleman96/ziadapos/apps/credits"
+	"github.com/troubleman96/ziadapos/apps/customers"
 	"github.com/troubleman96/ziadapos/apps/inventory"
 	"github.com/troubleman96/ziadapos/apps/transactions"
 	"gorm.io/gorm"
@@ -119,4 +121,16 @@ func registerApps(db *gorm.DB, deps *server.Deps, srv *server.Server) {
 		log.Fatalf("transactions migrate: %v", err)
 	}
 	transactions.RegisterRoutes(srv.Base, deps)
+
+	if err := customers.Migrate(db); err != nil {
+		log.Fatalf("customers migrate: %v", err)
+	}
+	customers.RegisterHandlers(deps.Bus, deps)
+	customers.RegisterRoutes(srv.Base, deps)
+
+	if err := credits.Migrate(db); err != nil {
+		log.Fatalf("credits migrate: %v", err)
+	}
+	credits.RegisterHandlers(deps.Bus, deps)
+	credits.RegisterRoutes(srv.Base, deps)
 }
