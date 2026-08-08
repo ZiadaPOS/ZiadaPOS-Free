@@ -22,6 +22,7 @@ import (
 	"github.com/troubleman96/ziadapos/internal/storage"
 
 	// apps (registered as they are built)
+	"github.com/troubleman96/ziadapos/apps/accounts"
 	"gorm.io/gorm"
 )
 
@@ -101,5 +102,9 @@ func main() {
 // registerApps runs every app's AutoMigrate + route registration. Apps add
 // themselves here as they ship.
 func registerApps(db *gorm.DB, deps *server.Deps, srv *server.Server) {
-	// accounts.RegisterRoutes(srv.Base, deps)
+	if err := accounts.Migrate(db); err != nil {
+		log.Fatalf("accounts migrate: %v", err)
+	}
+	accounts.RegisterHandlers(deps.Bus, deps)
+	accounts.RegisterRoutes(srv.Base, deps)
 }
