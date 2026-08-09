@@ -30,8 +30,8 @@ var ValidMethods = []string{MethodCash, MethodMPesa, MethodTigo, MethodBank, Met
 type Transaction struct {
 	models.BaseModel
 	OrganisationID   uuid.UUID `gorm:"type:uuid;not null;index" json:"organisation_id"`
-	StoreID          uuid.UUID `gorm:"type:uuid;not null;index" json:"store_id"`
-	TxnNumber        string    `gorm:"size:30;not null;uniqueIndex" json:"txn_number"`
+	StoreID          uuid.UUID `gorm:"type:uuid;not null;index;uniqueIndex:idx_txn_number_store,priority:1" json:"store_id"`
+	TxnNumber        string    `gorm:"size:30;not null;uniqueIndex:idx_txn_number_store,priority:2" json:"txn_number"`
 	PaymentMethod    string    `gorm:"size:20;not null;index" json:"payment_method"`
 	PaymentReference string    `gorm:"size:100" json:"payment_reference"`
 	Status           string    `gorm:"size:20;not null;default:paid;index" json:"status"`

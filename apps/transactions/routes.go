@@ -11,11 +11,20 @@ import (
 
 // Migrate creates the transactions schema.
 func Migrate(db *gorm.DB) error {
-	return db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&Transaction{},
 		&TransactionLine{},
 		&TxnCounter{},
-	)
+	); err != nil {
+		return err
+	}
+
+	// TXN numbers are sequential per store; replace the legacy global unique
+	// index on txn_number with a composite (store_id, txn_number) index.
+	if err := db.Exec(`DROP INDEX IF EXISTS idx_transactions_txn_number`).Error; err != nil {
+		return err
+	}
+	return db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_txn_number_store ON transactions (store_id, txn_number)`).Error
 }
 
 // RegisterRoutes wires the POS router (all endpoints require auth).
