@@ -27,6 +27,7 @@ import (
 	"github.com/troubleman96/ziadapos/apps/customers"
 	"github.com/troubleman96/ziadapos/apps/expenses"
 	"github.com/troubleman96/ziadapos/apps/inventory"
+	"github.com/troubleman96/ziadapos/apps/staff"
 	"github.com/troubleman96/ziadapos/apps/suppliers"
 	"github.com/troubleman96/ziadapos/apps/transactions"
 	"gorm.io/gorm"
@@ -145,4 +146,9 @@ func registerApps(db *gorm.DB, deps *server.Deps, srv *server.Server) {
 		log.Fatalf("expenses migrate: %v", err)
 	}
 	expenses.RegisterRoutes(srv.Base, deps)
+
+	if err := staff.Migrate(db); err != nil {
+		log.Fatalf("staff migrate: %v", err)
+	}
+	staff.RegisterRoutes(srv.Base, deps)
 }

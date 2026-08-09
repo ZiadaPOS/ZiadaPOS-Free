@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
@@ -58,4 +59,15 @@ func Truncate(s string, n int) string {
 		return s
 	}
 	return string(r[:n])
+}
+
+// StartOfDay returns the local midnight of the given time.
+func StartOfDay(t time.Time) time.Time {
+	y, m, d := t.Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, t.Location())
+}
+
+// StartOfMonth returns the first day of the month at midnight.
+func StartOfMonth(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, t.Location())
 }

@@ -26,10 +26,10 @@ const (
 // coordinates so we know where every shop is on the map of Tanzania.
 type Organisation struct {
 	models.BaseModel
-	Name       string `gorm:"size:200;not null" json:"name"`
-	Slug       string `gorm:"size:200;uniqueIndex;not null" json:"slug"`
-	LegalName  string `gorm:"size:300" json:"legal_name"`
-	TIN        string `gorm:"size:50" json:"tin"`
+	Name      string `gorm:"size:200;not null" json:"name"`
+	Slug      string `gorm:"size:200;uniqueIndex;not null" json:"slug"`
+	LegalName string `gorm:"size:300" json:"legal_name"`
+	TIN       string `gorm:"size:50" json:"tin"`
 
 	// Business classification
 	BusinessType string `gorm:"size:50;index" json:"business_type"`
@@ -57,12 +57,12 @@ type Organisation struct {
 	SMSSenderID      string `gorm:"size:20" json:"-"`
 	NgamiaAPIKey     string `gorm:"size:200" json:"-"`
 
-	MaxStores        int `gorm:"default:3" json:"max_stores"`
-	AICreditsMonthly int `gorm:"default:500" json:"ai_credits_monthly"`
-	Plan             string `gorm:"size:20;default:free;index" json:"plan"`
+	MaxStores        int        `gorm:"default:3" json:"max_stores"`
+	AICreditsMonthly int        `gorm:"default:500" json:"ai_credits_monthly"`
+	Plan             string     `gorm:"size:20;default:free;index" json:"plan"`
 	TrialEndsAt      *time.Time `json:"trial_ends_at"`
-	IsActive         bool `gorm:"default:true;index" json:"is_active"`
-	Settings         JSONMap   `gorm:"type:jsonb" json:"settings,omitempty"`
+	IsActive         bool       `gorm:"default:true;index" json:"is_active"`
+	Settings         JSONMap    `gorm:"type:jsonb" json:"settings,omitempty"`
 
 	Stores []Store `gorm:"constraint:OnDelete:CASCADE" json:"stores,omitempty"`
 }
@@ -73,7 +73,7 @@ type JSONMap map[string]interface{}
 // Store is a physical shop location of an Organisation.
 type Store struct {
 	models.BaseModel
-	OrganisationID uuid.UUID `gorm:"type:uuid;not null;index" json:"organisation_id"`
+	OrganisationID uuid.UUID     `gorm:"type:uuid;not null;index" json:"organisation_id"`
 	Organisation   *Organisation `gorm:"constraint:OnDelete:CASCADE" json:"organisation,omitempty"`
 
 	Name    string `gorm:"size:200;not null" json:"name"`
@@ -87,12 +87,12 @@ type Store struct {
 	Latitude  float64 `gorm:"type:double precision;index" json:"latitude"`
 	Longitude float64 `gorm:"type:double precision;index" json:"longitude"`
 
-	OpenHours  string `gorm:"size:50;default:7:00 AM – 9:00 PM" json:"open_hours"`
-	Color      string `gorm:"size:20;default:#6366f1" json:"color"`
-	IsMainStore bool `gorm:"default:false" json:"is_main_store"`
-	Status     string `gorm:"size:20;default:open;index" json:"status"`
-	IsActive   bool `gorm:"default:true;index" json:"is_active"`
-	VATEnabled bool `gorm:"default:true" json:"vat_enabled"`
+	OpenHours   string `gorm:"size:50;default:7:00 AM – 9:00 PM" json:"open_hours"`
+	Color       string `gorm:"size:20;default:#6366f1" json:"color"`
+	IsMainStore bool   `gorm:"default:false" json:"is_main_store"`
+	Status      string `gorm:"size:20;default:open;index" json:"status"`
+	IsActive    bool   `gorm:"default:true;index" json:"is_active"`
+	VATEnabled  bool   `gorm:"default:true" json:"vat_enabled"`
 
 	Staff []User `gorm:"constraint:OnDelete:SET NULL" json:"staff,omitempty"`
 }
@@ -100,35 +100,35 @@ type Store struct {
 // User is the custom auth principal. Login is phone (or email) + password.
 type User struct {
 	models.BaseModel
-	Phone     string `gorm:"size:10;uniqueIndex;not null" json:"phone"`
-	Email     string `gorm:"size:255;uniqueIndex" json:"email"`
-	FirstName string `gorm:"size:100" json:"first_name"`
-	LastName  string `gorm:"size:100" json:"last_name"`
-	Occupation string `gorm:"size:50" json:"occupation"` // job asked at registration
-	Role      string `gorm:"size:20;default:staff;index" json:"role"`
+	Phone      string  `gorm:"size:10;uniqueIndex;not null" json:"phone"`
+	Email      *string `gorm:"size:255;uniqueIndex" json:"email,omitempty"` // nil when unset so the unique index allows many emails-less staff
+	FirstName  string  `gorm:"size:100" json:"first_name"`
+	LastName   string  `gorm:"size:100" json:"last_name"`
+	Occupation string  `gorm:"size:50" json:"occupation"` // job asked at registration
+	Role       string  `gorm:"size:20;default:staff;index" json:"role"`
 
-	OrganisationID *uuid.UUID `gorm:"type:uuid;index" json:"organisation_id"`
+	OrganisationID *uuid.UUID    `gorm:"type:uuid;index" json:"organisation_id"`
 	Organisation   *Organisation `gorm:"constraint:OnDelete:SET NULL" json:"-"`
-	StoreID        *uuid.UUID `gorm:"type:uuid;index" json:"store_id"`
-	Store          *Store    `gorm:"constraint:OnDelete:SET NULL" json:"-"`
+	StoreID        *uuid.UUID    `gorm:"type:uuid;index" json:"store_id"`
+	Store          *Store        `gorm:"constraint:OnDelete:SET NULL" json:"-"`
 
 	PasswordHash string `gorm:"size:200;not null" json:"-"`
 
-	AvatarHue         int  `gorm:"default:260" json:"avatar_hue"`
-	Shift             string `gorm:"size:20;default:morning" json:"shift"`
-	EmploymentStatus  string `gorm:"size:20;default:active" json:"employment_status"`
-	PIN               string `gorm:"size:4" json:"-"`
-	CanRefund         bool `gorm:"default:false" json:"can_refund"`
-	CanDiscount       bool `gorm:"default:true" json:"can_discount"`
-	CanViewReports    bool `gorm:"default:false" json:"can_view_reports"`
+	AvatarHue        int    `gorm:"default:260" json:"avatar_hue"`
+	Shift            string `gorm:"size:20;default:morning" json:"shift"`
+	EmploymentStatus string `gorm:"size:20;default:active" json:"employment_status"`
+	PIN              string `gorm:"size:4" json:"-"`
+	CanRefund        bool   `gorm:"default:false" json:"can_refund"`
+	CanDiscount      bool   `gorm:"default:true" json:"can_discount"`
+	CanViewReports   bool   `gorm:"default:false" json:"can_view_reports"`
 
 	IsPhoneVerified bool `gorm:"default:false" json:"is_phone_verified"`
 	IsEmailVerified bool `gorm:"default:false" json:"is_email_verified"`
 	IsActive        bool `gorm:"default:true;index" json:"is_active"`
 
-	LastLogin     *time.Time `json:"last_login"`
-	LastLoginIP   string     `gorm:"size:45" json:"-"`
-	ResetToken    string     `gorm:"size:64;index" json:"-"`
+	LastLogin        *time.Time `json:"last_login"`
+	LastLoginIP      string     `gorm:"size:45" json:"-"`
+	ResetToken       string     `gorm:"size:64;index" json:"-"`
 	ResetTokenExpiry *time.Time `json:"-"`
 }
 

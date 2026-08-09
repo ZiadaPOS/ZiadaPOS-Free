@@ -164,7 +164,6 @@ func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*Regi
 		TrialEndsAt:  ptr(time.Now().Add(trialDays * 24 * time.Hour)),
 		IsActive:     true,
 	}
-
 	store := &Store{
 		Name:        strings.TrimSpace(req.Shop.Name) + " — Main",
 		Area:        req.Shop.Ward,
@@ -177,14 +176,14 @@ func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*Regi
 	}
 
 	user := &User{
-		Phone:         phone,
-		Email:         email,
-		FirstName:     strings.TrimSpace(req.FirstName),
-		LastName:      strings.TrimSpace(req.LastName),
-		Occupation:    req.Occupation,
-		Role:          RoleOwner,
-		PasswordHash:  string(hash),
-		IsActive:      true,
+		Phone:            phone,
+		Email:            OptionalEmail(req.Email),
+		FirstName:        strings.TrimSpace(req.FirstName),
+		LastName:         strings.TrimSpace(req.LastName),
+		Occupation:       req.Occupation,
+		Role:             RoleOwner,
+		PasswordHash:     string(hash),
+		IsActive:         true,
 		EmploymentStatus: "active",
 	}
 
@@ -449,7 +448,7 @@ func (s *AuthService) ResendConfirmation(ctx context.Context, userID uuid.UUID) 
 	if err != nil {
 		return apierr.NotFound("User not found")
 	}
-	if user.IsEmailVerified || user.Email == "" {
+	if user.IsEmailVerified || user.Email == nil || *user.Email == "" {
 		return apierr.BadRequest("Email already verified or not set")
 	}
 	return s.sendConfirmationEmail(user)
@@ -487,7 +486,7 @@ func (s *AuthService) PasswordReset(ctx context.Context, identifier, otp, newPas
 	}
 	if s.cache != nil {
 		_ = s.cache.Del(ctx, "login:lock:"+strings.ToLower(user.Phone))
-		_ = s.cache.Del(ctx, "login:lock:"+strings.ToLower(user.Email))
+		_ = s.cache.Del(ctx, "login:lock:"+strings.ToLower(EmailString(user.Email)))
 	}
 	return nil
 }
@@ -526,7 +525,7 @@ func (s *AuthService) sendConfirmationEmail(user *User) error {
 		<p>Or copy this link: <a href="%s">%s</a></p>
 		<p>This link expires in 72 hours.</p>`,
 		user.FullName(), link, link, link)
-	return s.mail.Send(user.Email, "Confirm your ZiadaPOS email", s.mail.Layout("Confirm email", body))
+	return s.mail.Send(EmailString(user.Email), "Confirm your ZiadaPOS email", s.mail.Layout("Confirm email", body))
 }
 
 func validatePhone(phone string) (string, error) {

@@ -31,35 +31,64 @@ func NewAccountService(repo *Repo, cache *cache.Cache, bus *events.Bus, cfg *con
 
 // UserResponse is the public shape of a user.
 type UserResponse struct {
-	ID              uuid.UUID  `json:"id"`
-	Phone           string     `json:"phone"`
-	Email           string     `json:"email,omitempty"`
-	FirstName       string     `json:"first_name"`
-	LastName        string     `json:"last_name"`
-	FullName        string     `json:"full_name"`
-	Initials        string     `json:"initials"`
-	Occupation      string     `json:"occupation"`
-	Role            string     `json:"role"`
-	OrganisationID  *uuid.UUID `json:"organisation_id,omitempty"`
-	StoreID         *uuid.UUID `json:"store_id,omitempty"`
-	AvatarHue       int        `json:"avatar_hue"`
-	Shift           string     `json:"shift"`
-	EmploymentStatus string    `json:"employment_status"`
-	CanRefund       bool       `json:"can_refund"`
-	CanDiscount     bool       `json:"can_discount"`
-	CanViewReports  bool       `json:"can_view_reports"`
-	IsPhoneVerified bool       `json:"is_phone_verified"`
-	IsEmailVerified bool       `json:"is_email_verified"`
-	IsActive        bool       `json:"is_active"`
-	LastLogin       *time.Time `json:"last_login,omitempty"`
-	CreatedAt       time.Time  `json:"created_at"`
+	ID               uuid.UUID  `json:"id"`
+	Phone            string     `json:"phone"`
+	Email            string     `json:"email,omitempty"`
+	FirstName        string     `json:"first_name"`
+	LastName         string     `json:"last_name"`
+	FullName         string     `json:"full_name"`
+	Initials         string     `json:"initials"`
+	Occupation       string     `json:"occupation"`
+	Role             string     `json:"role"`
+	OrganisationID   *uuid.UUID `json:"organisation_id,omitempty"`
+	StoreID          *uuid.UUID `json:"store_id,omitempty"`
+	AvatarHue        int        `json:"avatar_hue"`
+	Shift            string     `json:"shift"`
+	EmploymentStatus string     `json:"employment_status"`
+	CanRefund        bool       `json:"can_refund"`
+	CanDiscount      bool       `json:"can_discount"`
+	CanViewReports   bool       `json:"can_view_reports"`
+	IsPhoneVerified  bool       `json:"is_phone_verified"`
+	IsEmailVerified  bool       `json:"is_email_verified"`
+	IsActive         bool       `json:"is_active"`
+	LastLogin        *time.Time `json:"last_login,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+}
+
+// ToUserResponse builds the public representation of a user. Exported so
+// other apps (staff, reports) can embed the shape in their responses.
+func ToUserResponse(u *User) UserResponse {
+	return buildUserResponse(u)
 }
 
 func toUserResponse(u *User) UserResponse {
+	return buildUserResponse(u)
+}
+
+// OptionalEmail normalises a raw email string to a nullable pointer. Empty
+// strings become nil so the unique index does not collide across users that
+// have no email address (common for cashiers).
+func OptionalEmail(s string) *string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// EmailString safely dereferences a nullable email for display.
+func EmailString(e *string) string {
+	if e == nil {
+		return ""
+	}
+	return *e
+}
+
+func buildUserResponse(u *User) UserResponse {
 	return UserResponse{
 		ID:               u.ID,
 		Phone:            u.Phone,
-		Email:            u.Email,
+		Email:            EmailString(u.Email),
 		FirstName:        u.FirstName,
 		LastName:         u.LastName,
 		FullName:         u.FullName(),
@@ -84,33 +113,33 @@ func toUserResponse(u *User) UserResponse {
 
 // OrgResponse is the public shape of an organisation.
 type OrgResponse struct {
-	ID           uuid.UUID       `json:"id"`
-	Name         string          `json:"name"`
-	Slug         string          `json:"slug"`
-	BusinessType string          `json:"business_type"`
-	Occupation   string          `json:"occupation"`
-	Region       string          `json:"region"`
-	District     string          `json:"district"`
-	Ward         string          `json:"ward"`
-	Street       string          `json:"street"`
-	Address      string          `json:"address"`
-	Latitude     float64         `json:"latitude"`
-	Longitude    float64         `json:"longitude"`
-	Phone        string          `json:"phone"`
-	Email        string          `json:"email"`
-	Logo         string          `json:"logo"`
-	TIN          string          `json:"tin"`
-	Currency     string          `json:"currency"`
-	Plan         string          `json:"plan"`
-	TrialEndsAt  *time.Time      `json:"trial_ends_at"`
-	MaxStores    int             `json:"max_stores"`
-	CanAddStore  bool            `json:"can_add_store"`
-	AIUsed       int             `json:"ai_credits_used"`
-	AIAllocated  int             `json:"ai_credits_allocated"`
-	SMSSenderID  string          `json:"sms_sender_id"`
-	SMSConfigured bool           `json:"sms_configured"`
-	NGAMIASetup  bool            `json:"ngamia_configured"`
-	Stores       []StoreResponse `json:"stores,omitempty"`
+	ID            uuid.UUID       `json:"id"`
+	Name          string          `json:"name"`
+	Slug          string          `json:"slug"`
+	BusinessType  string          `json:"business_type"`
+	Occupation    string          `json:"occupation"`
+	Region        string          `json:"region"`
+	District      string          `json:"district"`
+	Ward          string          `json:"ward"`
+	Street        string          `json:"street"`
+	Address       string          `json:"address"`
+	Latitude      float64         `json:"latitude"`
+	Longitude     float64         `json:"longitude"`
+	Phone         string          `json:"phone"`
+	Email         string          `json:"email"`
+	Logo          string          `json:"logo"`
+	TIN           string          `json:"tin"`
+	Currency      string          `json:"currency"`
+	Plan          string          `json:"plan"`
+	TrialEndsAt   *time.Time      `json:"trial_ends_at"`
+	MaxStores     int             `json:"max_stores"`
+	CanAddStore   bool            `json:"can_add_store"`
+	AIUsed        int             `json:"ai_credits_used"`
+	AIAllocated   int             `json:"ai_credits_allocated"`
+	SMSSenderID   string          `json:"sms_sender_id"`
+	SMSConfigured bool            `json:"sms_configured"`
+	NGAMIASetup   bool            `json:"ngamia_configured"`
+	Stores        []StoreResponse `json:"stores,omitempty"`
 }
 
 // StoreResponse is the public shape of a store.
@@ -154,9 +183,9 @@ func toStoreResponse(s *Store) StoreResponse {
 
 // ProfileContext bundles the authenticated user's full context.
 type ProfileContext struct {
-	User         UserResponse `json:"user"`
-	Organisation *OrgResponse `json:"organisation,omitempty"`
-	Store        *StoreResponse `json:"store,omitempty"`
+	User         UserResponse    `json:"user"`
+	Organisation *OrgResponse    `json:"organisation,omitempty"`
+	Store        *StoreResponse  `json:"store,omitempty"`
 	AllStores    []StoreResponse `json:"stores,omitempty"`
 }
 
@@ -243,11 +272,11 @@ func (s *AccountService) Me(ctx context.Context, userID uuid.UUID) (*ProfileCont
 
 // UpdateProfileRequest updates the current user.
 type UpdateProfileRequest struct {
-	FirstName    *string `json:"first_name"`
-	LastName     *string `json:"last_name"`
-	Email        *string `json:"email"`
-	Occupation   *string `json:"occupation"`
-	Password     *string `json:"password"`
+	FirstName  *string `json:"first_name"`
+	LastName   *string `json:"last_name"`
+	Email      *string `json:"email"`
+	Occupation *string `json:"occupation"`
+	Password   *string `json:"password"`
 }
 
 // UpdateProfile applies editable profile fields.
@@ -268,14 +297,14 @@ func (s *AccountService) UpdateProfile(ctx context.Context, userID uuid.UUID, re
 		}
 		user.Occupation = *req.Occupation
 	}
-	if req.Email != nil && *req.Email != user.Email {
+	if req.Email != nil && strings.ToLower(strings.TrimSpace(*req.Email)) != strings.ToLower(EmailString(user.Email)) {
 		email := strings.ToLower(strings.TrimSpace(*req.Email))
 		if email != "" {
 			if existing, _ := s.repo.GetUserByEmail(email); existing != nil && existing.ID != user.ID {
 				return nil, apierr.Conflict("Email already in use")
 			}
 		}
-		user.Email = email
+		user.Email = OptionalEmail(email)
 		user.IsEmailVerified = false
 	}
 	if req.Password != nil && *req.Password != "" {
@@ -300,24 +329,24 @@ func (s *AccountService) UpdateProfile(ctx context.Context, userID uuid.UUID, re
 
 // UpdateOrganisationRequest updates org settings including integrations.
 type UpdateOrganisationRequest struct {
-	Name            *string `json:"name"`
-	LegalName       *string `json:"legal_name"`
-	TIN             *string `json:"tin"`
-	BusinessType    *string `json:"business_type"`
-	Occupation      *string `json:"occupation"`
-	Region          *string `json:"region"`
-	District        *string `json:"district"`
-	Ward            *string `json:"ward"`
-	Street          *string `json:"street"`
-	Address         *string `json:"address"`
-	Latitude        *float64 `json:"latitude"`
-	Longitude       *float64 `json:"longitude"`
-	Phone           *string `json:"phone"`
-	Email           *string `json:"email"`
-	Logo            *string `json:"logo"`
-	SendAfricaKey   *string `json:"sendafrica_api_key"`
-	SMSSenderID     *string `json:"sms_sender_id"`
-	NgamiaAPIKey    *string `json:"ngamia_api_key"`
+	Name          *string  `json:"name"`
+	LegalName     *string  `json:"legal_name"`
+	TIN           *string  `json:"tin"`
+	BusinessType  *string  `json:"business_type"`
+	Occupation    *string  `json:"occupation"`
+	Region        *string  `json:"region"`
+	District      *string  `json:"district"`
+	Ward          *string  `json:"ward"`
+	Street        *string  `json:"street"`
+	Address       *string  `json:"address"`
+	Latitude      *float64 `json:"latitude"`
+	Longitude     *float64 `json:"longitude"`
+	Phone         *string  `json:"phone"`
+	Email         *string  `json:"email"`
+	Logo          *string  `json:"logo"`
+	SendAfricaKey *string  `json:"sendafrica_api_key"`
+	SMSSenderID   *string  `json:"sms_sender_id"`
+	NgamiaAPIKey  *string  `json:"ngamia_api_key"`
 }
 
 // UpdateOrganisation persists org settings.
@@ -425,14 +454,15 @@ func (s *AccountService) SwitchStore(ctx context.Context, userID uuid.UUID, stor
 
 // CreateStaffRequest adds a staff member.
 type CreateStaffRequest struct {
-	FirstName string `json:"first_name" binding:"required"`
-	LastName  string `json:"last_name"`
-	Phone     string `json:"phone" binding:"required"`
-	Role      string `json:"role"`
-	StoreID   *uuid.UUID `json:"store_id"`
-	CanRefund bool      `json:"can_refund"`
-	CanDiscount bool    `json:"can_discount"`
-	CanViewReports bool `json:"can_view_reports"`
+	FirstName      string     `json:"first_name" binding:"required"`
+	LastName       string     `json:"last_name"`
+	Phone          string     `json:"phone" binding:"required"`
+	Email          string     `json:"email"`
+	Role           string     `json:"role"`
+	StoreID        *uuid.UUID `json:"store_id"`
+	CanRefund      bool       `json:"can_refund"`
+	CanDiscount    bool       `json:"can_discount"`
+	CanViewReports bool       `json:"can_view_reports"`
 }
 
 // CreateStaff adds a staff user to the organisation.
@@ -463,22 +493,23 @@ func (s *AccountService) CreateStaff(ctx context.Context, orgID uuid.UUID, req *
 		return nil, err
 	}
 	user := &User{
-		Phone:             phone,
-		FirstName:         strings.TrimSpace(req.FirstName),
-		LastName:          strings.TrimSpace(req.LastName),
-		Role:              role,
-		OrganisationID:    &orgID,
-		StoreID:           req.StoreID,
-		PasswordHash:      string(hash),
-		IsActive:          true,
-		CanRefund:         req.CanRefund,
-		CanDiscount:       req.CanDiscount,
-		CanViewReports:    req.CanViewReports,
-		EmploymentStatus:  "active",
+		Phone:            phone,
+		Email:            OptionalEmail(req.Email),
+		FirstName:        strings.TrimSpace(req.FirstName),
+		LastName:         strings.TrimSpace(req.LastName),
+		Role:             role,
+		OrganisationID:   &orgID,
+		StoreID:          req.StoreID,
+		PasswordHash:     string(hash),
+		IsActive:         true,
+		CanRefund:        req.CanRefund,
+		CanDiscount:      req.CanDiscount,
+		CanViewReports:   req.CanViewReports,
+		EmploymentStatus: "active",
 	}
 	if err := s.repo.CreateUser(user); err != nil {
 		if isUniqueViolation(err) {
-			return nil, apierr.Conflict("A user with this phone already exists")
+			return nil, apierr.Conflict("A user with this phone or email already exists")
 		}
 		return nil, err
 	}
@@ -588,7 +619,7 @@ func (s *AccountService) orgResponse(orgID uuid.UUID) (*OrgResponse, error) {
 		AIUsed: aiUsed, AIAllocated: aiAlloc,
 		SMSSenderID: org.SMSSenderID, SMSConfigured: org.SendAfricaAPIKey != "",
 		NGAMIASetup: org.NgamiaAPIKey != "",
-		Stores: storeList,
+		Stores:      storeList,
 	}, nil
 }
 

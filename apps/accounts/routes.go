@@ -45,7 +45,7 @@ func RegisterHandlers(bus *events.Bus, deps *server.Deps) {
 			return nil
 		}
 		user, err := repo.GetUserByID(*uid)
-		if err != nil || user.Email == "" {
+		if err != nil || user.Email == nil || *user.Email == "" {
 			return err
 		}
 		auth := NewAuthService(repo, deps.Cache, deps.Mailer, deps.SMS, deps.Tokens, deps.Bus, deps.Cfg)
