@@ -61,7 +61,8 @@ func (s *Service) CreateTabFromSale(ctx context.Context, orgID, storeID, custome
 		return err
 	}
 	s.bus.Publish("credit.tab_created", map[string]interface{}{
-		"tab_id": tab.ID, "customer_id": customerID, "store_id": storeID, "amount": amount,
+		"tab_id": tab.ID, "customer_id": customerID, "store_id": storeID,
+		"org_id": orgID, "amount": amount,
 	})
 	return nil
 }
@@ -94,7 +95,7 @@ func (s *Service) SettleTabForRefund(ctx context.Context, txnID uuid.UUID) error
 
 // RecordPayment distributes a lump-sum payment across the customer's open
 // tabs (oldest first) and updates the cached open_credit.
-func (s *Service) RecordPayment(ctx context.Context, storeID, customerID, cashierID uuid.UUID, amount int64, method, reference, note string) (*CreditPayment, error) {
+func (s *Service) RecordPayment(ctx context.Context, orgID, storeID, customerID, cashierID uuid.UUID, amount int64, method, reference, note string) (*CreditPayment, error) {
 	if amount <= 0 {
 		return nil, apierr.BadRequest("Payment amount must be positive").WithField("amount", "greater than zero")
 	}
@@ -164,7 +165,8 @@ func (s *Service) RecordPayment(ctx context.Context, storeID, customerID, cashie
 	}
 
 	s.bus.Publish("credit.payment_received", map[string]interface{}{
-		"payment_id": payment.ID, "customer_id": customerID, "store_id": storeID, "amount": amount,
+		"payment_id": payment.ID, "customer_id": customerID, "store_id": storeID,
+		"org_id": orgID, "amount": amount,
 	})
 	return payment, nil
 }

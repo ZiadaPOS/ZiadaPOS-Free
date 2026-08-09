@@ -86,6 +86,11 @@ func (h *Handler) Profile(c *gin.Context) {
 
 // Pay godoc: POST /credits/customers/{customer_id}/payments
 func (h *Handler) Pay(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
 	storeID, err := uuid.Parse(middleware.StoreID(c))
 	if err != nil {
 		response.NotFound(c, "Store not found")
@@ -106,7 +111,7 @@ func (h *Handler) Pay(c *gin.Context) {
 		response.BadRequest(c, "Invalid request", nil)
 		return
 	}
-	pay, err := h.svc.RecordPayment(c.Request.Context(), storeID, customerID, cashierID, req.Amount, req.Method, req.Reference, req.Note)
+	pay, err := h.svc.RecordPayment(c.Request.Context(), orgID, storeID, customerID, cashierID, req.Amount, req.Method, req.Reference, req.Note)
 	if err != nil {
 		writeErr(c, err)
 		return

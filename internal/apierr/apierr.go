@@ -15,7 +15,7 @@ type Error struct {
 	Status  int
 	Code    string
 	Message string
-	Fields  map[string]string
+	Fields  map[string]interface{}
 }
 
 func (e *Error) Error() string { return e.Message }
@@ -25,10 +25,11 @@ func New(status int, code, message string) *Error {
 	return &Error{Status: status, Code: code, Message: message}
 }
 
-// WithField attaches a field-level validation message.
-func (e *Error) WithField(field, msg string) *Error {
+// WithField attaches a field-level detail to the error payload. Values may
+// be any JSON-serialisable type (string, number, bool, nested maps).
+func (e *Error) WithField(field string, msg interface{}) *Error {
 	if e.Fields == nil {
-		e.Fields = map[string]string{}
+		e.Fields = map[string]interface{}{}
 	}
 	e.Fields[field] = msg
 	return e

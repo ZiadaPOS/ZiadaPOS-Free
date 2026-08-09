@@ -23,13 +23,22 @@ import (
 
 	// apps (registered as they are built)
 	"github.com/troubleman96/ziadapos/apps/accounts"
+	appai "github.com/troubleman96/ziadapos/apps/ai"
+	"github.com/troubleman96/ziadapos/apps/analytics"
 	"github.com/troubleman96/ziadapos/apps/credits"
 	"github.com/troubleman96/ziadapos/apps/customers"
 	"github.com/troubleman96/ziadapos/apps/expenses"
 	"github.com/troubleman96/ziadapos/apps/inventory"
+	"github.com/troubleman96/ziadapos/apps/notebook"
+	"github.com/troubleman96/ziadapos/apps/notifications"
+	"github.com/troubleman96/ziadapos/apps/reports"
+	"github.com/troubleman96/ziadapos/apps/reviews"
 	"github.com/troubleman96/ziadapos/apps/staff"
+	"github.com/troubleman96/ziadapos/apps/stores"
+	"github.com/troubleman96/ziadapos/apps/subscriptions"
 	"github.com/troubleman96/ziadapos/apps/suppliers"
 	"github.com/troubleman96/ziadapos/apps/transactions"
+	"github.com/troubleman96/ziadapos/apps/uploads"
 	"gorm.io/gorm"
 )
 
@@ -151,4 +160,56 @@ func registerApps(db *gorm.DB, deps *server.Deps, srv *server.Server) {
 		log.Fatalf("staff migrate: %v", err)
 	}
 	staff.RegisterRoutes(srv.Base, deps)
+
+	if err := subscriptions.Migrate(db); err != nil {
+		log.Fatalf("subscriptions migrate: %v", err)
+	}
+	subscriptions.RegisterHandlers(deps.Bus, deps)
+	subscriptions.RegisterRoutes(srv.Base, deps)
+
+	if err := analytics.Migrate(db); err != nil {
+		log.Fatalf("analytics migrate: %v", err)
+	}
+	analytics.RegisterHandlers(deps.Bus, deps)
+	analytics.RegisterRoutes(srv.Base, deps)
+
+	if err := stores.Migrate(db); err != nil {
+		log.Fatalf("stores migrate: %v", err)
+	}
+	stores.RegisterHandlers(deps.Bus, deps)
+	stores.RegisterRoutes(srv.Base, deps)
+
+	if err := notebook.Migrate(db); err != nil {
+		log.Fatalf("notebook migrate: %v", err)
+	}
+	notebook.RegisterHandlers(deps.Bus, deps)
+	notebook.RegisterRoutes(srv.Base, deps)
+
+	if err := reviews.Migrate(db); err != nil {
+		log.Fatalf("reviews migrate: %v", err)
+	}
+	reviews.RegisterHandlers(deps.Bus, deps)
+	reviews.RegisterRoutes(srv.Base, deps)
+
+	if err := appai.Migrate(db); err != nil {
+		log.Fatalf("ai migrate: %v", err)
+	}
+	appai.RegisterRoutes(srv.Base, deps)
+
+	if err := reports.Migrate(db); err != nil {
+		log.Fatalf("reports migrate: %v", err)
+	}
+	reports.RegisterHandlers(deps.Bus, deps)
+	reports.RegisterRoutes(srv.Base, deps)
+
+	if err := notifications.Migrate(db); err != nil {
+		log.Fatalf("notifications migrate: %v", err)
+	}
+	notifications.RegisterHandlers(deps.Bus, deps)
+	notifications.RegisterRoutes(srv.Base, deps)
+
+	if err := uploads.Migrate(db); err != nil {
+		log.Fatalf("uploads migrate: %v", err)
+	}
+	uploads.RegisterRoutes(srv.Base, deps)
 }
