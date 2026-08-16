@@ -21,10 +21,10 @@ def register(mcp: Any, client: Any) -> None:
         shop's image storage (MinIO) and returns the public URL + source so you
         can attach it to a product's `image` field."""
         hits = await _search_commons(query)
-        if not hits:
-            shorter = " ".join(query.split()[:3])
-            if shorter != query:
-                hits = await _search_commons(shorter)
+        words = query.split()
+        while not hits and len(words) > 1:
+            words = words[:-1]
+            hits = await _search_commons(" ".join(words))
         if not hits:
             return {"error": f"No image found for {query!r}. Ask the owner to provide one."}
 
