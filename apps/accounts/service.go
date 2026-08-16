@@ -513,6 +513,10 @@ func (s *AuthService) sendConfirmationEmail(user *User) error {
 	if err != nil {
 		return err
 	}
+	// One token per user (unique index on user_id) — replace any previous one.
+	if err := s.repo.DeleteEmailTokenForUser(user.ID); err != nil {
+		return err
+	}
 	vt := &EmailVerificationToken{UserID: user.ID, Token: token, ExpiresAt: time.Now().Add(72 * time.Hour)}
 	if err := s.repo.CreateEmailToken(vt); err != nil {
 		return err

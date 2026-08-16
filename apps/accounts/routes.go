@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"github.com/troubleman96/ziadapos/internal/events"
 	"github.com/troubleman96/ziadapos/internal/middleware"
 	"github.com/troubleman96/ziadapos/internal/response"
 	"github.com/troubleman96/ziadapos/internal/server"
+	"github.com/troubleman96/ziadapos/internal/uuidx"
 )
 
 // Migrate creates the accounts schema.
@@ -36,11 +36,7 @@ func RegisterHandlers(bus *events.Bus, deps *server.Deps) {
 		if !ok {
 			return nil
 		}
-		userID, ok := payload["user_id"].(string)
-		if !ok {
-			return nil
-		}
-		uid := parseUUID(userID)
+		uid := uuidx.Parse(payload["user_id"])
 		if uid == nil {
 			return nil
 		}
@@ -60,8 +56,7 @@ func RegisterHandlers(bus *events.Bus, deps *server.Deps) {
 		}
 		phone, _ := payload["phone"].(string)
 		if phone == "" {
-			userID, _ := payload["user_id"].(string)
-			if uid := parseUUID(userID); uid != nil {
+			if uid := uuidx.Parse(payload["user_id"]); uid != nil {
 				if u, err := repo.GetUserByID(*uid); err == nil {
 					phone = u.Phone
 				}
@@ -132,12 +127,4 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 		})
 		meta.GET("/occupations", func(c *gin.Context) { response.OK(c, Occupations) })
 	}
-}
-
-func parseUUID(s string) *uuid.UUID {
-	uid, err := uuid.Parse(s)
-	if err != nil {
-		return nil
-	}
-	return &uid
 }

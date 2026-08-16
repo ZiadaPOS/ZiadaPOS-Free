@@ -184,7 +184,7 @@ func (h *Handler) UpdateProduct(c *gin.Context) {
 		response.BadRequest(c, "Invalid product id", nil)
 		return
 	}
-	var req ProductInput
+	var req UpdateProductInput
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request", nil)
 		return

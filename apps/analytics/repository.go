@@ -241,7 +241,7 @@ func (r *Repo) CategoryRevenue(ctx context.Context, storeID uuid.UUID, from, to 
 		Joins("LEFT JOIN categories AS c ON c.id = p.category_id").
 		Where("t.store_id = ? AND t.status IN ? AND t.created_at >= ? AND t.created_at < ?",
 			storeID, []string{statusPaid, statusCredit}, from, to).
-		Group("name").Scan(&rows).Error
+		Group("c.name").Scan(&rows).Error
 	return rows, err
 }
 

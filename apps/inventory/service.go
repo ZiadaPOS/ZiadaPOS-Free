@@ -283,24 +283,46 @@ func (s *Service) GetProduct(ctx context.Context, storeID, id uuid.UUID) (*Produ
 }
 
 // UpdateProduct edits a product and resets caches.
-func (s *Service) UpdateProduct(ctx context.Context, storeID, id uuid.UUID, in *ProductInput) (*Product, error) {
+func (s *Service) UpdateProduct(ctx context.Context, storeID, id uuid.UUID, in *UpdateProductInput) (*Product, error) {
 	orgID, _ := s.repo.StoreOrgID(storeID)
 	p, err := s.repo.GetProduct(storeID, id)
 	if err != nil {
 		return nil, apierr.NotFound("Product not found")
 	}
-	if strings.TrimSpace(in.Name) != "" {
-		p.Name = strings.TrimSpace(in.Name)
+	if in.Name != nil {
+		name := strings.TrimSpace(*in.Name)
+		if name == "" {
+			return nil, apierr.BadRequest("Product name is required")
+		}
+		p.Name = name
 	}
-	p.SKU = optStr(in.SKU)
-	p.Barcode = optStr(in.Barcode)
-	p.CostPrice = in.CostPrice
-	p.SellingPrice = in.SellingPrice
-	p.ReorderPoint = in.ReorderPoint
-	p.Image = in.Image
-	p.TaxRate = in.TaxRate
-	p.Description = in.Description
-	p.IsService = in.IsService
+	if in.SKU != nil {
+		p.SKU = optStr(*in.SKU)
+	}
+	if in.Barcode != nil {
+		p.Barcode = optStr(*in.Barcode)
+	}
+	if in.CostPrice != nil {
+		p.CostPrice = *in.CostPrice
+	}
+	if in.SellingPrice != nil {
+		p.SellingPrice = *in.SellingPrice
+	}
+	if in.ReorderPoint != nil {
+		p.ReorderPoint = *in.ReorderPoint
+	}
+	if in.Image != nil {
+		p.Image = *in.Image
+	}
+	if in.TaxRate != nil {
+		p.TaxRate = *in.TaxRate
+	}
+	if in.Description != nil {
+		p.Description = *in.Description
+	}
+	if in.IsService != nil {
+		p.IsService = *in.IsService
+	}
 	if in.CategoryID != nil {
 		p.CategoryID = in.CategoryID
 	}
@@ -449,6 +471,25 @@ type ProductInput struct {
 	IsService    bool      `json:"is_service"`
 	IsActive     *bool     `json:"is_active"`
 	CreatedBy    uuid.UUID `json:"-"`
+}
+
+// UpdateProductInput is used for PATCH /inventory/products/{id}. Every field is
+// optional (pointer) so callers can update a single field (e.g. image) without
+// resending the whole product.
+type UpdateProductInput struct {
+	Name         *string    `json:"name"`
+	CategoryID   *uuid.UUID `json:"category_id"`
+	SKU          *string    `json:"sku"`
+	Barcode      *string    `json:"barcode"`
+	CostPrice    *int64     `json:"cost_price"`
+	SellingPrice *int64     `json:"selling_price"`
+	Stock        *int       `json:"stock"`
+	ReorderPoint *int       `json:"reorder_point"`
+	Image        *string    `json:"image"`
+	TaxRate      *float64   `json:"tax_rate"`
+	Description  *string    `json:"description"`
+	IsService    *bool      `json:"is_service"`
+	IsActive     *bool      `json:"is_active"`
 }
 
 func productResponse(p *Product) map[string]interface{} {

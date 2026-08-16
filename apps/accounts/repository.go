@@ -160,6 +160,12 @@ func (r *Repo) InvalidateOTPs(phone, purpose string) error {
 
 func (r *Repo) CreateEmailToken(t *EmailVerificationToken) error { return r.db.Create(t).Error }
 
+// DeleteEmailTokenForUser removes any existing verification token for a user
+// so a resend can replace it (user_id has a unique index).
+func (r *Repo) DeleteEmailTokenForUser(userID uuid.UUID) error {
+	return r.db.Where("user_id = ?", userID).Delete(&EmailVerificationToken{}).Error
+}
+
 func (r *Repo) GetEmailToken(token string) (*EmailVerificationToken, error) {
 	var t EmailVerificationToken
 	err := r.db.Where("token = ? AND expires_at > ?", token, time.Now()).First(&t).Error

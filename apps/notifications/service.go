@@ -11,6 +11,7 @@ import (
 	"github.com/troubleman96/ziadapos/apps/accounts"
 	"github.com/troubleman96/ziadapos/apps/inventory"
 	"github.com/troubleman96/ziadapos/internal/events"
+	"github.com/troubleman96/ziadapos/internal/uuidx"
 )
 
 // Service creates notifications and subscribes to domain events so the API
@@ -222,17 +223,7 @@ func (s *Service) orgForStore(ctx context.Context, storeID uuid.UUID) *uuid.UUID
 	return &row.OrganisationID
 }
 
-func parseUUID(v interface{}) *uuid.UUID {
-	s, ok := v.(string)
-	if !ok {
-		return nil
-	}
-	id, err := uuid.Parse(s)
-	if err != nil {
-		return nil
-	}
-	return &id
-}
+func parseUUID(v interface{}) *uuid.UUID { return uuidx.Parse(v) }
 
 func money(n int64) string {
 	neg := n < 0

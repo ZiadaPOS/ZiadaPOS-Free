@@ -62,15 +62,24 @@ type Config struct {
 	SMTPFrom     string
 	SMTPFromName string
 
+	// MailAfrica (email over REST API). FromDomain is the sending domain the
+	// user owns on MailAfrica (e.g. ziadapos.com); the numeric domain ID is
+	// resolved automatically from the account on first use.
+	MailAfricaAPIKey      string
+	MailAfricaBaseURL     string
+	MailAfricaFromDomain  string
+	MailAfricaFromAddress string
+	MailAfricaFromName    string
+
 	// SendAfrica SMS integration
-	SendAfricaBaseURL   string
-	SendAfricaAPIKey    string
-	SendAfricaSenderID  string
+	SendAfricaBaseURL  string
+	SendAfricaAPIKey   string
+	SendAfricaSenderID string
 
 	// Ngamia AI integration
-	NgamiaBaseURL  string
-	NgamiaAPIKey   string
-	NgamiaModel    string
+	NgamiaBaseURL string
+	NgamiaAPIKey  string
+	NgamiaModel   string
 
 	// Scheduler (Africa/Dar_es_Salaam)
 	DailyReportHour   int
@@ -179,6 +188,12 @@ func Load(envFile string) (*Config, error) {
 		SMTPPassword: env("SMTP_PASSWORD", ""),
 		SMTPFrom:     env("SMTP_FROM", "no-reply@ziadapos.com"),
 		SMTPFromName: env("SMTP_FROM_NAME", "ZiadaPOS"),
+
+		MailAfricaAPIKey:      env("MAILAFRICA_API_KEY", ""),
+		MailAfricaBaseURL:     env("MAILAFRICA_BASE_URL", "https://api.mailafrica.online"),
+		MailAfricaFromDomain:  env("MAILAFRICA_FROM_DOMAIN", ""),
+		MailAfricaFromAddress: env("MAILAFRICA_FROM_ADDRESS", ""),
+		MailAfricaFromName:    env("MAILAFRICA_FROM_NAME", "ZiadaPOS"),
 
 		SendAfricaBaseURL:  env("SENDAFRICA_BASE_URL", "https://api.sendafrica.online"),
 		SendAfricaAPIKey:   env("SENDAFRICA_API_KEY", ""),

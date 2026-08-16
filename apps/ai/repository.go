@@ -105,7 +105,7 @@ func (r *Repo) UsageTotals(ctx context.Context, storeID uuid.UUID) (int64, int64
 		Select(`
 			COUNT(*) AS count,
 			COALESCE(SUM(m.prompt_tokens),0) AS prom,
-			COALESCE(SUM(m.completion_tokens),0) AS comp`).
+			COALESCE(SUM(m.completion),0) AS comp`).
 		Joins("JOIN ai_conversations AS c ON c.id = m.conversation_id").
 		Where("c.store_id = ? AND m.role = 'assistant'", storeID).
 		Scan(&a).Error
@@ -119,11 +119,11 @@ func (r *Repo) RecentMessages(ctx context.Context, storeID uuid.UUID, n int) ([]
 		ConversationTitle string    `gorm:"column:conversation_title"`
 		ModelUsed         string    `gorm:"column:model_used"`
 		PromptTokens      int       `gorm:"column:prompt_tokens"`
-		Completion        int       `gorm:"column:completion_tokens"`
+		Completion        int       `gorm:"column:completion"`
 		CreatedAt         time.Time `gorm:"column:created_at"`
 	}
 	err := r.db.Table("ai_messages AS m").
-		Select("m.id, c.title AS conversation_title, m.model_used, m.prompt_tokens, m.completion_tokens, m.created_at").
+		Select("m.id, c.title AS conversation_title, m.model_used, m.prompt_tokens, m.completion, m.created_at").
 		Joins("JOIN ai_conversations AS c ON c.id = m.conversation_id").
 		Where("c.store_id = ? AND m.role = 'assistant'", storeID).
 		Order("m.created_at desc").
@@ -281,12 +281,12 @@ func (r *Repo) Credit(ctx context.Context, orgID uuid.UUID) (*AICredit, error) {
 		alloc = 5000
 	}
 	c = AICredit{
-		ID:        uuid.New(),
-		OrgID:     orgID,
-		Year:      now.Year(),
-		Month:     int(now.Month()),
-		Used:      0,
-		Allocated: alloc,
+		ID:             uuid.New(),
+		OrganisationID: orgID,
+		Year:           now.Year(),
+		Month:          int(now.Month()),
+		Used:           0,
+		Allocated:      alloc,
 	}
 	if err := r.db.Create(&c).Error; err != nil {
 		return nil, err

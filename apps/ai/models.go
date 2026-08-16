@@ -38,12 +38,12 @@ func (Message) TableName() string { return "ai_messages" }
 
 // AICredit tracks the org's monthly AI allowance.
 type AICredit struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
-	OrgID     uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_org_month" json:"organisation_id"`
-	Year      int       `gorm:"uniqueIndex:idx_org_month" json:"year"`
-	Month     int       `gorm:"uniqueIndex:idx_org_month" json:"month"`
-	Used      int       `gorm:"default:0" json:"used"`
-	Allocated int       `gorm:"default:0" json:"allocated"`
+	ID             uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	OrganisationID uuid.UUID `gorm:"column:organisation_id;type:uuid;not null;uniqueIndex:idx_org_month" json:"organisation_id"`
+	Year           int       `gorm:"uniqueIndex:idx_org_month" json:"year"`
+	Month          int       `gorm:"uniqueIndex:idx_org_month" json:"month"`
+	Used           int       `gorm:"default:0" json:"used"`
+	Allocated      int       `gorm:"default:0" json:"allocated"`
 }
 
 // TableName maps to the shared ai_credits table.

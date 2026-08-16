@@ -238,7 +238,7 @@ func (r *Repo) StoreKPIs(storeID uuid.UUID, todayStart, monthStart time.Time) (*
 		Sales int64
 	}
 	var row top
-	err = r.db.Model(&transactions.Transaction{}).
+	err = r.db.Table("transactions AS t").
 		Select("u.first_name || ' ' || COALESCE(u.last_name, '') AS name, COALESCE(SUM(t.total),0) AS sales").
 		Joins("JOIN users u ON u.id = t.cashier_id").
 		Where("t.store_id = ? AND t.status = ? AND t.created_at >= ? AND t.created_at < ?",
