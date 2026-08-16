@@ -12,7 +12,7 @@ def test_all_domain_tools_registered(mcp):
     import asyncio
 
     tools = asyncio.run(mcp._tool_manager.get_tools())  # type: ignore[attr-defined]
-    assert len(tools) >= 105
+    assert len(tools) >= 109
     assert "ask" in tools
     for name in (
         "list_products",
@@ -28,6 +28,10 @@ def test_all_domain_tools_registered(mcp):
         "list_stores",
         "create_staff",
         "get_me",
+        "send_sms",
+        "send_email",
+        "sms_balance",
+        "email_balance",
     ):
         assert name in tools, f"missing tool {name}"
 
@@ -130,3 +134,14 @@ async def test_agent_loop_handles_tool_error():
 
     answer = await run_agent(mcp, FakeClient(), FakeNgamia(), "do it")
     assert answer == "Kuna tatizo."
+
+
+def test_normalize_phone():
+    from ziada_mcp.notify import normalize_phone
+
+    assert normalize_phone("0628587749") == "0628587749"
+    assert normalize_phone("+255628587749") == "0628587749"
+    assert normalize_phone("255628587749") == "0628587749"
+    assert normalize_phone("712345678") == "0712345678"
+    with pytest.raises(ValueError):
+        normalize_phone("1122")

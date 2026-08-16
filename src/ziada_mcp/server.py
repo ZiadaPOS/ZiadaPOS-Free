@@ -12,6 +12,7 @@ from fastmcp import FastMCP
 from .agent import register_agent
 from .client import ZiadaClient
 from .config import get_settings
+from .notify import NotifyClient
 from .tools import register_all
 
 
@@ -43,7 +44,7 @@ def build_server() -> FastMCP:
         lifespan=lifespan,
     )
 
-    count = register_all(mcp, client)
+    count = register_all(mcp, client, NotifyClient(settings))
     register_agent(mcp, client, settings)
     log.info("Registered %d tools + ask agent (store %s)", count, client.store_name)
 

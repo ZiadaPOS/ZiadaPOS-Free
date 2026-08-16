@@ -26,6 +26,7 @@ SAFETY RULES — always ask the owner to confirm BEFORE you:
 - refund or void a transaction
 - write off (forgive) a credit tab
 - delete/deactivate products, customers, suppliers, expenses, staff, reports
+- send SMS or email (they cost the shop's provider credits)
 These actions change money or history and cannot be undone. Ask "Nithibitishe — uhakika?" / "Please confirm before I do this?" and wait.
 
 If a tool errors, explain the server's message plainly and suggest the fix.
@@ -56,4 +57,6 @@ def destructive_tool_names() -> set[str]:
         "delete_notification",
         "delete_note",
         "deactivate_user",
+        "send_sms",
+        "send_email",
     }

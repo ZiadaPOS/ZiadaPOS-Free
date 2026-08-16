@@ -54,6 +54,42 @@ class Settings(BaseSettings):
         description="Timeout for a single LLM call.",
     )
 
+    # ── SendAfrica SMS (used directly by the send_sms tool) ───────────────
+    sendafrica_base_url: str = Field(
+        default="https://api.sendafrica.online",
+        description="SendAfrica API base URL.",
+    )
+    sendafrica_api_key: str = Field(
+        default="",
+        description="SendAfrica API key (X-API-Key header).",
+    )
+    sendafrica_sender_id: str = Field(
+        default="SendAfrika",
+        description="Sender ID for outgoing SMS.",
+    )
+
+    # ── MailAfrica email (used directly by the send_email tool) ────────────
+    mailafrica_base_url: str = Field(
+        default="https://api.mailafrica.online",
+        description="MailAfrica API base URL.",
+    )
+    mailafrica_api_key: str = Field(
+        default="",
+        description="MailAfrica API key (X-API-Key header).",
+    )
+    mailafrica_from_domain: str = Field(
+        default="",
+        description="Verified sending domain on the MailAfrica account (e.g. ziadapos.com).",
+    )
+    mailafrica_from_address: str = Field(
+        default="",
+        description="Sender address (must belong to the from domain).",
+    )
+    mailafrica_from_name: str = Field(
+        default="ZiadaPOS",
+        description="Display name for outgoing email.",
+    )
+
     # ── MCP server ────────────────────────────────────────────────────────
     mcp_host: str = Field(default="0.0.0.0")
     mcp_port: int = Field(default=8081)
