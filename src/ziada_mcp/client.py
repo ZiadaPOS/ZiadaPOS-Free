@@ -20,7 +20,7 @@ from typing import Any
 import httpx
 
 from .config import get_settings
-from .errors import ZiadaAuthError, from_payload
+from .errors import ZiadaAuthError, ZiadaError, from_payload
 
 logger = logging.getLogger("ziada_mcp.client")
 
@@ -156,6 +156,36 @@ class ZiadaClient:
             body, _ = _parse(resp)
             raise from_payload(body, resp.status_code)
         yield resp
+
+    async def upload_file(
+        self, content: bytes, filename: str, content_type: str,
+        kind: str = "image", folder: str = "products",
+    ) -> str:
+        """Upload a file (e.g. a product image) to the shop's MinIO storage via
+        POST /uploads and return the stable public URL."""
+        if not self._access_token:
+            raise ZiadaAuthError("Not authenticated yet.")
+
+        async def _upload() -> httpx.Response:
+            return await self._http.post(
+                "/uploads",
+                headers={"Authorization": f"Bearer {self._access_token}"},
+                files={"file": (filename, content, content_type)},
+                data={"kind": kind, "folder": folder},
+            )
+
+        resp = await _upload()
+        if resp.status_code == 401:
+            async with self._lock:
+                await self._refresh()
+            resp = await _upload()
+        body, ok = _parse(resp)
+        if not ok:
+            raise from_payload(body, resp.status_code)
+        url = body.get("data", {}).get("url")
+        if not url:
+            raise ZiadaError("Upload succeeded but no URL was returned.")
+        return url
 
     # ── context helpers (for tools) ────────────────────────────────────────
 
