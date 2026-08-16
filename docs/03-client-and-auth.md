@@ -70,3 +70,24 @@ Tools read these properties to scope requests and to personalise answers:
 
 Tools usually let these propagate to FastMCP. The `ask` agent catches them and hands the text
 back to the model so it can correct itself.
+
+## Plain-HTTP chat bridge (`POST /ask`)
+
+Mobile clients (the Android app) can't speak the MCP streamable-http protocol, so the server also
+exposes a **plain JSON endpoint** alongside `/mcp`:
+
+```bash
+curl -s -X POST https://agent.ziadapos.com/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "ni mapato gani wiki iliyopita?"}'
+# → { "answer": "Mapato ya wiki iliyopita yalikuwa TZS 1,240,000 ..." }
+```
+
+- Implemented in `server.py` with FastMCP's `custom_route("/ask", methods=["POST"])` — no extra
+  framework dependency (uses Starlette, already shipped with FastMCP).
+- Body: `{"question": "…"}`; response: `{"answer": "…"}` (matches the Android `AgentApi` DTO).
+- Empty/missing `question` → `400`; agent failure → `502` with the error message; tool unavailable
+  → `503`.
+- The route runs the same `ask` tool as MCP, so it shares the full agent loop, Ngamia gateway and
+  the Ziada API login. It is **authenticated by the store the agent is configured with** — it is
+  not a public multi-tenant endpoint.

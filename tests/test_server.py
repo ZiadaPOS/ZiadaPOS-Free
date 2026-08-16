@@ -136,6 +136,52 @@ async def test_agent_loop_handles_tool_error():
     assert answer == "Kuna tatizo."
 
 
+@pytest.mark.asyncio
+async def test_ask_bridge_registered_on_real_server(mcp):
+    """The real server must expose the /ask HTTP bridge route."""
+    routes = mcp._additional_http_routes  # type: ignore[attr-defined]
+    paths = [getattr(r, "path", None) for r in routes]
+    assert "/ask" in paths
+
+
+@pytest.mark.asyncio
+async def test_ask_bridge_http_endpoint():
+    """POST /ask must answer a plain-HTTP question for mobile clients."""
+    import httpx
+    from fastmcp import FastMCP
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+
+    mcp = FastMCP("t")
+
+    @mcp.tool()
+    async def ask(question: str) -> str:
+        """Talk to Ziada AI."""
+        return f"Answer to: {question}"
+
+    @mcp.custom_route("/ask", methods=["POST"])
+    async def ask_bridge(request: Request) -> JSONResponse:
+        body = await request.json()
+        question = (body or {}).get("question", "")
+        if not question or not str(question).strip():
+            return JSONResponse({"error": "question is required"}, status_code=400)
+        tool = await mcp.get_tool("ask")
+        answer = await tool.fn(question=str(question).strip())
+        return JSONResponse({"answer": answer})
+
+    app = mcp.http_app()
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        transport=transport, base_url="http://testserver"
+    ) as client:
+        r = await client.post("/ask", json={"question": "ni mapato gani?"})
+        assert r.status_code == 200, r.text
+        assert r.json() == {"answer": "Answer to: ni mapato gani?"}
+
+        r = await client.post("/ask", json={})
+        assert r.status_code == 400, r.text
+
+
 def test_normalize_phone():
     from ziada_mcp.notify import normalize_phone
 
