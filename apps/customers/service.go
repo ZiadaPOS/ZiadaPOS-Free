@@ -44,7 +44,9 @@ func (s *Service) Create(ctx context.Context, orgID, storeID uuid.UUID, in *Inpu
 	}
 	phone, err := normalizePhone(in.Phone)
 	if err != nil {
-		return nil, apierr.BadRequest("Invalid phone number").WithField("phone", err.Error())
+		// Silently ignore invalid phone numbers (e.g. from device contacts
+		// that use non-Tanzanian formats) rather than rejecting the customer.
+		phone = nil
 	}
 	if phone != nil {
 		if _, err := s.repo.FindByPhone(storeID, *phone); err == nil {
