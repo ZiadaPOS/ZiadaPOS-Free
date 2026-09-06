@@ -207,7 +207,7 @@ func Load(envFile string) (*Config, error) {
 		DailyReportMinute: envInt("DAILY_REPORT_MINUTE", 0),
 		Timezone:          env("APP_TIMEZONE", "Africa/Dar_es_Salaam"),
 
-		CORSAllowedOrigins: splitList(env("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:1420,http://localhost:5173")),
+		CORSAllowedOrigins: splitList(env("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:1420,http://localhost:5173,https://app.ziadapos.com")),
 	}
 
 	if cfg.JWTAccessSecret == "change-me-access" || cfg.JWTRefreshSecret == "change-me-refresh" {
