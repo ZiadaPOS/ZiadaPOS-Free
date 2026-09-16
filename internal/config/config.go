@@ -197,7 +197,7 @@ func Load(envFile string) (*Config, error) {
 
 		SendAfricaBaseURL:  env("SENDAFRICA_BASE_URL", "https://api.sendafrica.online"),
 		SendAfricaAPIKey:   env("SENDAFRICA_API_KEY", ""),
-		SendAfricaSenderID: env("SENDAFRICA_SENDER_ID", "SendAfrika"),
+		SendAfricaSenderID: env("SENDAFRICA_SENDER_ID", "ZIADA POS"),
 
 		NgamiaBaseURL: env("NGAMIA_BASE_URL", "https://api.ngamia.cc/v1"),
 		NgamiaAPIKey:  env("NGAMIA_API_KEY", ""),

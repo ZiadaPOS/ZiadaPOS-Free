@@ -83,7 +83,7 @@ Defaults are development-friendly; set real values in production.
 | --- | --- | --- |
 | `SENDAFRICA_BASE_URL` | `https://api.sendafrica.online` | API base. |
 | `SENDAFRICA_API_KEY` | *(empty)* | API key (`SA-…`). When empty, SMS runs in dry-run (logged, not sent). |
-| `SENDAFRICA_SENDER_ID` | `SendAfrika` | Sender id shown to recipients. |
+| `SENDAFRICA_SENDER_ID` | `ZIADA POS` | Sender id shown to recipients. |
 
 ## AI (Ngamia)
 

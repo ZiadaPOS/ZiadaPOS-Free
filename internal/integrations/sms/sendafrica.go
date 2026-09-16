@@ -65,7 +65,7 @@ type Response struct {
 }
 
 // Send delivers a single SMS. `from` is optional; empty uses the account's
-// default sender ID ("SendAfrika").
+// default sender ID ("ZIADA POS").
 func (c *Client) Send(ctx context.Context, to, message, from string) (*Response, error) {
 	if c.apiKey == "" {
 		return nil, &Error{Code: "not_configured", Message: "SendAfrica API key not configured"}
