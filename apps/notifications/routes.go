@@ -24,6 +24,7 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 	{
 		notifs.GET("", h.List)
 		notifs.GET("/unread-count", h.UnreadCount)
+		notifs.GET("/:id", h.Get)
 		notifs.POST("", h.Create)
 		notifs.PATCH("/read-all", h.MarkAllRead)
 		notifs.PATCH("/:id/read", h.MarkRead)

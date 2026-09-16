@@ -78,6 +78,25 @@ func (h *Handler) UnreadCount(c *gin.Context) {
 	response.OK(c, map[string]interface{}{"count": count})
 }
 
+// Get godoc: GET /notifications/{id}
+func (h *Handler) Get(c *gin.Context) {
+	orgID, ok := h.org(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid notification id", nil)
+		return
+	}
+	n, err := h.svc.repo.Find(c.Request.Context(), orgID, h.storeID(c), id)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, notificationResponse(n))
+}
+
 // MarkRead godoc: PATCH /notifications/{id}/read
 func (h *Handler) MarkRead(c *gin.Context) {
 	orgID, ok := h.org(c)

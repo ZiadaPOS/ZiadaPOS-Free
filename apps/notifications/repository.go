@@ -83,6 +83,20 @@ func (r *Repo) UnreadCount(ctx context.Context, orgID, storeID uuid.UUID) (int64
 	return count, nil
 }
 
+// Find returns a single notification by id, scoped to the organisation (and
+// optionally the store). Returns gorm.ErrRecordNotFound when not found.
+func (r *Repo) Find(ctx context.Context, orgID, storeID, id uuid.UUID) (Notification, error) {
+	var n Notification
+	q := r.db.WithContext(ctx).Where("id = ? AND organisation_id = ?", id, orgID)
+	if storeID != uuid.Nil {
+		q = q.Where("store_id = ? OR store_id = '00000000-0000-0000-0000-000000000000'", storeID)
+	}
+	if err := q.First(&n).Error; err != nil {
+		return Notification{}, err
+	}
+	return n, nil
+}
+
 // MarkRead marks a single notification as read. Returns gorm.ErrRecordNotFound
 // if it does not belong to the caller's scope.
 func (r *Repo) MarkRead(ctx context.Context, orgID, storeID, id uuid.UUID) error {
