@@ -522,14 +522,50 @@ func (s *AuthService) sendConfirmationEmail(user *User) error {
 		return err
 	}
 	link := fmt.Sprintf("%s/api/v1/auth/confirm-email/?token=%s", strings.TrimRight(s.cfg.SiteURL, "/"), token)
-	body := fmt.Sprintf(`
+	shopName := ""
+	if user.OrganisationID != nil {
+		if org, err := s.repo.GetOrgByID(*user.OrganisationID); err == nil && org != nil {
+			shopName = org.Name
+		}
+	}
+	body := BuildWelcomeEmailBody(user.FullName(), shopName, link)
+	return s.mail.Send(EmailString(user.Email), "Karibu ZiadaPOS — confirm your email & start selling", s.mail.Layout("Karibu ZiadaPOS", body))
+}
+
+// BuildWelcomeEmailBody renders the professional welcome + email-verification
+// message. Pure function (no DB) so it can be previewed and tested.
+func BuildWelcomeEmailBody(greeting, shopName, link string) string {
+	return fmt.Sprintf(`
 		<p>Karibu ZiadaPOS, <strong>%s</strong>!</p>
-		<p>Confirm your email address to activate your account and start selling.</p>
-		<p><a href="%s" style="background:#4f46e5;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block;">Confirm email</a></p>
-		<p>Or copy this link: <a href="%s">%s</a></p>
-		<p>This link expires in 72 hours.</p>`,
-		user.FullName(), link, link, link)
-	return s.mail.Send(EmailString(user.Email), "Confirm your ZiadaPOS email", s.mail.Layout("Confirm email", body))
+		<p>Your account%s has been created with a <strong>%d-day free trial</strong>. Confirm your email address below to activate it and start selling today.</p>
+		<p><a href="%s" style="background:#4f46e5;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;display:inline-block;">Confirm my email</a></p>
+		<p>Or copy this link into your browser:<br><a href="%s">%s</a></p>
+		<p>This link expires in 72 hours. Didn't create this account? Just ignore this email.</p>
+		<hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0;">
+		<p><strong>What you get with ZiadaPOS:</strong></p>
+		<ul>
+			<li>Fast POS sales — cash, M-Pesa, Tigo Pesa and bank, with receipts</li>
+			<li>Stock control with low-stock alerts so you never run out</li>
+			<li>Customer tabs (madeni) with balances, reminders and repayments</li>
+			<li>Daily sales, profit and expense reports for your duka</li>
+		</ul>
+		<p><strong>Next steps:</strong></p>
+		<ol>
+			<li>Confirm your email using the button above</li>
+			<li>Log in at <a href="https://app.ziadapos.com">app.ziadapos.com</a> with your phone number and password</li>
+			<li>Add your products (or import them with CSV) and make your first sale</li>
+		</ol>
+		<p>Need help? Reply to this email or reach us at <a href="mailto:no-reply@ziadapos.com">no-reply@ziadapos.com</a>.</p>
+		<p>Asante for choosing ZiadaPOS!<br><strong>The ZiadaPOS Team</strong></p>`,
+		greeting, shopSuffix(shopName), trialDays, link, link, link)
+}
+
+// shopSuffix renders " for <shop>" when the shop name is known, else "".
+func shopSuffix(shopName string) string {
+	if strings.TrimSpace(shopName) == "" {
+		return ""
+	}
+	return " for " + shopName
 }
 
 func validatePhone(phone string) (string, error) {
