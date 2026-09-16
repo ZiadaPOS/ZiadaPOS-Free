@@ -54,7 +54,7 @@ bucket with public-read policy so stored images are web-accessible).
 Host port mapping: `8086 → 8080` (reverse-proxied to the domain).
 
 `.env` on the VPS holds real secrets: DB/Redis/MinIO credentials, fresh JWT secrets,
-`SMTP_*` (Zoho) + `MAILAFRICA_*`, `SENDAFRICA_API_KEY`, `NGAMIA_API_KEY`.
+`SMTP_*` (Zoho), `SENDAFRICA_API_KEY`, `NGAMIA_API_KEY`.
 
 > Editing `.env` on the VPS requires recreating the api container — env_file is read at
 > container **creation** time, not restart. See [redeploy.md](../redeploy.md).

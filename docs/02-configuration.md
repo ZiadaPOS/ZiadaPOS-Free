@@ -63,19 +63,14 @@ Defaults are development-friendly; set real values in production.
 
 | Env var | Default | Meaning |
 | --- | --- | --- |
-| `SMTP_HOST` | `smtp.zoho.com` | SMTP host (used when MailAfrica is not configured). |
+| `SMTP_HOST` | `smtp.zoho.com` | SMTP host. |
 | `SMTP_PORT` | `587` | SMTP port. |
 | `SMTP_USER` / `SMTP_PASSWORD` | *(empty)* | SMTP login. |
 | `SMTP_FROM` | `no-reply@ziadapos.com` | From address. |
 | `SMTP_FROM_NAME` | `ZiadaPOS` | From name. |
-| `MAILAFRICA_API_KEY` | *(empty)* | **Preferred backend** — MailAfrica REST key; when set, SMTP is ignored. |
-| `MAILAFRICA_BASE_URL` | `https://api.mailafrica.online` | MailAfrica API base. |
-| `MAILAFRICA_FROM_DOMAIN` | *(empty)* | Sending domain (must be **verified** on MailAfrica; numeric id resolved + cached). |
-| `MAILAFRICA_FROM_ADDRESS` | *(empty)* | From address override. |
-| `MAILAFRICA_FROM_NAME` | `ZiadaPOS` | From name. |
 
-> Mailer selection: MailAfrica key set → `mailafrica` mode; else SMTP creds → `smtp` mode;
-> else `log` mode (emails logged, never sent — safe for dev).
+> Mailer selection: SMTP creds set → `smtp` mode (Zoho); else `log` mode
+> (emails logged, never sent — safe for dev).
 
 ## SMS (SendAfrica)
 

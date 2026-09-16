@@ -22,10 +22,10 @@
                              │
                  ┌───────────┼───────────────┬──────────────────────┐
                  │           │               │                      │
-          ┌──────▼─────┐ ┌───▼────────┐ ┌────▼────────┐   ┌────────▼──────┐
-          │   Ngamia   │ │ SendAfrica │ │ MailAfrica  │   │  SMTP (Zoho)  │
-          │  (AI chat) │ │ (SMS)      │ │ (email REST)│   │  (fallback)   │
-          └────────────┘ └────────────┘ └─────────────┘   └───────────────┘
+           ┌──────▼─────┐ ┌───▼────────┐ ┌────────▼──────┐
+           │   Ngamia   │ │ SendAfrica │ │  SMTP (Zoho)  │
+           │  (AI chat) │ │ (SMS)      │ │    (email)    │
+           └────────────┘ └────────────┘ └───────────────┘
 ```
 
 The API is **stateless** (except the DB/Redis), horizontally scalable, and multi-tenant via the JWT.

@@ -36,12 +36,10 @@ S3-compatible client wrapper (MinIO):
 
 ## `internal/mailer`
 
-Transactional email with three pluggable backends chosen at boot:
+Transactional email with two modes chosen at boot:
 
-1. **MailAfrica REST** (preferred) — when `MAILAFRICA_API_KEY` is set. Resolves the verified
-   `MAILAFRICA_FROM_DOMAIN` to a numeric sender id, caches it, then `POST /email/send`.
-2. **SMTP** — `net/smtp` against `SMTP_HOST:PORT` (Zoho default).
-3. **Log** — development fallback: "emails" are logged, never sent.
+1. **SMTP** — `gomail` dialer against `SMTP_HOST:PORT` (Zoho) as `SMTP_USER`.
+2. **Log** — development fallback: "emails" are logged, never sent.
 
 `Send(to, subject, html)` returns a structured result; used by the welcome email and password
 confirmations.
@@ -59,11 +57,6 @@ message). Used for OTPs, temp passwords and credit reminders.
 OpenAI-compatible HTTP client pointed at `NGAMIA_BASE_URL` with `NGAMIA_API_KEY` + `NGAMIA_MODEL`.
 `Chat(ctx, system, messages)` returns the model reply. `apps/ai` wraps it with conversation
 persistence and monthly credit counting.
-
-### `mailafrica`
-
-REST client for the email provider: `GetSenders()` → `SendEmail(to, subject, html, from…)`.
-Used by `internal/mailer` mode 1.
 
 ## `internal/security`
 

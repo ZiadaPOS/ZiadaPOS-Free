@@ -25,9 +25,9 @@ assistant that exposes all of these endpoints as MCP tools).
 - **Cron scheduler** in `Africa/Dar_es_Salaam` for scheduled reports and recurring jobs.
 - **Object storage via MinIO** (S3-compatible) for product images, logos, report exports and
   receipts, served from a public base URL.
-- **Three external providers** — [Ngamia](https://docs.ngamia.cc) (AI gateway, OpenAI-compatible),
-  [SendAfrica](https://docs.sendafrica.online) (SMS), [MailAfrica](https://docs.mailafrica.online)
-  (email, with SMTP fallback).
+- **Two external providers** — [Ngamia](https://docs.ngamia.cc) (AI gateway, OpenAI-compatible)
+  and [SendAfrica](https://docs.sendafrica.online) (SMS) — plus transactional email over
+  SMTP (Zoho).
 - **Auto schema migration** — every app calls `Migrate()` on boot (GORM `AutoMigrate`).
 - **Graceful degradation** — Redis or MinIO down? The API boots anyway (production should run them,
   but dev never crashes on a missing dependency).
@@ -115,8 +115,8 @@ internal/apierr          structured domain errors → HTTP mapping
 internal/events          async in-process event bus (bounded queue + worker pool)
 internal/scheduler       cron (Africa/Dar_es_Salaam)
 internal/storage         MinIO client (put/get/delete/presign/url)
-internal/mailer          transactional email: MailAfrica REST or SMTP (Zoho) or log-only
-internal/integrations    ai (Ngamia), sms (SendAfrica), mailafrica clients
+internal/mailer          transactional email over SMTP (Zoho) or log-only
+internal/integrations    ai (Ngamia) and sms (SendAfrica) clients
 internal/server          Gin engine + middleware + shared Deps container
 apps/*                   each domain: models.go, repository.go, service.go, handler.go, routes.go
 ```
