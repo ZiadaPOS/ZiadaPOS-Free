@@ -23,6 +23,7 @@ import (
 
 	// apps (registered as they are built)
 	"github.com/troubleman96/ziadapos/apps/accounts"
+	appadmin "github.com/troubleman96/ziadapos/apps/admin"
 	appai "github.com/troubleman96/ziadapos/apps/ai"
 	"github.com/troubleman96/ziadapos/apps/analytics"
 	"github.com/troubleman96/ziadapos/apps/credits"
@@ -212,4 +213,9 @@ func registerApps(db *gorm.DB, deps *server.Deps, srv *server.Server) {
 		log.Fatalf("uploads migrate: %v", err)
 	}
 	uploads.RegisterRoutes(srv.Base, deps)
+
+	if err := appadmin.Migrate(db); err != nil {
+		log.Fatalf("admin migrate: %v", err)
+	}
+	appadmin.RegisterRoutes(srv.Base, deps)
 }
