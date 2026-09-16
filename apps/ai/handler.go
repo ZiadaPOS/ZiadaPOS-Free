@@ -128,7 +128,7 @@ func (h *Handler) List(c *gin.Context) {
 		writeErr(c, err)
 		return
 	}
-	response.OK(c, map[string]interface{}{"conversations": out, "count": len(out)})
+	response.OK(c, map[string]interface{}{"conversations": out, "items": out, "count": len(out)})
 }
 
 // Get godoc: GET /ai/conversations/{id}

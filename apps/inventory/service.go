@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -451,6 +453,143 @@ func (s *Service) AdjustStock(ctx context.Context, storeID, productID, userID uu
 		"product_id": productID, "store_id": storeID, "qty_change": qtyChange, "reason": reason,
 	})
 	return result, nil
+}
+
+// ── Bulk import ─────────────────────────────────────────────────────────────
+
+// FindOrCreateCategory returns an organisation's category by name, creating it
+// (with default properties) when it does not exist yet.
+func (s *Service) FindOrCreateCategory(ctx context.Context, orgID uuid.UUID, name string) (*Category, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, apierr.BadRequest("Category name is required")
+	}
+	cat, err := s.repo.FindCategoryByName(orgID, name)
+	if err == nil && cat != nil {
+		return cat, nil
+	}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	cat = &Category{OrganisationID: orgID, Name: name, IsActive: true}
+	if err := s.repo.CreateCategory(cat); err != nil {
+		return nil, err
+	}
+	s.invalidate(nil, &orgID)
+	s.bus.Publish("category.created", map[string]interface{}{"category_id": cat.ID, "org_id": orgID})
+	return cat, nil
+}
+
+// ImportProducts creates products from parsed CSV rows (header row + data rows).
+// Returns a summary the web-app renders: created/failed counts and per-row errors.
+func (s *Service) ImportProducts(ctx context.Context, orgID, storeID, userID uuid.UUID, rows [][]string) (map[string]interface{}, error) {
+	if len(rows) < 2 {
+		return nil, apierr.BadRequest("CSV must have a header row and at least one product")
+	}
+	idx := map[string]int{}
+	for i, h := range rows[0] {
+		idx[strings.ToLower(strings.TrimSpace(h))] = i
+	}
+	col := func(row []string, name string) string {
+		i, ok := idx[name]
+		if !ok || i >= len(row) {
+			return ""
+		}
+		return strings.TrimSpace(row[i])
+	}
+	for _, key := range []string{"name", "price"} {
+		if _, ok := idx[key]; !ok {
+			return nil, apierr.BadRequest("CSV is missing the '" + key + "' column")
+		}
+	}
+
+	created, failed := 0, 0
+	errList := make([]map[string]interface{}, 0)
+	recordErr := func(rowNum int, msg string) {
+		failed++
+		errList = append(errList, map[string]interface{}{"row": rowNum, "message": msg})
+	}
+
+	for n := 1; n < len(rows); n++ {
+		row := rows[n]
+		if len(row) == 1 && strings.TrimSpace(row[0]) == "" {
+			continue
+		}
+		rowNum := n + 1 // human-friendly 1-based row number
+
+		name := col(row, "name")
+		if name == "" {
+			recordErr(rowNum, "name is required")
+			continue
+		}
+		price, err := parseMoney(col(row, "price"))
+		if err != nil || price <= 0 {
+			recordErr(rowNum, "price must be a positive number")
+			continue
+		}
+		cost, _ := parseMoney(col(row, "cost"))
+		stock, _ := strconv.Atoi(col(row, "stock"))
+		if stock < 0 {
+			stock = 0
+		}
+		minStock, _ := strconv.Atoi(col(row, "min_stock"))
+		if minStock < 0 {
+			minStock = 0
+		}
+
+		var categoryID *uuid.UUID
+		if cn := col(row, "category"); cn != "" {
+			cat, err := s.FindOrCreateCategory(ctx, orgID, cn)
+			if err != nil {
+				recordErr(rowNum, "category: "+apierr.Translate(err).Message)
+				continue
+			}
+			categoryID = &cat.ID
+		}
+
+		desc := ""
+		if unit := col(row, "unit"); unit != "" {
+			desc = "Unit: " + unit
+		}
+		if _, err := s.CreateProduct(ctx, storeID, &ProductInput{
+			Name:         name,
+			CategoryID:   categoryID,
+			SKU:          col(row, "sku"),
+			Barcode:      col(row, "barcode"),
+			CostPrice:    cost,
+			SellingPrice: price,
+			Stock:        stock,
+			ReorderPoint: minStock,
+			Description:  desc,
+			CreatedBy:    userID,
+		}); err != nil {
+			recordErr(rowNum, apierr.Translate(err).Message)
+			continue
+		}
+		created++
+	}
+
+	return map[string]interface{}{
+		"created": created,
+		"failed":  failed,
+		"errors":  errList,
+	}, nil
+}
+
+// parseMoney parses an amount string (TZS) allowing "28500", "28,500" or "28500.00".
+func parseMoney(s string) (int64, error) {
+	s = strings.ReplaceAll(strings.TrimSpace(s), ",", "")
+	if s == "" {
+		return 0, nil
+	}
+	if i, err := strconv.ParseInt(s, 10, 64); err == nil {
+		return i, nil
+	}
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0, err
+	}
+	return int64(math.Round(f)), nil
 }
 
 // ── DTOs ────────────────────────────────────────────────────────────────────

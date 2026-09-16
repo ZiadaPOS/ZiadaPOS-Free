@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/troubleman96/ziadapos/internal/apierr"
+	"github.com/troubleman96/ziadapos/internal/integrations/sms"
 	"github.com/troubleman96/ziadapos/internal/middleware"
 	"github.com/troubleman96/ziadapos/internal/response"
 )
@@ -178,10 +179,11 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // AccountHandler exposes /accounts endpoints.
 type AccountHandler struct {
 	svc *AccountService
+	sms *sms.Client
 }
 
 // NewAccountHandler builds an AccountHandler.
-func NewAccountHandler(svc *AccountService) *AccountHandler { return &AccountHandler{svc: svc} }
+func NewAccountHandler(svc *AccountService, sms *sms.Client) *AccountHandler { return &AccountHandler{svc: svc, sms: sms} }
 
 // Me godoc: GET /accounts/me
 func (h *AccountHandler) Me(c *gin.Context) {
@@ -327,6 +329,20 @@ func (h *AccountHandler) DeactivateUser(c *gin.Context) {
 		return
 	}
 	response.NoContent(c)
+}
+
+// SmSBalance godoc: GET /accounts/sms-balance — remaining SendAfrica credits.
+func (h *AccountHandler) SmSBalance(c *gin.Context) {
+	if h.sms == nil {
+		response.OK(c, gin.H{"balance": 0, "configured": false})
+		return
+	}
+	bal, err := h.sms.Balance(c.Request.Context())
+	if err != nil {
+		response.OK(c, gin.H{"balance": 0, "configured": false})
+		return
+	}
+	response.OK(c, gin.H{"balance": bal, "configured": true})
 }
 
 // AICredits godoc: GET /accounts/ai-credits

@@ -1,6 +1,7 @@
 package transactions
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -165,6 +166,33 @@ func (h *Handler) Void(c *gin.Context) {
 		return
 	}
 	response.OK(c, txnResponse(txn))
+}
+
+// EmailReceipt godoc: POST /pos/transactions/{id}/receipt — email a copy of the receipt.
+func (h *Handler) EmailReceipt(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	id, ok := parseID(c, "id")
+	if !ok {
+		return
+	}
+	var req struct {
+		Email string `json:"email"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	if err := h.svc.EmailReceipt(c.Request.Context(), orgID, storeID, id, req.Email); err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Message(c, http.StatusOK, "Receipt sent by email")
 }
 
 // Summary godoc: GET /pos/summary?date_from=&date_to=

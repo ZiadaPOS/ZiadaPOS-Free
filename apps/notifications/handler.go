@@ -58,6 +58,7 @@ func (h *Handler) List(c *gin.Context) {
 		out = append(out, notificationResponse(n))
 	}
 	response.OK(c, map[string]interface{}{
+		"items":         out,
 		"notifications": out,
 		"unread_count":  unread,
 	})

@@ -79,7 +79,7 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 	accSvc := NewAccountService(repo, deps.Cache, deps.Bus, deps.Cfg)
 
 	authH := NewAuthHandler(authSvc, deps.Cfg.SiteURL)
-	accH := NewAccountHandler(accSvc)
+	accH := NewAccountHandler(accSvc, deps.SMS)
 
 	auth := base.Group("/auth")
 	{
@@ -110,6 +110,7 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 		accounts.POST("/users", middleware.RequireOwner(), accH.CreateUser)
 		accounts.DELETE("/users/:id", middleware.RequireOwner(), accH.DeactivateUser)
 		accounts.GET("/ai-credits", accH.AICredits)
+		accounts.GET("/sms-balance", accH.SmSBalance)
 	}
 
 	// Public reference data for onboarding UIs.

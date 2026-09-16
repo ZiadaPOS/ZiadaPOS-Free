@@ -129,6 +129,33 @@ func (h *Handler) CreditCustomers(c *gin.Context) {
 	response.OK(c, out)
 }
 
+// SendSms godoc: POST /customers/{id}/sms — send an SMS to a customer.
+func (h *Handler) SendSms(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid customer id", nil)
+		return
+	}
+	var req struct {
+		Message string `json:"message"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	out, err := h.svc.SendSMS(c.Request.Context(), storeID, id, req.Message)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Created(c, out, "SMS sent")
+}
+
 func writeErr(c *gin.Context, err error) {
 	e := apierr.Translate(err)
 	response.Error(c, e.Status, e.Message, e.Fields)

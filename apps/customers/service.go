@@ -19,11 +19,12 @@ type Service struct {
 	repo  *Repo
 	cache *cache.Cache
 	db    *gorm.DB
+	sms   *sms.Client
 }
 
 // NewService wires a customers Service.
-func NewService(repo *Repo, cache *cache.Cache, db *gorm.DB) *Service {
-	return &Service{repo: repo, cache: cache, db: db}
+func NewService(repo *Repo, cache *cache.Cache, db *gorm.DB, sms *sms.Client) *Service {
+	return &Service{repo: repo, cache: cache, db: db, sms: sms}
 }
 
 // Input is the create/update payload.
@@ -109,6 +110,43 @@ func (s *Service) Update(ctx context.Context, storeID, id uuid.UUID, in *Input) 
 		return nil, err
 	}
 	return c, nil
+}
+
+// SendResult is what SendSMS returns after the SMS provider accepts the send.
+type SendResult struct {
+	MessageID   string `json:"message_id"`
+	Status      string `json:"status"`
+	CreditsUsed int    `json:"credits_used"`
+}
+
+// SendSMS sends a free-form SMS to a customer's phone via SendAfrica.
+func (s *Service) SendSMS(ctx context.Context, storeID, id uuid.UUID, message string) (*SendResult, error) {
+	if s.sms == nil {
+		return nil, apierr.Internal("SMS service is not configured")
+	}
+	msg := strings.TrimSpace(message)
+	if msg == "" {
+		return nil, apierr.BadRequest("Message is required")
+	}
+	c, err := s.repo.Get(storeID, id)
+	if err != nil {
+		return nil, apierr.NotFound("Customer not found")
+	}
+	if c.Phone == nil || strings.TrimSpace(*c.Phone) == "" {
+		return nil, apierr.BadRequest("Customer has no phone number").WithField("phone", "required for SMS")
+	}
+	resp, err := s.sms.Send(ctx, *c.Phone, msg, "")
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, apierr.Internal("SMS provider returned an empty response")
+	}
+	return &SendResult{
+		MessageID:   resp.Data.MessageID,
+		Status:      resp.Data.Status,
+		CreditsUsed: resp.Data.CreditsUsed,
+	}, nil
 }
 
 func (s *Service) List(ctx context.Context, storeID uuid.UUID, f Filter) (map[string]interface{}, error) {

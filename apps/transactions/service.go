@@ -3,6 +3,7 @@ package transactions
 import (
 	"context"
 	"fmt"
+	"html"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/troubleman96/ziadapos/internal/apierr"
 	"github.com/troubleman96/ziadapos/internal/cache"
 	"github.com/troubleman96/ziadapos/internal/events"
+	"github.com/troubleman96/ziadapos/internal/mailer"
 )
 
 const taxRatePct = 18
@@ -28,12 +30,13 @@ type Service struct {
 	bus        *events.Bus
 	invSvc     *inventory.Service
 	accountsDB *gorm.DB
+	mailer     *mailer.Mailer
 }
 
 // NewService wires a transactions Service. invSvc is used only for cache
 // invalidation after stock changes.
-func NewService(repo *Repo, cache *cache.Cache, bus *events.Bus, invSvc *inventory.Service, db *gorm.DB) *Service {
-	return &Service{repo: repo, cache: cache, bus: bus, invSvc: invSvc, accountsDB: db}
+func NewService(repo *Repo, cache *cache.Cache, bus *events.Bus, invSvc *inventory.Service, db *gorm.DB, mailer *mailer.Mailer) *Service {
+	return &Service{repo: repo, cache: cache, bus: bus, invSvc: invSvc, accountsDB: db, mailer: mailer}
 }
 
 func (s *Service) summaryKey(storeID uuid.UUID, day string) string {
@@ -457,6 +460,98 @@ func contains(list []string, v string) bool {
 		}
 	}
 	return false
+}
+
+// EmailReceipt emails a copy of the receipt to an address supplied in the
+// request, or to the customer's saved email address.
+func (s *Service) EmailReceipt(ctx context.Context, orgID, storeID, txnID uuid.UUID, email string) error {
+	if s.mailer == nil {
+		return apierr.Internal("Email service is not configured")
+	}
+	txn, err := s.GetTransaction(ctx, storeID, txnID)
+	if err != nil {
+		return err
+	}
+	dest := strings.TrimSpace(email)
+	if dest == "" && txn.CustomerID != nil {
+		var c struct {
+			Email string
+		}
+		if err := s.accountsDB.Table("customers").Select("email").Where("id = ?", *txn.CustomerID).Scan(&c).Error; err == nil && strings.TrimSpace(c.Email) != "" {
+			dest = strings.TrimSpace(c.Email)
+		}
+	}
+	if dest == "" {
+		return apierr.BadRequest("No email address — supply one in the request or add an email to the customer")
+	}
+
+	var storeName, orgName string
+	if err := s.accountsDB.Table("stores").Select("name").Where("id = ?", storeID).Scan(&storeName).Error; err != nil {
+		storeName = ""
+	}
+	if err := s.accountsDB.Table("organisations").Select("name").Where("id = ?", orgID).Scan(&orgName).Error; err != nil {
+		orgName = ""
+	}
+
+	body := buildReceiptHTML(txn, storeName, orgName)
+	return s.mailer.Send(dest, "Ziada POS receipt "+txn.TxnNumber, s.mailer.Layout("Receipt "+txn.TxnNumber, body))
+}
+
+// buildReceiptHTML renders a printable email receipt for a transaction.
+func buildReceiptHTML(t *Transaction, storeName, orgName string) string {
+	var rows strings.Builder
+	for _, l := range t.Lines {
+		fmt.Fprintf(&rows,
+			`<tr><td style="padding:6px 0;border-bottom:1px solid #f3f4f6;">%s <span style="color:#9ca3af;">&times; %d</span></td>`+
+				`<td style="padding:6px 0;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap;">TZS %s</td></tr>`,
+			html.EscapeString(l.ProductName), l.Qty, fmtTZS(l.UnitPrice*int64(l.Qty)))
+	}
+	summaryRow := func(label string, amount int64, strong bool) string {
+		weight := "400"
+		if strong {
+			weight = "700"
+		}
+		return fmt.Sprintf(`<tr><td style="padding:3px 0;color:#6b7280;">%s</td><td style="padding:3px 0;text-align:right;white-space:nowrap;font-weight:%s;">TZS %s</td></tr>`, label, weight, fmtTZS(amount))
+	}
+
+	return `<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;">
+  <tr><td style="font-size:16px;font-weight:700;color:#111827;">` + html.EscapeString(orgName) + `</td></tr>
+  <tr><td style="font-size:13px;color:#6b7280;padding-top:2px;">` + html.EscapeString(storeName) + `</td></tr>
+  <tr><td style="padding:14px 0;border-bottom:1px solid #e5e7eb;"></td></tr>
+  <tr><td style="padding:10px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;">
+      <tr><td style="color:#6b7280;padding:2px 0;">Receipt</td><td style="text-align:right;font-weight:600;">` + html.EscapeString(t.TxnNumber) + `</td></tr>
+      <tr><td style="color:#6b7280;padding:2px 0;">Date</td><td style="text-align:right;">` + t.CreatedAt.Format("02 Jan 2006, 15:04") + `</td></tr>
+      <tr><td style="color:#6b7280;padding:2px 0;">Customer</td><td style="text-align:right;">` + html.EscapeString(t.CustomerName) + `</td></tr>
+      <tr><td style="color:#6b7280;padding:2px 0;">Payment</td><td style="text-align:right;">` + html.EscapeString(t.PaymentMethod) + `</td></tr>
+    </table>
+  </td></tr>
+  <tr><td style="padding:6px 0;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">` + rows.String() + `</table>
+  </td></tr>
+  <tr><td>
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;padding-top:6px;">
+      ` + summaryRow("Subtotal", t.Subtotal, false) + `
+      ` + summaryRow(fmt.Sprintf("Discount (%.0f%%)", t.DiscountPct), -t.DiscountAmount, false) + `
+      ` + summaryRow("VAT (18%)", -t.TaxAmount, false) + `
+      ` + summaryRow("Total", t.Total, true) + `
+    </table>
+  </td></tr>
+</table>`
+}
+
+// fmtTZS renders an integer TZS amount with thousands separators.
+func fmtTZS(n int64) string {
+	sign := ""
+	if n < 0 {
+		sign = "-"
+		n = -n
+	}
+	s := fmt.Sprintf("%d", n)
+	for i := len(s) - 3; i > 0; i -= 3 {
+		s = s[:i] + "," + s[i:]
+	}
+	return sign + s
 }
 
 func txnResponse(t *Transaction) map[string]interface{} {

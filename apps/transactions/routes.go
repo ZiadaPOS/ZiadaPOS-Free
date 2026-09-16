@@ -31,7 +31,7 @@ func Migrate(db *gorm.DB) error {
 func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 	repo := NewRepo(deps.DB)
 	invSvc := inventory.NewService(inventory.NewRepo(deps.DB), deps.Cache, deps.Bus)
-	svc := NewService(repo, deps.Cache, deps.Bus, invSvc, deps.DB)
+	svc := NewService(repo, deps.Cache, deps.Bus, invSvc, deps.DB, deps.Mailer)
 	h := NewHandler(svc)
 
 	pos := base.Group("/pos", middleware.Auth(deps.Tokens))
@@ -41,6 +41,7 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 		pos.GET("/transactions/:id", h.GetTransaction)
 		pos.POST("/transactions/:id/refund", h.Refund)
 		pos.POST("/transactions/:id/void", h.Void)
+		pos.POST("/transactions/:id/receipt", h.EmailReceipt)
 		pos.GET("/summary", h.Summary)
 		pos.GET("/summary/hourly", h.HourlySales)
 	}

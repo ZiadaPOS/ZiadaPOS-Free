@@ -32,6 +32,7 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 
 		inv.GET("/products", h.ListProducts)
 		inv.POST("/products", h.CreateProduct)
+		inv.POST("/import", h.Import)
 		inv.GET("/products/:id", h.GetProduct)
 		inv.PATCH("/products/:id", h.UpdateProduct)
 		inv.DELETE("/products/:id", h.DeleteProduct)

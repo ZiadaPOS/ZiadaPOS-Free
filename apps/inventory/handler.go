@@ -1,6 +1,7 @@
 package inventory
 
 import (
+	"encoding/csv"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -293,6 +294,53 @@ func (h *Handler) Adjustments(c *gin.Context) {
 		return
 	}
 	response.OK(c, adj)
+}
+
+// Import godoc: POST /inventory/import — bulk-create products from an uploaded CSV.
+// Columns (project template): name, sku, category, price, cost, unit, barcode, stock, min_stock, max_stock.
+func (h *Handler) Import(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	userID, _ := uuid.Parse(middleware.UserID(c))
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		response.BadRequest(c, "A CSV file is required", nil)
+		return
+	}
+	if file.Size > 5<<20 {
+		response.BadRequest(c, "File too large — max 5 MB", nil)
+		return
+	}
+	f, err := file.Open()
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	defer f.Close()
+
+	r := csv.NewReader(f)
+	r.FieldsPerRecord = -1
+	r.TrimLeadingSpace = true
+	rows, err := r.ReadAll()
+	if err != nil {
+		response.BadRequest(c, "Could not parse CSV — use the template format", nil)
+		return
+	}
+	out, err := h.svc.ImportProducts(c.Request.Context(), orgID, storeID, userID, rows)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, out)
 }
 
 func writeErr(c *gin.Context, err error) {

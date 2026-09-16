@@ -71,6 +71,7 @@ func (s *Service) Get(ctx context.Context, userID, id uuid.UUID) (map[string]int
 		"title":                 conv.Title,
 		"first_message_preview": conv.FirstMessage,
 		"is_active":             conv.IsActive,
+		"message_count":         len(out),
 		"messages":              out,
 		"created_at":            conv.CreatedAt,
 		"updated_at":            conv.UpdatedAt,
