@@ -157,7 +157,7 @@ export default function PosOverview() {
 
   return (
     <PageContainer>
-      <div className='flex flex-1 flex-col gap-4'>
+      <div className='flex min-h-[calc(100svh-6rem)] min-w-0 flex-1 flex-col gap-4'>
         <div className='flex flex-wrap items-center justify-between gap-3'>
           <h2 className='text-2xl font-bold tracking-tight'>Hi{userName ? `, ${userName}` : ''}! Welcome back 👋</h2>
           <div className='flex items-center gap-2'>
