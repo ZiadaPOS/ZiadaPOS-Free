@@ -7,6 +7,8 @@ import {
   IconBarcode,
   IconBold,
   IconBox,
+  IconCashRegister,
+  IconChartHistogram,
   IconBrandGithub,
   IconBrandTwitter,
   IconBrightness,
@@ -81,6 +83,7 @@ import {
   IconStar,
   IconSun,
   IconTrash,
+  IconTruckDelivery,
   IconTrendingDown,
   IconTrendingUp,
   IconTypography,
@@ -119,6 +122,7 @@ export const Icons = {
   spinner: IconLoader2,
   search: IconSearch,
   cart: IconShoppingCart,
+  cashRegister: IconCashRegister,
   barcode: IconBarcode,
   settings: IconSettings,
   language: IconLanguage,
@@ -208,6 +212,8 @@ export const Icons = {
   // Data / Charts
   trendingDown: IconTrendingDown,
   trendingUp: IconTrendingUp,
+  chartHistogram: IconChartHistogram,
+  truckDelivery: IconTruckDelivery,
   eyeOff: IconEyeOff,
   adjustments: IconAdjustmentsHorizontal,
 
