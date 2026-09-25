@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { posApi, money, type PosCustomer, type PosCreditTab } from '@/lib/pos-api';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export function CreditTable({
   tabs,
@@ -16,6 +17,7 @@ export function CreditTable({
   customers: PosCustomer[];
   onUpdated: () => void;
 }) {
+  const text = useText();
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [query, setQuery] = useState('');
@@ -71,13 +73,18 @@ export function CreditTable({
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Outstanding tabs</CardTitle>
-          <CardDescription>Track balances, overdue accounts, and record payments.</CardDescription>
+          <CardTitle>{text('Outstanding tabs', 'Mikopo ambayo haijalipwa')}</CardTitle>
+          <CardDescription>
+            {text(
+              'Track balances, overdue accounts, and record payments.',
+              'Fuatilia salio, akaunti zilizochelewa, na rekodi malipo.'
+            )}
+          </CardDescription>
           <div className='flex flex-col gap-2 pt-2 sm:flex-row'>
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder='Search customer or phone…'
+              placeholder={text('Search customer or phone…', 'Tafuta mteja au simu…')}
               className='sm:flex-1'
             />
             <select
@@ -85,10 +92,10 @@ export function CreditTable({
               value={status}
               onChange={(event) => setStatus(event.target.value)}
             >
-              <option value='all'>All statuses</option>
-              <option value='open'>Open</option>
-              <option value='overdue'>Overdue</option>
-              <option value='paid'>Paid</option>
+              <option value='all'>{text('All statuses', 'Hali zote')}</option>
+              <option value='open'>{text('Open', 'Wazi')}</option>
+              <option value='overdue'>{text('Overdue', 'Imechelewa')}</option>
+              <option value='paid'>{text('Paid', 'Imelipwa')}</option>
             </select>
           </div>
         </CardHeader>

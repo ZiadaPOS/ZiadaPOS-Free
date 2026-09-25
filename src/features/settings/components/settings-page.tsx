@@ -6,10 +6,12 @@ import { posApi } from '@/lib/pos-api';
 import { ThemeModeToggle } from '@/components/themes/theme-mode-toggle';
 import { ThemeSelector } from '@/components/themes/theme-selector';
 import { useCallback, useEffect, useState } from 'react';
+import { useText } from '@/lib/i18n';
 import { StoreSwitcher } from '@/features/settings/components/store-switcher';
 import { BusinessSettings } from '@/features/settings/components/business-settings';
 
 export default function SettingsPage() {
+  const text = useText();
   const [error, setError] = useState('');
   const [settingsData, setSettingsData] = useState<Record<string, unknown> | null>(null);
   const load = useCallback(async () => {
@@ -46,8 +48,13 @@ export default function SettingsPage() {
         )}
         <Card>
           <CardHeader>
-            <CardTitle>Appearance</CardTitle>
-            <CardDescription>Choose your workspace style and light or dark mode.</CardDescription>
+            <CardTitle>{text('Appearance', 'Muonekano')}</CardTitle>
+            <CardDescription>
+              {text(
+                'Choose your workspace style and light or dark mode.',
+                'Chagua muonekano wa mfumo na hali ya mwanga au giza.'
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent className='flex flex-wrap items-center gap-3'>
             <ThemeSelector />

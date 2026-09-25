@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Icons } from '@/components/icons';
 import { useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export function HelpWorkspace() {
+  const text = useText();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const articles = [
@@ -71,21 +73,26 @@ export function HelpWorkspace() {
     <div className='space-y-4'>
       <div className='rounded-xl border bg-primary/5 p-5 sm:p-7'>
         <p className='text-primary text-xs font-medium uppercase tracking-[0.18em]'>
-          Help & support
+          {text('Help & support', 'Msaada na usaidizi')}
         </p>
         <h1 className='mt-2 text-2xl font-bold tracking-tight sm:text-3xl'>
-          Learn Ziada from setup to daily operations
+          {text(
+            'Learn Ziada from setup to daily operations',
+            'Jifunze Ziada kuanzia usanidi hadi shughuli za kila siku'
+          )}
         </h1>
         <p className='text-muted-foreground mt-2 max-w-2xl'>
-          Practical guides for connecting your store, running sales, keeping records accurate, and
-          using analytics to make better decisions.
+          {text(
+            'Practical guides for connecting your store, running sales, keeping records accurate, and using analytics to make better decisions.',
+            'Mwongozo wa kuunganisha tawi, kufanya mauzo, kuweka kumbukumbu sahihi, na kutumia uchambuzi kufanya maamuzi bora.'
+          )}
         </p>
         <div className='mt-5 flex max-w-2xl items-center gap-2'>
           <Icons.search className='text-muted-foreground h-4 w-4' />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder='Search help articles…'
+            placeholder={text('Search help articles…', 'Tafuta makala za msaada…')}
           />
         </div>
       </div>

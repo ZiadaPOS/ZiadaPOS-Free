@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { posApi, unwrapList } from '@/lib/pos-api';
 import { Icons } from '@/components/icons';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export function StoreWorkspace() {
+  const text = useText();
   const [stores, setStores] = useState<Record<string, unknown>[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [pending, setPending] = useState(false);
@@ -40,16 +42,22 @@ export function StoreWorkspace() {
     <div className='space-y-4'>
       <div className='flex items-start justify-between gap-3'>
         <div>
-          <h1 className='text-2xl font-bold tracking-tight'>Stores</h1>
+          <h1 className='text-2xl font-bold tracking-tight'>{text('Stores', 'Matawi')}</h1>
           <p className='text-muted-foreground'>Manage locations and active branch context.</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>Add store</Button>
+        <Button onClick={() => setShowForm(true)}>{text('Add store', 'Ongeza tawi')}</Button>
       </div>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
-          ['Total stores', stores.length],
-          ['Active stores', stores.filter((store) => store.is_active !== false).length],
-          ['Total staff', stores.reduce((sum, store) => sum + Number(store.staff || 0), 0)],
+          [text('Total stores', 'Jumla ya matawi'), stores.length],
+          [
+            text('Active stores', 'Matawi hai'),
+            stores.filter((store) => store.is_active !== false).length
+          ],
+          [
+            text('Total staff', 'Jumla ya wafanyakazi'),
+            stores.reduce((sum, store) => sum + Number(store.staff || 0), 0)
+          ],
           [
             'Open stores',
             stores.filter((store) => store.status === 'open' || store.is_active !== false).length

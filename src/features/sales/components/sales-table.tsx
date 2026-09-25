@@ -7,6 +7,7 @@ import { posApi, money, type PosTransaction } from '@/lib/pos-api';
 import { Icons } from '@/components/icons';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export function SalesTable({
   transactions,
@@ -15,6 +16,7 @@ export function SalesTable({
   transactions: PosTransaction[];
   onUpdated: () => void;
 }) {
+  const text = useText();
   const router = useRouter();
   const [message, setMessage] = useState('');
   const [query, setQuery] = useState('');
@@ -84,7 +86,7 @@ export function SalesTable({
         <CardHeader>
           <div className='flex flex-wrap items-start justify-between gap-3'>
             <div>
-              <CardTitle>Sales history</CardTitle>
+              <CardTitle>{text('Sales history', 'Historia ya mauzo')}</CardTitle>
               <CardDescription>
                 Search receipts, review payment details, and manage completed sales.
               </CardDescription>
@@ -97,7 +99,10 @@ export function SalesTable({
             <Input
               className='h-11'
               aria-label='Search sales'
-              placeholder='Search receipt, customer, or payment…'
+              placeholder={text(
+                'Search receipt, customer, or payment…',
+                'Tafuta risiti, mteja, au malipo…'
+              )}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -108,10 +113,10 @@ export function SalesTable({
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
               >
-                <option value='all'>All statuses</option>
-                <option value='paid'>Paid</option>
-                <option value='refunded'>Refunded</option>
-                <option value='voided'>Voided</option>
+                <option value='all'>{text('All statuses', 'Hali zote')}</option>
+                <option value='paid'>{text('Paid', 'Imelipwa')}</option>
+                <option value='refunded'>{text('Refunded', 'Imerejeshwa')}</option>
+                <option value='voided'>{text('Voided', 'Imeghairiwa')}</option>
               </select>
               <select
                 aria-label='Filter by payment'

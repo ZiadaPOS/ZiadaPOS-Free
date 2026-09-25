@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { posApi, money, unwrapList } from '@/lib/pos-api';
 import { Icons } from '@/components/icons';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export function ExpenseWorkspace() {
+  const text = useText();
   const [records, setRecords] = useState<Record<string, unknown>[]>([]);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
@@ -56,7 +58,7 @@ export function ExpenseWorkspace() {
   return (
     <div className='space-y-4'>
       <div>
-        <h1 className='text-2xl font-bold tracking-tight'>Expenses</h1>
+        <h1 className='text-2xl font-bold tracking-tight'>{text('Expenses', 'Gharama')}</h1>
         <p className='text-muted-foreground'>Track operating costs and payments for this store.</p>
       </div>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
@@ -79,18 +81,23 @@ export function ExpenseWorkspace() {
         <CardHeader>
           <div className='flex flex-wrap items-start justify-between gap-3'>
             <div>
-              <CardTitle>Expense ledger</CardTitle>
+              <CardTitle>{text('Expense ledger', 'Orodha ya gharama')}</CardTitle>
               <CardDescription>
                 Track operating costs, categories, and payment methods.
               </CardDescription>
             </div>
-            <Button onClick={() => setShowForm(true)}>Add expense</Button>
+            <Button onClick={() => setShowForm(true)}>
+              {text('Add expense', 'Ongeza gharama')}
+            </Button>
           </div>
           <div className='flex flex-col gap-2 pt-2 sm:flex-row'>
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder='Search expense, category, or note…'
+              placeholder={text(
+                'Search expense, category, or note…',
+                'Tafuta gharama, kundi, au maelezo…'
+              )}
               className='sm:flex-1'
             />
             <select
@@ -98,7 +105,7 @@ export function ExpenseWorkspace() {
               value={category}
               onChange={(event) => setCategory(event.target.value)}
             >
-              <option value='all'>All categories</option>
+              <option value='all'>{text('All categories', 'Makundi yote')}</option>
               {categories.map((item) => (
                 <option key={item}>{item}</option>
               ))}
@@ -164,7 +171,7 @@ export function ExpenseWorkspace() {
           >
             <CardHeader className='flex flex-row items-center justify-between space-y-0'>
               <div>
-                <CardTitle>New expense</CardTitle>
+                <CardTitle>{text('New expense', 'Gharama mpya')}</CardTitle>
                 <CardDescription>Record an operating expense for this store.</CardDescription>
               </div>
               <Button
@@ -196,7 +203,7 @@ export function ExpenseWorkspace() {
                   </label>
                 ))}
                 <div className='sm:col-span-2'>
-                  <Button isLoading={pending}>Save expense</Button>
+                  <Button isLoading={pending}>{text('Save expense', 'Hifadhi gharama')}</Button>
                 </div>
               </form>
             </CardContent>
