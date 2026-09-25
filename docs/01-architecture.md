@@ -105,8 +105,8 @@ POS/event/scheduler
         ↓
 Messaging module
         ↓ reserve organisation SMS wallet
-        ↓ resolve approved sender or ZIADA POS fallback
-        ↓ SendAfrica adapter
+        ↓ use the shop's connected SendAfrica key and approved sender
+        ↓ SendAfrica adapter (tenant credential)
         ↓ persist request/message ids
         ↓ webhook reconciles delivery state
 
@@ -119,7 +119,8 @@ Public storefront
 
 The SMS wallet is a deep module at the messaging seam. Callers request a send or campaign;
 they do not implement free-grant accounting, reservation, deduplication, sender fallback,
-retry, or provider reconciliation themselves.
+retry, or provider reconciliation themselves. The adapter never substitutes a platform
+SendAfrica account for a shop's account.
 
 ## Scheduler (`internal/scheduler`)
 

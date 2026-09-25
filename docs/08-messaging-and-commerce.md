@@ -4,11 +4,13 @@ This document defines the messaging and public-commerce contract for ZiadaPOS.
 
 ## Sender IDs
 
-- Every shop starts with the platform sender ID **ZIADA POS**.
-- A shop may submit a custom sender-ID request from business settings.
+- Every shop connects its own SendAfrica account by pasting its API key into ZiadaPOS.
+- Sender-ID requests are submitted directly to SendAfrica through that shop's account; ZiadaPOS
+  does not own or approve sender-ID applications.
 - A requested sender ID is unusable while it is `draft`, `submitted`, `under_review`, or `rejected`.
 - Only a provider-approved sender ID can become the shop's active sender.
-- Rejected, paused, or unavailable custom senders fall back to **ZIADA POS**.
+- The UI may display **ZIADA POS** as the initial product default, but operational sending must
+  use a sender available to the connected shop account.
 - Sender changes are audited and do not rewrite historical message records.
 
 ```text
@@ -22,9 +24,9 @@ Each shop owner receives **100 free SMS credits once**. In the data model this i
 organisation-level wallet shared by that shop's stores and authorised staff. It is not a
 separate wallet for every cashier and is never reset monthly.
 
-After the free allowance is exhausted, the owner must connect their own SendAfrica API key in
-Messaging Settings. The key belongs to that shop's organisation and is never shown to staff,
-customers, or the browser after it is saved. The owner may rotate or remove the key.
+The owner connects their own SendAfrica API key in Messaging Settings. The key belongs to that
+shop's organisation and is never shown to staff, customers, or the browser after it is saved.
+The owner may rotate or remove the key.
 
 - One recipient message consumes one SMS credit unless SendAfrica reports a different cost.
 - Bulk campaigns are charged per accepted recipient, not per HTTP request.
@@ -34,6 +36,8 @@ customers, or the browser after it is saved. The owner may rotate or remove the 
 - Delivery failure after provider acceptance remains in the message log for reconciliation.
 - Once free credits are exhausted, the shop must connect its own SendAfrica API key and top up
   its own SendAfrica balance before sending.
+- Provider billing, sender ownership, and sender approval remain inside the shop's SendAfrica
+  account.
 - SendAfrica/provider balance is the source of truth for actual deliverability.
 
 The UI must show `free_sms_remaining`, `paid_sms_balance`, `reserved_sms`,
@@ -151,4 +155,7 @@ reserved balance, consumed balance, and a version for safe concurrent reservatio
 - Enforce daily organisation send limits and rate limits.
 - Support STOP/opt-out records for promotional messages.
 - Keep each organisation's SendAfrica credential server-side and encrypted at rest.
+- Never use a shared platform SendAfrica credential for a shop's operational or promotional SMS.
+- Registration/password OTPs happen before a shop has a provider key; they require a separately
+  documented platform-auth channel or temporary onboarding provider policy.
 - Never block an order or POS sale on an SMS provider call.

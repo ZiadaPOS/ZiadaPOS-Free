@@ -285,9 +285,9 @@ Conventions:
 | POST | `/messaging/provider-key` | Owner | Connect or rotate the shop owner's SendAfrica API key. The raw key is write-only. |
 | DELETE | `/messaging/provider-key` | Owner | Disconnect the shop's SendAfrica account after queued sends finish. |
 | GET | `/messaging/sender-id` | Owner | Active sender and request status. Defaults to `ZIADA POS`. |
-| GET | `/messaging/sender-id/requirements` | Owner | Provider requirements for a custom sender request. |
-| POST | `/messaging/sender-id/request` | Owner | Submit a sender name, purpose, sample message, and required evidence. |
-| GET | `/messaging/sender-id/status` | Owner | Refresh/read provider approval state. |
+| GET | `/messaging/sender-id/requirements` | Owner | Read sender-ID requirements from the connected shop SendAfrica account. |
+| POST | `/messaging/sender-id/request` | Owner | Submit a sender-ID request through the connected shop SendAfrica account. |
+| GET | `/messaging/sender-id/status` | Owner | Read approval state from the connected shop account. |
 | GET | `/messaging/templates` | Owner | List SMS templates. |
 | POST | `/messaging/templates` | Owner | Create a transactional or promotional template. |
 | PATCH | `/messaging/templates/:id` | Owner | Update a template. |
@@ -300,9 +300,10 @@ Conventions:
 | POST | `/webhooks/sendafrica` | — | Provider delivery callback; authenticated by webhook signature. |
 
 Each shop owner/organisation receives a **one-time 100-SMS grant** shared by that shop's stores
-and authorised staff. When it is exhausted, the owner must connect their own SendAfrica API key
-and top up their own provider balance. The wallet rejects sends with `provider_key_required` or
-`insufficient_sms_credits` when no usable balance is available.
+and authorised staff. Operational sends are made only through that shop's connected SendAfrica
+API key. When the free grant is exhausted, the owner tops up their own provider balance. The
+wallet rejects sends with `provider_key_required` or `insufficient_sms_credits` when no usable
+balance is available.
 
 ---
 
