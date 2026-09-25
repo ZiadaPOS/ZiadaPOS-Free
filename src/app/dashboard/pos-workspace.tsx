@@ -116,7 +116,9 @@ export default function PosWorkspace() {
               ? { title: 'Credit accounts', description: 'Outstanding customer tabs and payment follow-up.' }
               : { title: pathname.split('/').filter(Boolean).at(-1)?.replace(/^./, (letter) => letter.toUpperCase()) || 'Workspace', description: 'Manage this area for the active store.' };
 
-  return <PageContainer pageTitle={pageMeta.title} pageDescription={pageMeta.description}>
+  const usesOwnHeader = ['/checkout', '/inventory', '/customers', '/suppliers', '/expenses', '/staff', '/stores', '/reports'].some((route) => pathname.includes(route));
+
+  return <PageContainer pageTitle={usesOwnHeader ? undefined : pageMeta.title} pageDescription={usesOwnHeader ? undefined : pageMeta.description}>
       <div className='flex min-h-[calc(100svh-6rem)] min-w-0 flex-1 flex-col gap-5'>
         {error && <div role='alert' className='border-destructive/40 bg-destructive/5 text-destructive rounded-md border p-3 text-sm'>{error}</div>}
 
