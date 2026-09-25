@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { posApi, money, unwrapList } from '@/lib/pos-api';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export function SupplierWorkspace() {
+  const text = useText();
   const router = useRouter();
   const [suppliers, setSuppliers] = useState<Record<string, unknown>[]>([]);
   const [query, setQuery] = useState('');
@@ -38,13 +40,21 @@ export function SupplierWorkspace() {
     <div className='space-y-4'>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
-          ['Total suppliers', suppliers.length, 'All supplier accounts'],
+          [
+            text('Total suppliers', 'Jumla ya wasambazaji'),
+            suppliers.length,
+            text('All supplier accounts', 'Akaunti zote za wasambazaji')
+          ],
           [
             'Active suppliers',
             suppliers.filter((supplier) => supplier.status === 'active' || !supplier.status).length,
             'Ready for purchasing'
           ],
-          ['Total payable', money(payable), 'Outstanding supplier balances'],
+          [
+            text('Total payable', 'Jumla ya kulipa'),
+            money(payable),
+            text('Outstanding supplier balances', 'Madeni ya wasambazaji')
+          ],
           ['Purchased this year', money(purchased), 'Recorded deliveries']
         ].map(([label, value, note]) => (
           <Card key={label}>
@@ -58,8 +68,13 @@ export function SupplierWorkspace() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Supplier directory</CardTitle>
-          <CardDescription>Review suppliers, purchasing history, and balances.</CardDescription>
+          <CardTitle>{text('Supplier directory', 'Orodha ya wasambazaji')}</CardTitle>
+          <CardDescription>
+            {text(
+              'Review suppliers, purchasing history, and balances.',
+              'Kagua wasambazaji, historia ya manunuzi, na salio.'
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
           <div className='flex flex-col gap-2 sm:flex-row'>

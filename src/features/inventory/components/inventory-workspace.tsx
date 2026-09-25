@@ -8,6 +8,7 @@ import { Icons } from '@/components/icons';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { InventoryTable } from '@/features/inventory/components/inventory-table';
+import { useText } from '@/lib/i18n';
 
 export function InventoryWorkspace({
   products,
@@ -16,6 +17,7 @@ export function InventoryWorkspace({
   products: PosProduct[];
   onUpdated: () => void;
 }) {
+  const text = useText();
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
@@ -57,8 +59,20 @@ export function InventoryWorkspace({
             `${products.filter((product) => product.is_active).length} active`
           ],
           ['Inventory value', money(totalValue), 'At cost value'],
-          ['Low stock', String(lowStock), lowStock ? 'Needs restock' : 'All above reorder point'],
-          ['Out of stock', String(outOfStock), outOfStock ? 'Needs restock now' : 'Nothing out yet']
+          [
+            text('Low stock', 'Stoo kidogo'),
+            String(lowStock),
+            lowStock
+              ? text('Needs restock', 'Inahitaji kuongezwa')
+              : text('All above reorder point', 'Zote ziko juu ya kiwango')
+          ],
+          [
+            text('Out of stock', 'Imeisha stoo'),
+            String(outOfStock),
+            outOfStock
+              ? text('Needs restock now', 'Inahitaji kuongezwa sasa')
+              : text('Nothing out yet', 'Hakuna iliyoisha')
+          ]
         ].map(([label, value, detail]) => (
           <Card key={label} className='min-w-0'>
             <CardHeader className='p-3 pb-2 sm:p-6 sm:pb-2'>
@@ -75,7 +89,7 @@ export function InventoryWorkspace({
         <CardHeader>
           <div className='flex flex-wrap items-center justify-between gap-3'>
             <div>
-              <CardTitle>Products</CardTitle>
+              <CardTitle>{text('Products', 'Bidhaa')}</CardTitle>
               <CardDescription>
                 Search, filter, and manage every product in this store.
               </CardDescription>

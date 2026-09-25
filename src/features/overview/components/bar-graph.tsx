@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
 import { Icons } from '@/components/icons';
+import { useText } from '@/lib/i18n';
 
 const chartData = [
   { month: 'January', desktop: 186, mobile: 80 },
@@ -33,6 +34,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function BarGraph() {
+  const text = useText();
   return (
     <Card>
       <CardHeader>
@@ -43,7 +45,7 @@ export function BarGraph() {
             -5.2%
           </Badge>
         </CardTitle>
-        <CardDescription>January - June 2025</CardDescription>
+        <CardDescription>{text('January - June 2025', 'Januari - Juni 2025')}</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>

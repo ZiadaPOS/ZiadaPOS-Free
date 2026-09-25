@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/chart';
 import { Badge } from '@/components/ui/badge';
 import { Icons } from '@/components/icons';
+import { useText } from '@/lib/i18n';
 
 const chartData = [
   { browser: 'chrome', visitors: 275, fill: 'var(--color-chrome)' },
@@ -47,6 +48,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function PieGraph() {
+  const text = useText();
   return (
     <Card className='flex h-full flex-col'>
       <CardHeader className='items-center pb-0'>
@@ -57,7 +59,7 @@ export function PieGraph() {
             +5.2%
           </Badge>
         </CardTitle>
-        <CardDescription>January - June 2024</CardDescription>
+        <CardDescription>{text('January - June 2024', 'Januari - Juni 2024')}</CardDescription>
       </CardHeader>
       <CardContent className='flex flex-1 items-center justify-center pb-0'>
         <ChartContainer

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Icons } from '@/components/icons';
 import { money, posApi, unwrapList, type PosTransaction } from '@/lib/pos-api';
+import { useText } from '@/lib/i18n';
 
 type TransactionKind = 'sale' | 'credit' | 'discount' | 'refund' | 'void';
 
@@ -29,6 +30,7 @@ function kindLabel(kind: TransactionKind): string {
 }
 
 export function TransactionsLedger() {
+  const text = useText();
   const [transactions, setTransactions] = useState<PosTransaction[]>([]);
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState<'all' | TransactionKind>('all');
@@ -96,7 +98,11 @@ export function TransactionsLedger() {
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
           ['Recorded value', money(totals.value), `${filtered.length} records`],
-          ['Credit sales', money(totals.credits), 'Outstanding at sale'],
+          [
+            text('Credit sales', 'Mauzo ya mkopo'),
+            money(totals.credits),
+            text('Outstanding at sale', 'Deni wakati wa mauzo')
+          ],
           ['Discounts', money(totals.discounts), 'Value given away'],
           ['Refunds', money(totals.refunds), 'Returned value']
         ].map(([label, value, detail]) => (
@@ -115,7 +121,7 @@ export function TransactionsLedger() {
         <CardHeader>
           <div className='flex flex-wrap items-start justify-between gap-3'>
             <div>
-              <CardTitle>Transaction ledger</CardTitle>
+              <CardTitle>{text('Transaction ledger', 'Orodha ya miamala')}</CardTitle>
               <CardDescription>
                 Every recorded money movement and sale adjustment in one place.
               </CardDescription>
@@ -235,7 +241,9 @@ export function TransactionsLedger() {
             </p>
           )}
           {loading && (
-            <p className='text-muted-foreground py-10 text-center text-sm'>Loading ledger…</p>
+            <p className='text-muted-foreground py-10 text-center text-sm'>
+              {text('Loading ledger…', 'Inapakia miamala…')}
+            </p>
           )}
         </CardContent>
       </Card>

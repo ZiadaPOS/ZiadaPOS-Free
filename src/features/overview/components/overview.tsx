@@ -15,15 +15,19 @@ import { PieGraph } from './pie-graph';
 import { RecentSales } from './recent-sales';
 import { Icons } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
+import { useText } from '@/lib/i18n';
 
 export default function OverViewPage() {
+  const text = useText();
   return (
     <PageContainer>
       <div className='flex flex-1 flex-col space-y-2'>
         <div className='flex items-center justify-between space-y-2'>
-          <h2 className='text-2xl font-bold tracking-tight'>Hi, Welcome back 👋</h2>
+          <h2 className='text-2xl font-bold tracking-tight'>
+            {text('Hi, Welcome back 👋', 'Habari, karibu tena 👋')}
+          </h2>
           <div className='hidden items-center space-x-2 md:flex'>
-            <Button>Download</Button>
+            <Button>{text('Download', 'Pakua')}</Button>
           </div>
         </div>
         <Tabs defaultValue='overview' className='space-y-4'>
@@ -37,7 +41,7 @@ export default function OverViewPage() {
             <div className='*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4'>
               <Card className='@container/card'>
                 <CardHeader>
-                  <CardDescription>Total Revenue</CardDescription>
+                  <CardDescription>{text('Total Revenue', 'Jumla ya mapato')}</CardDescription>
                   <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
                     $1,250.00
                   </CardTitle>
@@ -57,7 +61,7 @@ export default function OverViewPage() {
               </Card>
               <Card className='@container/card'>
                 <CardHeader>
-                  <CardDescription>New Customers</CardDescription>
+                  <CardDescription>{text('New Customers', 'Wateja wapya')}</CardDescription>
                   <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
                     1,234
                   </CardTitle>
@@ -77,7 +81,7 @@ export default function OverViewPage() {
               </Card>
               <Card className='@container/card'>
                 <CardHeader>
-                  <CardDescription>Active Accounts</CardDescription>
+                  <CardDescription>{text('Active Accounts', 'Akaunti hai')}</CardDescription>
                   <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
                     45,678
                   </CardTitle>
@@ -97,7 +101,7 @@ export default function OverViewPage() {
               </Card>
               <Card className='@container/card'>
                 <CardHeader>
-                  <CardDescription>Growth Rate</CardDescription>
+                  <CardDescription>{text('Growth Rate', 'Kiwango cha ukuaji')}</CardDescription>
                   <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
                     4.5%
                   </CardTitle>

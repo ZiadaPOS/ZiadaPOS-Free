@@ -62,9 +62,21 @@ export function SalesTable({
     <div className='space-y-4'>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
-          ['Sales revenue', money(revenue), 'From matching sales'],
-          ['Transactions', String(filtered.length), `${paid} paid`],
-          ['Average sale', money(average), 'Per transaction'],
+          [
+            text('Sales revenue', 'Mapato ya mauzo'),
+            money(revenue),
+            text('From matching sales', 'Kutoka mauzo yanayolingana')
+          ],
+          [
+            text('Transactions', 'Miamala'),
+            String(filtered.length),
+            `${paid} ${text('paid', 'imelipwa')}`
+          ],
+          [
+            text('Average sale', 'Wastani wa mauzo'),
+            money(average),
+            text('Per transaction', 'Kwa muamala')
+          ],
           [
             'Refund / void ready',
             String(filtered.filter((item) => item.status === 'paid').length),

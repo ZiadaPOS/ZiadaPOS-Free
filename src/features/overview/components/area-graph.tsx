@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Icons } from '@/components/icons';
 import React from 'react';
+import { useText } from '@/lib/i18n';
 
 const chartData = [
   { month: 'January', desktop: 342, mobile: 245 },
@@ -40,6 +41,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function AreaGraph() {
+  const text = useText();
   return (
     <Card>
       <CardHeader>
@@ -50,7 +52,12 @@ export function AreaGraph() {
             -5.2%
           </Badge>
         </CardTitle>
-        <CardDescription>Showing total visitors for the last 6 months</CardDescription>
+        <CardDescription>
+          {text(
+            'Showing total visitors for the last 6 months',
+            'Inaonyesha wageni wote kwa miezi 6 iliyopita'
+          )}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
