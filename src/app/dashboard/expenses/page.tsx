@@ -1,3 +1,1 @@
-import PosWorkspace from '../pos-workspace';
-
-export default function ExpensesPage() { return <PosWorkspace />; }
+export { default } from '@/features/expenses/components/expenses-page';

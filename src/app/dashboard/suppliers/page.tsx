@@ -1,3 +1,1 @@
-import PosWorkspace from '../pos-workspace';
-
-export default function SuppliersPage() { return <PosWorkspace />; }
+export { default } from '@/features/suppliers/components/suppliers-page';

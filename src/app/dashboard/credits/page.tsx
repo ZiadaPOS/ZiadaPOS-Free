@@ -1,3 +1,1 @@
-import PosWorkspace from '../pos-workspace';
-
-export default function CreditsPage() { return <PosWorkspace />; }
+export { default } from '@/features/credits/components/credits-page';

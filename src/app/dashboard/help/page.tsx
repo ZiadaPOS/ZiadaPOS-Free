@@ -1,5 +1,1 @@
-import PosWorkspace from '@/app/dashboard/pos-workspace';
-
-export default function HelpPage() {
-  return <PosWorkspace />;
-}
+export { default } from '@/features/help/components/help-page';

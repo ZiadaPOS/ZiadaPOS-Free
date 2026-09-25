@@ -1,3 +1,1 @@
-import PosWorkspace from '../pos-workspace';
-
-export default function CustomersPage() { return <PosWorkspace />; }
+export { default } from '@/features/customers/components/customers-page';

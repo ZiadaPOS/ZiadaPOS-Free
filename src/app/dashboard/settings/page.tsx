@@ -1,3 +1,1 @@
-import PosWorkspace from '../pos-workspace';
-
-export default function SettingsPage() { return <PosWorkspace />; }
+export { default } from '@/features/settings/components/settings-page';

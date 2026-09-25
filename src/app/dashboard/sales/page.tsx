@@ -1,3 +1,1 @@
-import PosWorkspace from '../pos-workspace';
-
-export default function SalesPage() { return <PosWorkspace />; }
+export { default } from '@/features/sales/components/sales-page';

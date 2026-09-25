@@ -1,3 +1,1 @@
-import PosWorkspace from '../pos-workspace';
-
-export default function InventoryPage() { return <PosWorkspace />; }
+export { default } from '@/features/inventory/components/inventory-page';

@@ -1,5 +1,1 @@
-import PosWorkspace from '@/app/dashboard/pos-workspace';
-
-export default function BusinessSettingsPage() {
-  return <PosWorkspace />;
-}
+export { default } from '@/features/settings/components/settings-page';
