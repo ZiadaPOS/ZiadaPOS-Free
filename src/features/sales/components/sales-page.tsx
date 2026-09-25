@@ -27,7 +27,13 @@ export default function SalesPage() {
     void load();
   }, [load]);
   return (
-    <PageContainer pageTitle='Sales'>
+    <PageContainer
+      pageTitle={text('Sales', 'Mauzo')}
+      pageDescription={text(
+        'Transaction ledger, receipts, refunds, and voids.',
+        'Orodha ya miamala, risiti, marejesho, na kufuta miamala.'
+      )}
+    >
       <div className='flex min-h-[calc(100svh-6rem)] min-w-0 flex-1 flex-col gap-5'>
         {error && (
           <div

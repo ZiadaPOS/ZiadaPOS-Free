@@ -46,16 +46,20 @@ export function SupplierWorkspace() {
             text('All supplier accounts', 'Akaunti zote za wasambazaji')
           ],
           [
-            'Active suppliers',
+            text('Active suppliers', 'Wasambazaji hai'),
             suppliers.filter((supplier) => supplier.status === 'active' || !supplier.status).length,
-            'Ready for purchasing'
+            text('Ready for purchasing', 'Tayari kwa manunuzi')
           ],
           [
             text('Total payable', 'Jumla ya kulipa'),
             money(payable),
             text('Outstanding supplier balances', 'Madeni ya wasambazaji')
           ],
-          ['Purchased this year', money(purchased), 'Recorded deliveries']
+          [
+            text('Purchased this year', 'Manunuzi ya mwaka huu'),
+            money(purchased),
+            text('Recorded deliveries', 'Uwasilishaji uliorekodiwa')
+          ]
         ].map(([label, value, note]) => (
           <Card key={label}>
             <CardContent className='space-y-2 p-4 sm:p-5'>

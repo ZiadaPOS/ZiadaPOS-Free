@@ -59,7 +59,12 @@ export function ExpenseWorkspace() {
     <div className='space-y-4'>
       <div>
         <h1 className='text-2xl font-bold tracking-tight'>{text('Expenses', 'Gharama')}</h1>
-        <p className='text-muted-foreground'>Track operating costs and payments for this store.</p>
+        <p className='text-muted-foreground'>
+          {text(
+            'Track operating costs and payments for this store.',
+            'Fuatilia gharama za uendeshaji na malipo ya tawi hili.'
+          )}
+        </p>
       </div>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
@@ -83,7 +88,10 @@ export function ExpenseWorkspace() {
             <div>
               <CardTitle>{text('Expense ledger', 'Orodha ya gharama')}</CardTitle>
               <CardDescription>
-                Track operating costs, categories, and payment methods.
+                {text(
+                  'Track operating costs, categories, and payment methods.',
+                  'Fuatilia gharama za uendeshaji, makundi, na njia za malipo.'
+                )}
               </CardDescription>
             </div>
             <Button onClick={() => setShowForm(true)}>
