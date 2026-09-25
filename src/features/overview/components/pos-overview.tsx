@@ -163,13 +163,13 @@ export default function PosOverview() {
           <div className='flex items-center gap-2'>
             <Badge variant='outline' className='hidden sm:inline-flex'>Today · TZS</Badge>
             <Button variant='outline' onClick={() => void loadDashboard()} isLoading={loading}>Refresh</Button>
-            <Button onClick={() => router.push('/dashboard/checkout')}><Icons.add className='size-4' />New sale</Button>
+            <Button className='min-w-max whitespace-nowrap' onClick={() => router.push('/dashboard/checkout')}><Icons.add className='size-4' />New sale</Button>
           </div>
         </div>
 
         {error && <div role='alert' className='border-destructive/40 bg-destructive/5 text-destructive rounded-md border p-3 text-sm'>{error}</div>}
 
-        <div className='*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs sm:grid-cols-2 lg:grid-cols-4'>
+        <div className='*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-2 gap-3 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs sm:gap-4 lg:grid-cols-4'>
           {stats.map(({ label, value, note, detail, icon: Icon }) => (
             <Card className='@container/card' key={label}>
               <CardHeader>
