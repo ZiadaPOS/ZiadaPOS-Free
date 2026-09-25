@@ -13,6 +13,32 @@ type Repo struct {
 // NewRepo builds an admin Repo.
 func NewRepo(db *gorm.DB) *Repo { return &Repo{db: db} }
 
+func (r *Repo) MonitoringOverview() (*monitoringOverview, error) {
+	var out monitoringOverview
+	err := r.db.Raw(`SELECT
+ (SELECT COUNT(*) FROM organisations), (SELECT COUNT(*) FROM organisations WHERE is_active),
+ (SELECT COUNT(*) FROM users), (SELECT COUNT(*) FROM users WHERE is_active), (SELECT COUNT(*) FROM stores),
+ (SELECT COUNT(*) FROM products), (SELECT COUNT(*) FROM products WHERE is_active AND stock <= reorder_point),
+ (SELECT COUNT(*) FROM customers),
+ (SELECT COUNT(*) FROM transactions WHERE created_at >= now()-interval '30 days' AND status IN ('paid','credit')),
+ (SELECT COALESCE(SUM(total),0) FROM transactions WHERE created_at >= now()-interval '30 days' AND status IN ('paid','credit')),
+ (SELECT COALESCE(SUM(amount),0) FROM expenses WHERE created_at >= now()-interval '30 days'),
+ (SELECT COUNT(*) FROM credit_tabs WHERE status IN ('open','partially_paid')),
+ (SELECT COUNT(*) FROM notifications WHERE read = false)`).Scan(&out).Error
+	return &out, err
+}
+
+func (r *Repo) MonitoringActivity(limit int) ([]monitoringActivity, error) {
+	if limit < 1 || limit > 200 {
+		limit = 50
+	}
+	var out []monitoringActivity
+	err := r.db.Raw(`SELECT t.id::text, 'sale' AS type, t.organisation_id::text, o.name AS organisation_name,
+ 'Sale ' || t.txn_number AS description, t.total AS amount, t.created_at
+ FROM transactions t JOIN organisations o ON o.id=t.organisation_id ORDER BY t.created_at DESC LIMIT ?`, limit).Scan(&out).Error
+	return out, err
+}
+
 // Options are shared list filters.
 type Options struct {
 	Search   string

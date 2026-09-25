@@ -66,5 +66,9 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 		r.GET("/subscriptions", h.Subscriptions)
 
 		r.GET("/analytics/overview", h.AnalyticsOverview)
+
+		r.GET("/monitoring/overview", h.MonitoringOverview)
+		r.GET("/monitoring/activity", h.MonitoringActivity)
+		r.GET("/monitoring/health", h.MonitoringHealth)
 	}
 }

@@ -364,6 +364,16 @@ subscription or order state change.
 > Registration auto-creates a **7-day trial** via the `user.registered` event
 > (`apps/subscriptions`).
 
+## Platform monitoring — `/admin/monitoring`
+
+All monitoring routes require a platform admin JWT.
+
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/admin/monitoring/overview` | Platform-wide organisations, users, stores, products, low stock, customers, 30-day revenue, expenses, open credits, and unread alerts. |
+| GET | `/admin/monitoring/activity?limit=50` | Latest platform sales activity, including organisation, amount, and timestamp. |
+| GET | `/admin/monitoring/health` | API and database readiness status with generation timestamp. |
+
 ---
 
 ## Uploads — `/uploads`

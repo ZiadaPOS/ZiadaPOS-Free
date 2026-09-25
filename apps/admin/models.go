@@ -5,6 +5,32 @@ package admin
 
 import "time"
 
+type monitoringOverview struct {
+	Organisations       int64 `json:"organisations"`
+	ActiveOrganisations int64 `json:"active_organisations"`
+	Users               int64 `json:"users"`
+	ActiveUsers         int64 `json:"active_users"`
+	Stores              int64 `json:"stores"`
+	Products            int64 `json:"products"`
+	LowStockProducts    int64 `json:"low_stock_products"`
+	Customers           int64 `json:"customers"`
+	Transactions30d     int64 `json:"transactions_30d"`
+	Revenue30d          int64 `json:"revenue_30d"`
+	Expenses30d         int64 `json:"expenses_30d"`
+	OpenCredits         int64 `json:"open_credits"`
+	UnreadNotifications int64 `json:"unread_notifications"`
+}
+
+type monitoringActivity struct {
+	ID               string    `json:"id"`
+	Type             string    `json:"type"`
+	OrganisationID   string    `json:"organisation_id"`
+	OrganisationName string    `json:"organisation_name"`
+	Description      string    `json:"description"`
+	Amount           int64     `json:"amount"`
+	CreatedAt        time.Time `json:"created_at"`
+}
+
 // Scan projections used by repository aggregate queries. These match column
 // aliases defined in the associated SQL SELECT statements.
 

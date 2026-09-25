@@ -3,6 +3,7 @@ package admin
 import (
 	"errors"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -601,4 +602,36 @@ func (h *Handler) AnalyticsOverview(c *gin.Context) {
 		return
 	}
 	response.OK(c, gin.H{"money": money, "revenue_series": series})
+}
+
+// MonitoringOverview godoc: GET /admin/monitoring/overview
+func (h *Handler) MonitoringOverview(c *gin.Context) {
+	out, err := h.svc.repo.MonitoringOverview()
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, gin.H{"overview": out, "generated_at": time.Now()})
+}
+
+// MonitoringActivity godoc: GET /admin/monitoring/activity?limit=50
+func (h *Handler) MonitoringActivity(c *gin.Context) {
+	rows, err := h.svc.repo.MonitoringActivity(atoi(c.DefaultQuery("limit", "50")))
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, gin.H{"activity": rows, "count": len(rows)})
+}
+
+// MonitoringHealth godoc: GET /admin/monitoring/health
+func (h *Handler) MonitoringHealth(c *gin.Context) {
+	status := "ok"
+	sqlDB, err := h.svc.repo.db.DB()
+	dbStatus := "ok"
+	if err != nil || sqlDB.Ping() != nil {
+		status = "degraded"
+		dbStatus = "error"
+	}
+	response.OK(c, gin.H{"status": status, "database": dbStatus, "api": "ok", "generated_at": time.Now()})
 }
