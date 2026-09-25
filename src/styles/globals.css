@@ -142,6 +142,9 @@
 .sales-filter-row select {
   min-width: 0;
 }
+.inventory-mobile-view-controls {
+  display: none;
+}
 
 @media (min-width: 768px) {
   .sales-filter-row {
@@ -166,6 +169,24 @@
   }
   .pos-title-cart {
     display: none;
+  }
+  .inventory-view-controls:not(.inventory-mobile-view-controls) {
+    display: none;
+  }
+  .inventory-mobile-view-controls {
+    display: flex;
+  }
+  .inventory-filter-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+  .inventory-filter-row > input {
+    grid-column: 1 / -1;
+  }
+  .inventory-filter-row select {
+    width: 100%;
+    padding-right: 0.55rem;
+    padding-left: 0.55rem;
+    font-size: 0.75rem;
   }
 }
 

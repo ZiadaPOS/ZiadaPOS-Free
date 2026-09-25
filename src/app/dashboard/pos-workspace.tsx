@@ -1004,6 +1004,7 @@ function InventoryWorkspace({
   products: PosProduct[];
   onUpdated: () => void;
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [status, setStatus] = useState('all');
@@ -1067,7 +1068,7 @@ function InventoryWorkspace({
                 Search, filter, and manage every product in this store.
               </CardDescription>
             </div>
-            <div className='flex gap-1'>
+            <div className='inventory-view-controls flex gap-1'>
               <Button
                 size='icon'
                 variant={view === 'table' ? 'default' : 'outline'}
@@ -1086,7 +1087,7 @@ function InventoryWorkspace({
               </Button>
             </div>
           </div>
-          <div className='grid gap-2 md:grid-cols-[minmax(0,1fr)_160px_160px]'>
+          <div className='inventory-filter-row grid gap-2 md:grid-cols-[minmax(0,1fr)_160px_160px]'>
             <Input
               className='h-11'
               aria-label='Search inventory'
@@ -1118,6 +1119,24 @@ function InventoryWorkspace({
               <option value='low'>Low stock</option>
               <option value='out'>Out of stock</option>
             </select>
+            <div className='inventory-mobile-view-controls inventory-view-controls flex gap-1'>
+              <Button
+                size='icon'
+                variant={view === 'table' ? 'default' : 'outline'}
+                aria-label='Table view'
+                onClick={() => setView('table')}
+              >
+                <Icons.page className='h-4 w-4' />
+              </Button>
+              <Button
+                size='icon'
+                variant={view === 'grid' ? 'default' : 'outline'}
+                aria-label='Grid view'
+                onClick={() => setView('grid')}
+              >
+                <Icons.dashboard className='h-4 w-4' />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -1126,7 +1145,11 @@ function InventoryWorkspace({
           ) : (
             <div className='grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4'>
               {filtered.map((product) => (
-                <Card key={product.id} className='overflow-hidden'>
+                <Card
+                  key={product.id}
+                  className='cursor-pointer overflow-hidden transition-shadow hover:shadow-md'
+                  onClick={() => router.push(`/dashboard/inventory/${product.id}`)}
+                >
                   <div className='bg-muted/40 flex aspect-[4/3] items-center justify-center text-3xl font-semibold text-primary'>
                     {product.image ? (
                       <img src={product.image} alt='' className='h-full w-full object-cover' />
@@ -1176,6 +1199,7 @@ function InventoryTable({
   products: PosProduct[];
   onUpdated: () => void;
 }) {
+  const router = useRouter();
   const [error, setError] = useState('');
   const [adjustId, setAdjustId] = useState('');
   async function adjust(event: FormEvent<HTMLFormElement>) {
@@ -1245,7 +1269,11 @@ function InventoryTable({
           <tbody className='divide-y'>
             {products.length ? (
               products.map((product) => (
-                <tr key={product.id}>
+                <tr
+                  key={product.id}
+                  className='cursor-pointer hover:bg-muted/30'
+                  onClick={() => router.push(`/dashboard/inventory/${product.id}`)}
+                >
                   <td className='px-4 py-3 font-medium'>{product.name}</td>
                   <td className='px-4 py-3'>{product.sku || product.barcode || '—'}</td>
                   <td className='px-4 py-3'>{money(product.selling_price)}</td>
@@ -1334,6 +1362,7 @@ function InventoryTable({
 function CategoryManager() {
   const [categories, setCategories] = useState<PosCategory[]>([]);
   const [name, setName] = useState('');
+  const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
@@ -1358,23 +1387,37 @@ function CategoryManager() {
       setError(reason instanceof Error ? reason.message : 'Could not create category.');
     }
   }
+  const visibleCategories = categories.filter((category) =>
+    category.name.toLowerCase().includes(query.toLowerCase())
+  );
   return (
     <div className='relative'>
       <Button variant='outline' onClick={() => setOpen((value) => !value)}>
         Categories ({categories.length})
       </Button>
       {open && (
-        <Card className='absolute right-0 top-11 z-20 w-72'>
+        <Card className='absolute right-0 top-11 z-20 w-80'>
           <CardHeader>
             <CardTitle>Product categories</CardTitle>
           </CardHeader>
           <CardContent className='space-y-3'>
+            <Input
+              aria-label='Search categories'
+              placeholder='Search categories…'
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
             <div className='max-h-40 space-y-1 overflow-y-auto text-sm'>
-              {categories.map((category) => (
+              {visibleCategories.map((category) => (
                 <p key={category.id} className='rounded border px-2 py-1'>
                   {category.name}
                 </p>
               ))}
+              {!visibleCategories.length && (
+                <p className='text-muted-foreground py-3 text-center text-xs'>
+                  No categories found.
+                </p>
+              )}
             </div>
             <form onSubmit={create} className='flex gap-2'>
               <Input
@@ -1436,61 +1479,63 @@ function CreateProduct({ onCreated }: { onCreated: () => void }) {
     }
   }
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>New product</CardTitle>
-        <CardDescription>Amounts are entered in Tanzanian shillings.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={submit} className='grid gap-3 sm:grid-cols-2'>
-          {[
-            ['name', 'Name', 'text'],
-            ['sku', 'SKU', 'text'],
-            ['barcode', 'Barcode', 'text'],
-            ['selling_price', 'Selling price (TZS)', 'number'],
-            ['cost_price', 'Cost price (TZS)', 'number'],
-            ['stock', 'Opening stock', 'number'],
-            ['reorder_point', 'Low stock alert at', 'number'],
-            ['description', 'Description', 'text']
-          ].map(([name, label, type]) => (
-            <label key={name} className='text-sm'>
-              {label}
-              <Input
-                name={name}
-                type={type}
-                required={name === 'name' || name === 'selling_price'}
-                min={type === 'number' ? 0 : undefined}
-              />
+    <div className='fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4'>
+      <Card className='my-4 w-full max-w-3xl shadow-2xl'>
+        <CardHeader>
+          <CardTitle>New product</CardTitle>
+          <CardDescription>Amounts are entered in Tanzanian shillings.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submit} className='grid gap-3 sm:grid-cols-2'>
+            {[
+              ['name', 'Name', 'text'],
+              ['sku', 'SKU', 'text'],
+              ['barcode', 'Barcode', 'text'],
+              ['selling_price', 'Selling price (TZS)', 'number'],
+              ['cost_price', 'Cost price (TZS)', 'number'],
+              ['stock', 'Opening stock', 'number'],
+              ['reorder_point', 'Low stock alert at', 'number'],
+              ['description', 'Description', 'text']
+            ].map(([name, label, type]) => (
+              <label key={name} className='text-sm'>
+                {label}
+                <Input
+                  name={name}
+                  type={type}
+                  required={name === 'name' || name === 'selling_price'}
+                  min={type === 'number' ? 0 : undefined}
+                />
+              </label>
+            ))}
+            <label className='text-sm'>
+              Category
+              <select
+                name='category_id'
+                className='bg-background mt-1 h-9 w-full rounded-md border px-3'
+              >
+                <option value=''>Uncategorized</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
             </label>
-          ))}
-          <label className='text-sm'>
-            Category
-            <select
-              name='category_id'
-              className='bg-background mt-1 h-9 w-full rounded-md border px-3'
-            >
-              <option value=''>Uncategorized</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className='flex items-center gap-2 text-sm'>
-            <input type='checkbox' name='is_service' /> Service (no stock tracking)
-          </label>
-          {error && (
-            <p role='alert' className='text-destructive sm:col-span-2'>
-              {error}
-            </p>
-          )}
-          <div className='sm:col-span-2'>
-            <Button isLoading={pending}>Create product</Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+            <label className='flex items-center gap-2 text-sm'>
+              <input type='checkbox' name='is_service' /> Service (no stock tracking)
+            </label>
+            {error && (
+              <p role='alert' className='text-destructive sm:col-span-2'>
+                {error}
+              </p>
+            )}
+            <div className='sm:col-span-2'>
+              <Button isLoading={pending}>Create product</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
