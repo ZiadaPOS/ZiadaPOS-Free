@@ -77,6 +77,7 @@ export type PosTransaction = {
   tax_amount: number;
   total: number;
   profit: number;
+  customer_id?: string;
   customer_name: string;
   customer_phone?: string;
   created_at: string;
