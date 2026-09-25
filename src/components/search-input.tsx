@@ -8,10 +8,10 @@ export default function SearchInput() {
   const { query } = useKBar();
   const { t } = useLanguage();
   return (
-    <div className='w-full space-y-2'>
+    <div className='w-full min-w-0'>
       <Button
         variant='outline'
-        className='bg-background text-muted-foreground relative flex h-10 w-full flex-row flex-nowrap items-center justify-start gap-2 overflow-hidden whitespace-nowrap rounded-[0.5rem] text-sm font-normal leading-none shadow-none sm:pr-12'
+        className='bg-background text-muted-foreground relative flex h-10 w-full min-w-0 flex-row flex-nowrap items-center justify-start gap-2 overflow-hidden whitespace-nowrap rounded-[0.5rem] px-3 text-sm font-normal leading-none shadow-none sm:pr-12'
         onClick={query.toggle}
       >
         <Icons.search className='h-4 w-4 shrink-0' />

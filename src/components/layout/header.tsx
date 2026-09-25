@@ -10,7 +10,7 @@ import { NotificationCenter } from '@/features/notifications/components/notifica
 export default function Header() {
   return (
     <header className='bg-background/60 sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-2 backdrop-blur-md md:h-14'>
-      <div className='min-w-0 shrink-0 px-2 sm:px-4'>
+      <div className='flex min-w-0 shrink-0 items-center whitespace-nowrap px-2 sm:px-4'>
         <SidebarTrigger className='-ml-1' />
         <Separator orientation='vertical' className='mr-2 h-4 data-vertical:self-center' />
         <span className='hidden sm:inline-flex'>
@@ -19,7 +19,7 @@ export default function Header() {
       </div>
 
       <div className='flex min-w-0 flex-1 justify-center px-1 sm:px-4'>
-        <div className='hidden w-full max-w-2xl md:flex'>
+        <div className='hidden w-full max-w-2xl min-w-0 md:flex'>
           <SearchInput />
         </div>
       </div>
