@@ -73,6 +73,11 @@
 
 .pos-row-cart { display: none; }
 
+.pos-category-rail { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.25rem 0 0.125rem; scrollbar-width: none; }
+.pos-category-rail::-webkit-scrollbar { display: none; }
+.pos-category-chip { flex: 0 0 auto; min-height: 2.5rem; border: 1px solid var(--border); border-radius: 9999px; padding: 0 0.9rem; color: var(--muted-foreground); font-size: 0.8125rem; transition: background-color 150ms, color 150ms, border-color 150ms; }
+.pos-category-chip:hover, .pos-category-chip-active { border-color: var(--primary); background: color-mix(in oklab, var(--primary) 12%, var(--background)); color: var(--foreground); }
+
 @media (max-width: 639px) {
   .pos-search-row { grid-template-columns: minmax(0, 8fr) 1fr 1fr; }
   .pos-scan-form, .pos-row-cart { min-width: 0; }
