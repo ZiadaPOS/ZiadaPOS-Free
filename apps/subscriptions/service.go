@@ -7,16 +7,24 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/troubleman96/ziadapos/internal/apierr"
+	"github.com/troubleman96/ziadapos/internal/server"
 	"github.com/troubleman96/ziadapos/internal/util"
 )
 
 // Service implements subscription business rules.
 type Service struct {
 	repo *Repo
+	deps *server.Deps
 }
 
 // NewService wires a subscriptions Service.
-func NewService(repo *Repo) *Service { return &Service{repo: repo} }
+func NewService(repo *Repo, deps ...*server.Deps) *Service {
+	s := &Service{repo: repo}
+	if len(deps) > 0 {
+		s.deps = deps[0]
+	}
+	return s
+}
 
 // ── Plans ─────────────────────────────────────────────────────────────────────
 
@@ -308,26 +316,26 @@ func planResponse(p *SubscriptionPlan) map[string]interface{} {
 
 func subscriptionResponse(s *Subscription) map[string]interface{} {
 	return map[string]interface{}{
-		"id":                s.ID,
-		"organisation":      s.OrganisationID,
-		"plan":              s.PlanID,
-		"plan_detail":       planOrNil(s.Plan),
-		"status":            s.Status,
-		"start_date":        dateOrNil(s.StartDate),
-		"end_date":          dateOrNil(s.EndDate),
-		"is_trial":          s.IsTrial,
-		"trial_fee":         s.TrialFee,
-		"extra_stores":      s.ExtraStores,
-		"amount_paid":       s.AmountPaid,
-		"payment_reference": s.PaymentReference,
-		"payment_date":      timeOrNil(s.PaymentDate),
-		"is_active_now":     s.IsActiveNow(),
-		"days_remaining":    s.DaysRemaining(),
+		"id":                 s.ID,
+		"organisation":       s.OrganisationID,
+		"plan":               s.PlanID,
+		"plan_detail":        planOrNil(s.Plan),
+		"status":             s.Status,
+		"start_date":         dateOrNil(s.StartDate),
+		"end_date":           dateOrNil(s.EndDate),
+		"is_trial":           s.IsTrial,
+		"trial_fee":          s.TrialFee,
+		"extra_stores":       s.ExtraStores,
+		"amount_paid":        s.AmountPaid,
+		"payment_reference":  s.PaymentReference,
+		"payment_date":       timeOrNil(s.PaymentDate),
+		"is_active_now":      s.IsActiveNow(),
+		"days_remaining":     s.DaysRemaining(),
 		"max_stores_allowed": s.MaxStoresAllowed(),
-		"total_amount_due":  s.TotalAmountDue(),
-		"notes":             s.Notes,
-		"created_at":        s.CreatedAt,
-		"updated_at":        s.UpdatedAt,
+		"total_amount_due":   s.TotalAmountDue(),
+		"notes":              s.Notes,
+		"created_at":         s.CreatedAt,
+		"updated_at":         s.UpdatedAt,
 	}
 }
 
@@ -368,9 +376,9 @@ type PlanInput struct {
 
 // ActivateInput confirms payment for a subscription.
 type ActivateInput struct {
-	Status            string     `json:"status"`
-	PaymentReference  string     `json:"payment_reference"`
-	PaymentDate       *time.Time `json:"payment_date"`
-	AmountPaid        int64      `json:"amount_paid"`
-	Notes             string     `json:"notes"`
+	Status           string     `json:"status"`
+	PaymentReference string     `json:"payment_reference"`
+	PaymentDate      *time.Time `json:"payment_date"`
+	AmountPaid       int64      `json:"amount_paid"`
+	Notes            string     `json:"notes"`
 }

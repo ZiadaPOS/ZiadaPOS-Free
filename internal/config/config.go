@@ -67,6 +67,14 @@ type Config struct {
 	SendAfricaAPIKey   string
 	SendAfricaSenderID string
 
+	// Snippe payments
+	EnableSnippe                 bool
+	SnippeAPIKey                 string
+	SnippeBaseURL                string
+	SnippeWebhookSecret          string
+	SnippeSubscriptionWebhookURL string
+	SnippeCheckoutRedirectURL    string
+
 	// Ngamia AI integration
 	NgamiaBaseURL string
 	NgamiaAPIKey  string
@@ -180,10 +188,16 @@ func Load(envFile string) (*Config, error) {
 		SMTPFrom:     env("SMTP_FROM", "no-reply@ziadapos.com"),
 		SMTPFromName: env("SMTP_FROM_NAME", "ZiadaPOS"),
 
-
 		SendAfricaBaseURL:  env("SENDAFRICA_BASE_URL", "https://api.sendafrica.online"),
 		SendAfricaAPIKey:   env("SENDAFRICA_API_KEY", ""),
 		SendAfricaSenderID: env("SENDAFRICA_SENDER_ID", "ZIADA POS"),
+
+		EnableSnippe:                 envBool("ENABLE_SNIPPE", false),
+		SnippeAPIKey:                 env("SNIPPE_API_KEY", ""),
+		SnippeBaseURL:                env("SNIPPE_BASE_URL", "https://api.snippe.sh"),
+		SnippeWebhookSecret:          env("SNIPPE_WEBHOOK_SECRET", ""),
+		SnippeSubscriptionWebhookURL: env("SNIPPE_SUBSCRIPTION_WEBHOOK_URL", ""),
+		SnippeCheckoutRedirectURL:    env("SNIPPE_CHECKOUT_REDIRECT_URL", ""),
 
 		NgamiaBaseURL: env("NGAMIA_BASE_URL", "https://api.ngamia.cc/v1"),
 		NgamiaAPIKey:  env("NGAMIA_API_KEY", ""),
