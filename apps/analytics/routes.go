@@ -32,5 +32,6 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 		group.GET("/customers", h.Customers)
 		group.GET("/cashflow", h.Cashflow)
 		group.GET("/dashboard", h.Dashboard)
+		group.GET("/detail/:section", h.Detail)
 	}
 }

@@ -20,11 +20,11 @@ var eatZone = time.FixedZone("EAT", int(eatOffset/time.Hour)*3600)
 
 // Range describes a parsed analytics period.
 type Range struct {
-	From time.Time
-	To   time.Time
+	From     time.Time
+	To       time.Time
 	FromDate time.Time // EAT calendar start (for labels)
 	ToDate   time.Time // EAT calendar end
-	Days  int
+	Days     int
 }
 
 // ParseRange converts query params (range=7d|30d|90d|ytd, date_from, date_to)
@@ -111,19 +111,19 @@ func (s *Service) KPISummary(ctx context.Context, storeID uuid.UUID, rng Range) 
 	}
 
 	out := map[string]interface{}{
-		"revenue":           totalRevenue,
-		"profit":            agg.Profit,
-		"margin_pct":        pct(agg.Profit, totalRevenue),
-		"transaction_count": agg.Transactions,
-		"customer_count":    agg.Customers,
-		"avg_ticket":        div(totalRevenue, agg.Transactions),
-		"tax_collected":     agg.Tax,
-		"refund_total":      refunds,
-		"discount_amount":   discTotal,
-		"discounted_count":  discCount,
-		"expense_amount":    expTotal,
-		"expense_count":     expCount,
-		"revenue_delta_pct": deltaPct(totalRevenue, priorRev),
+		"revenue":               totalRevenue,
+		"profit":                agg.Profit,
+		"margin_pct":            pct(agg.Profit, totalRevenue),
+		"transaction_count":     agg.Transactions,
+		"customer_count":        agg.Customers,
+		"avg_ticket":            div(totalRevenue, agg.Transactions),
+		"tax_collected":         agg.Tax,
+		"refund_total":          refunds,
+		"discount_amount":       discTotal,
+		"discounted_count":      discCount,
+		"expense_amount":        expTotal,
+		"expense_count":         expCount,
+		"revenue_delta_pct":     deltaPct(totalRevenue, priorRev),
 		"transaction_delta_pct": deltaPct(agg.Transactions, priorTxns),
 	}
 	return out, nil
@@ -494,10 +494,10 @@ func (s *Service) CustomerAnalytics(ctx context.Context, storeID uuid.UUID, rng 
 	}
 
 	return map[string]interface{}{
-		"daily_visits":       dailyVisits,
-		"segments":           segOut,
-		"retention_cohorts":  cohorts,
-		"top_customers":      topOut,
+		"daily_visits":      dailyVisits,
+		"segments":          segOut,
+		"retention_cohorts": cohorts,
+		"top_customers":     topOut,
 		"kpis": map[string]interface{}{
 			"total_visits":       totalVisits,
 			"new_customers":      newCustomers,
@@ -648,10 +648,10 @@ func (s *Service) Cashflow(ctx context.Context, storeID uuid.UUID, rng Range) (m
 			"net":            totalNet,
 			"net_margin_pct": Round1(pctVal(totalNet, totalInflow)),
 		},
-		"daily":              daily,
-		"running_balance":    running,
-		"expense_breakdown":  expenseBreakdown,
-		"payment_inflow":     mix,
+		"daily":             daily,
+		"running_balance":   running,
+		"expense_breakdown": expenseBreakdown,
+		"payment_inflow":    mix,
 		"credit_outstanding": map[string]interface{}{
 			"total":          credit.Total,
 			"customer_count": credit.CustomerCount,
@@ -668,6 +668,13 @@ func (s *Service) Dashboard(ctx context.Context, storeID uuid.UUID) (map[string]
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, eatZone)
 	todayRange := buildRange(today, today.AddDate(0, 0, 1))
 	sevenDays := buildRange(today.AddDate(0, 0, -6), today.AddDate(0, 0, 1))
+	return s.DashboardForRange(ctx, storeID, todayRange, sevenDays)
+}
+
+// DashboardForRange returns the complete dashboard payload for a selected
+// period. The secondary range is used for the compact "best sellers" widget;
+// callers can pass the same range when the dashboard is fully period-driven.
+func (s *Service) DashboardForRange(ctx context.Context, storeID uuid.UUID, todayRange, secondaryRange Range) (map[string]interface{}, error) {
 
 	kpis, err := s.KPISummary(ctx, storeID, todayRange)
 	if err != nil {
@@ -709,7 +716,7 @@ func (s *Service) Dashboard(ctx context.Context, storeID uuid.UUID) (map[string]
 	if err != nil {
 		return nil, err
 	}
-	top, err := s.TopProducts(ctx, storeID, sevenDays, 6)
+	top, err := s.TopProducts(ctx, storeID, secondaryRange, 6)
 	if err != nil {
 		return nil, err
 	}
@@ -738,6 +745,9 @@ func (s *Service) Dashboard(ctx context.Context, storeID uuid.UUID) (map[string]
 	}
 
 	return map[string]interface{}{
+		"date_from":    todayRange.FromDate.Format(dayLayout),
+		"date_to":      todayRange.ToDate.Format(dayLayout),
+		"days":         todayRange.Days,
 		"kpis_today":   kpis,
 		"hourly_today": hourlyToday,
 		"payment_mix":  mix,

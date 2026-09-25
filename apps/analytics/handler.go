@@ -260,12 +260,54 @@ func (h *Handler) Dashboard(c *gin.Context) {
 	if !ok {
 		return
 	}
-	d, err := h.svc.Dashboard(c.Request.Context(), storeID)
+	rng := h.rangeOf(c)
+	d, err := h.svc.DashboardForRange(c.Request.Context(), storeID, rng, rng)
 	if err != nil {
 		writeErr(c, err)
 		return
 	}
 	response.OK(c, d)
+}
+
+// Detail returns the full data behind a dashboard/analytics card. Keeping
+// this as one stable endpoint lets clients open a card without reimplementing
+// the service's aggregation rules.
+// GET /analytics/detail/:section
+func (h *Handler) Detail(c *gin.Context) {
+	storeID, ok := h.storeID(c)
+	if !ok {
+		return
+	}
+	rng := h.rangeOf(c)
+	var data interface{}
+	var err error
+	switch c.Param("section") {
+	case "sales", "revenue":
+		data, err = h.svc.SalesBreakdown(c.Request.Context(), storeID, rng)
+	case "products":
+		data, err = h.svc.ProductPerformance(c.Request.Context(), storeID, rng, c.Query("category"), c.Query("sort"))
+	case "customers":
+		data, err = h.svc.CustomerAnalytics(c.Request.Context(), storeID, rng)
+	case "cashflow", "expenses":
+		data, err = h.svc.Cashflow(c.Request.Context(), storeID, rng)
+	case "payments":
+		data, err = h.svc.PaymentMix(c.Request.Context(), storeID, rng)
+	case "credits":
+		data, err = h.svc.Cashflow(c.Request.Context(), storeID, rng)
+	default:
+		response.BadRequest(c, "Unknown analytics section", map[string]interface{}{"allowed": []string{"sales", "products", "customers", "cashflow", "payments", "credits"}})
+		return
+	}
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, map[string]interface{}{
+		"section":   c.Param("section"),
+		"date_from": rng.FromDate.Format(dayLayout),
+		"date_to":   rng.ToDate.Format(dayLayout),
+		"data":      data,
+	})
 }
 
 func splitSections(s string) map[string]bool {
