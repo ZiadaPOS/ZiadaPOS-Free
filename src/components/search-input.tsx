@@ -9,11 +9,11 @@ export default function SearchInput() {
     <div className='w-full space-y-2'>
       <Button
         variant='outline'
-        className='bg-background text-muted-foreground relative flex h-10 w-full flex-row items-center justify-start rounded-[0.5rem] text-sm font-normal shadow-none sm:pr-12'
+        className='bg-background text-muted-foreground relative flex h-10 w-full flex-row flex-nowrap items-center justify-start gap-2 overflow-hidden whitespace-nowrap rounded-[0.5rem] text-sm font-normal leading-none shadow-none sm:pr-12'
         onClick={query.toggle}
       >
-        <Icons.search className='mr-2 h-4 w-4' />
-        Search...
+        <Icons.search className='h-4 w-4 shrink-0' />
+        <span className='truncate'>Search...</span>
         <kbd className='bg-muted pointer-events-none absolute top-[0.3rem] right-[0.3rem] hidden h-6 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none sm:flex'>
           <span className='text-xs'>⌘</span>K
         </kbd>
