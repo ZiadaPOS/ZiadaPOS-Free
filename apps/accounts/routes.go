@@ -66,7 +66,7 @@ func RegisterHandlers(bus *events.Bus, deps *server.Deps) {
 		if phone == "" || tempPW == "" {
 			return nil
 		}
-		_, err := deps.SMS.Send(ctx, phone, "Karibu ZiadaPOS! Your temporary login password is: "+tempPW+". Change it after your first login.", "")
+		_, err := deps.SMS.Send(ctx, phone, "Karibu ZiadaPOS! Your temporary login password is: "+tempPW+". Change it after your first login.", deps.Cfg.SendAfricaSenderID)
 		return err
 	})
 }

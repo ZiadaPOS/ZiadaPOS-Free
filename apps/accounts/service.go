@@ -265,7 +265,7 @@ func (s *AuthService) SendOTP(ctx context.Context, phone, purpose string) error 
 		return err
 	}
 
-	if _, err := s.sms.Send(ctx, phone, "Your ZiadaPOS verification code is "+code+". It expires in 5 minutes.", ""); err != nil {
+	if _, err := s.sms.Send(ctx, phone, "Your ZiadaPOS verification code is "+code+". It expires in 5 minutes.", s.cfg.SendAfricaSenderID); err != nil {
 		return err
 	}
 

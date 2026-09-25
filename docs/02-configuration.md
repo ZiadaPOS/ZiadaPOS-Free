@@ -100,6 +100,13 @@ payment module is deployed. Payment completion must be accepted only from a veri
 webhook; browser redirects are informational and cannot activate a subscription or complete an
 order.
 
+### SMS sender identity
+
+ZiadaPOS-controlled OTPs, temporary-password messages, payment confirmations, debt reminders,
+and reports are sent through SendAfrica using `SENDAFRICA_SENDER_ID` (production value:
+`ZIADA POS`). Snippe payment OTPs are generated and delivered by Snippe itself; ZiadaPOS cannot
+override that provider-controlled sender identity.
+
 ## AI (Ngamia)
 
 | Env var | Default | Meaning |
