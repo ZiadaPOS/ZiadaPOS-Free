@@ -16,6 +16,7 @@ export default function SmsPage() {
   const text = useText();
   const [balance, setBalance] = useState<RecordValue>({});
   const [sender, setSender] = useState<RecordValue>({});
+  const [settings, setSettings] = useState<RecordValue>({});
   const [logs, setLogs] = useState<RecordValue[]>([]);
   const [apiKey, setApiKey] = useState('');
   const [saving, setSaving] = useState(false);
@@ -26,11 +27,13 @@ export default function SmsPage() {
     const results = await Promise.allSettled([
       posApi<RecordValue>('/messaging/balance'),
       posApi<RecordValue>('/messaging/sender-id'),
+      posApi<RecordValue>('/messaging/settings'),
       posApi<unknown>('/messaging/messages?limit=20')
     ]);
     if (results[0].status === 'fulfilled') setBalance(results[0].value.data ?? {});
     if (results[1].status === 'fulfilled') setSender(results[1].value.data ?? {});
-    if (results[2].status === 'fulfilled') setLogs(unwrapList<RecordValue>(results[2].value.data));
+    if (results[2].status === 'fulfilled') setSettings(results[2].value.data ?? {});
+    if (results[3].status === 'fulfilled') setLogs(unwrapList<RecordValue>(results[3].value.data));
   }, []);
 
   useEffect(() => {
@@ -148,45 +151,144 @@ export default function SmsPage() {
           </div>
         )}
         {tab === 'setup' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{text('Connect SendAfrica', 'Unganisha SendAfrica')}</CardTitle>
-              <CardDescription>
-                {text(
-                  'Create an API key in SendAfrica, then paste it here. Ziada POS never displays the saved key.',
-                  'Tengeneza API key kwenye SendAfrica, kisha bandika hapa. Ziada POS haitaonyesha ufunguo uliotunzwa.'
+          <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]'>
+            <Card>
+              <CardHeader>
+                <CardTitle>{text('Connect SendAfrica', 'Unganisha SendAfrica')}</CardTitle>
+                <CardDescription>
+                  {text(
+                    'Create an API key in SendAfrica, then paste it here. Ziada POS never displays the saved key.',
+                    'Tengeneza API key kwenye SendAfrica, kisha bandika hapa. Ziada POS haitaonyesha ufunguo uliotunzwa.'
+                  )}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className='space-y-3'>
+                <a
+                  href='https://sendafrica.online'
+                  target='_blank'
+                  rel='noreferrer'
+                  className='text-primary inline-flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline'
+                >
+                  {text(
+                    'Create your SendAfrica account and API key',
+                    'Fungua akaunti ya SendAfrica na API key'
+                  )}
+                  <Icons.externalLink className='size-3.5' />
+                </a>
+                <div className='grid gap-3 sm:grid-cols-3'>
+                  {[
+                    [
+                      text('1. SendAfrica account', '1. Akaunti ya SendAfrica'),
+                      settings.account_configured ?? false
+                    ],
+                    [
+                      text('2. API key connected', '2. API key imeunganishwa'),
+                      settings.api_key_configured ?? false
+                    ],
+                    [text('3. Ready to send', '3. Tayari kutuma'), settings.sms_configured ?? false]
+                  ].map(([label, complete]) => (
+                    <div className='rounded-lg border bg-muted/20 p-3' key={String(label)}>
+                      <div className='flex items-center gap-2 text-sm font-medium'>
+                        <span
+                          className={`grid size-5 place-items-center rounded-full text-xs ${complete ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/15 text-amber-600'}`}
+                        >
+                          {complete ? '✓' : '!'}
+                        </span>
+                        <span>{label}</span>
+                      </div>
+                      <p className='text-muted-foreground mt-1 text-xs'>
+                        {complete
+                          ? text('Configured', 'Imesanidiwa')
+                          : text('Needs setup', 'Inahitaji kusanidiwa')}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <Input
+                  type='password'
+                  value={apiKey}
+                  onChange={(event) => setApiKey(event.target.value)}
+                  placeholder={text('Paste SendAfrica API key', 'Bandika API key ya SendAfrica')}
+                />
+                <Button onClick={() => void saveKey()} isLoading={saving} disabled={!apiKey.trim()}>
+                  <Icons.check className='size-4' /> {text('Save API key', 'Hifadhi API key')}
+                </Button>
+                {message && (
+                  <p role='status' className='text-muted-foreground text-sm'>
+                    {message}
+                  </p>
                 )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className='space-y-3'>
-              <a
-                href='https://sendafrica.online'
-                target='_blank'
-                rel='noreferrer'
-                className='text-primary inline-flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline'
-              >
-                {text(
-                  'Create your SendAfrica account and API key',
-                  'Fungua akaunti ya SendAfrica na API key'
-                )}
-                <Icons.externalLink className='size-3.5' />
-              </a>
-              <Input
-                type='password'
-                value={apiKey}
-                onChange={(event) => setApiKey(event.target.value)}
-                placeholder={text('Paste SendAfrica API key', 'Bandika API key ya SendAfrica')}
-              />
-              <Button onClick={() => void saveKey()} isLoading={saving} disabled={!apiKey.trim()}>
-                <Icons.check className='size-4' /> {text('Save API key', 'Hifadhi API key')}
-              </Button>
-              {message && (
-                <p role='status' className='text-muted-foreground text-sm'>
-                  {message}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+            <Card className='h-fit'>
+              <CardHeader>
+                <CardTitle>
+                  {text('Configure this on SendAfrica', 'Sanidi haya kwenye SendAfrica')}
+                </CardTitle>
+                <CardDescription>
+                  {text(
+                    'Ziada POS uses SendAfrica to deliver messages. These provider settings are managed there.',
+                    'Ziada POS hutumia SendAfrica kutuma ujumbe. Mipangilio hii inasimamiwa huko.'
+                  )}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className='space-y-3 text-sm'>
+                {[
+                  [
+                    text(
+                      'Create or access your SendAfrica account.',
+                      'Fungua au tengeneza akaunti yako ya SendAfrica.'
+                    ),
+                    'account'
+                  ],
+                  [
+                    text(
+                      'Create an API key and keep it private.',
+                      'Tengeneza API key na uiweke kwa siri.'
+                    ),
+                    'key'
+                  ],
+                  [
+                    text(
+                      'Set up and approve your sender ID.',
+                      'Sanidi na uidhinishe jina la mtumaji.'
+                    ),
+                    'sender'
+                  ],
+                  [
+                    text(
+                      'Add provider balance after the 100 free Ziada credits are used.',
+                      'Ongeza salio la SendAfrica baada ya SMS 100 za Ziada kumalizika.'
+                    ),
+                    'balance'
+                  ],
+                  [
+                    text(
+                      'Check delivery status and provider limits in SendAfrica.',
+                      'Angalia hali ya ujumbe na mipaka ya kutuma SendAfrica.'
+                    ),
+                    'delivery'
+                  ]
+                ].map(([label, key], index) => (
+                  <div className='flex gap-3' key={key}>
+                    <span className='bg-primary/10 text-primary grid size-6 shrink-0 place-items-center rounded-full text-xs font-semibold'>
+                      {index + 1}
+                    </span>
+                    <span>{label}</span>
+                  </div>
+                ))}
+                <a
+                  href='https://sendafrica.online'
+                  target='_blank'
+                  rel='noreferrer'
+                  className='text-primary inline-flex items-center gap-1 pt-2 font-medium underline-offset-4 hover:underline'
+                >
+                  {text('Open SendAfrica', 'Fungua SendAfrica')}{' '}
+                  <Icons.externalLink className='size-3.5' />
+                </a>
+              </CardContent>
+            </Card>
+          </div>
         )}
         {tab === 'sender' && (
           <Card>
