@@ -16,7 +16,7 @@ export default function Header() {
       </div>
 
       <div className='flex min-w-0 flex-1 justify-center px-1 sm:px-4'>
-        <div className='hidden w-full max-w-xl md:flex'>
+        <div className='hidden w-full max-w-2xl md:flex'>
           <SearchInput />
         </div>
       </div>

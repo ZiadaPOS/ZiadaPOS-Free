@@ -71,6 +71,16 @@
 
 .pos-product-image { position: absolute; inset: 12px 12px auto; height: 96px; overflow: hidden; border-radius: calc(var(--radius) + 2px); display: grid; place-items: center; background: color-mix(in oklab, var(--primary) 12%, var(--muted)); color: var(--primary); font-size: 2rem; font-weight: 700; }
 
+.pos-row-cart { display: none; }
+
+@media (max-width: 639px) {
+  .pos-search-row { grid-template-columns: minmax(0, 8fr) 1fr 1fr; }
+  .pos-scan-form, .pos-row-cart { min-width: 0; }
+  .pos-scan-form button, .pos-row-cart { width: 100%; }
+  .pos-row-cart { display: inline-flex; }
+  .pos-title-cart { display: none; }
+}
+
 @media (min-width: 640px) {
   .pos-product-catalog {
     grid-template-columns: repeat(3, minmax(0, 1fr));
