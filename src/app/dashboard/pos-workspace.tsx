@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { posApi, money, unwrapList, type PosCategory, type PosCustomer, type PosCreditTab, type PosProduct, type PosTransaction } from '@/lib/pos-api';
+import { ThemeModeToggle } from '@/components/themes/theme-mode-toggle';
+import { ThemeSelector } from '@/components/themes/theme-selector';
 import { usePathname, useRouter } from 'next/navigation';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -134,7 +136,7 @@ export default function PosWorkspace() {
         {['suppliers', 'expenses', 'staff', 'stores', 'reports'].some((section) => pathname.includes(`/${section}`)) && <ResourcePage pathname={pathname} />}
         {pathname.includes('/suppliers') && <SupplierOperations />}
         {receiptTransaction && <ReceiptDialog transaction={receiptTransaction} onClose={() => setReceiptTransaction(null)} />}
-        {pathname.includes('/settings') && <><StoreSwitcher />{(user?.role === 'owner' || user?.role === 'admin') && <BusinessSettings initialValue={settingsData?.organisation as Record<string, unknown> | undefined} />}</>}
+        {pathname.includes('/settings') && <><Card><CardHeader><CardTitle>Appearance</CardTitle><CardDescription>Choose the Ziada or Supabase workspace style and light or dark mode.</CardDescription></CardHeader><CardContent className='flex flex-wrap items-center gap-3'><ThemeSelector /><ThemeModeToggle /></CardContent></Card><StoreSwitcher />{(user?.role === 'owner' || user?.role === 'admin') && <BusinessSettings initialValue={settingsData?.organisation as Record<string, unknown> | undefined} />}</>}
       </div>
   </PageContainer>;
 }

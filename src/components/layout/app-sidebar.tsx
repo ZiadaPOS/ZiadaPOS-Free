@@ -7,6 +7,7 @@ import { Icons } from '@/components/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -27,7 +28,7 @@ export default function AppSidebar() {
   }
   const managerOnly = new Set(['Staff', 'Branches', 'Reports', 'Settings']);
   return <Sidebar collapsible='icon'>
-    <SidebarHeader className='px-4 py-4'><Link href='/dashboard/overview' className='flex items-center gap-2 font-bold'><Icons.logo className='size-6 text-primary' /><span>Ziada POS</span></Link></SidebarHeader>
+    <SidebarHeader className='px-4 py-4'><Link href='/dashboard/overview' className='flex items-center gap-2 font-bold'><Image src='/ziada-final.jpeg' alt='Ziada' width={28} height={28} className='size-7 rounded-md object-cover' priority /><span>Ziada POS</span></Link></SidebarHeader>
     <SidebarContent>{navGroups.map((group) => <SidebarGroup key={group.label}><SidebarGroupLabel>{group.label}</SidebarGroupLabel><SidebarMenu>{group.items.filter((item) => !managerOnly.has(item.title) || role === 'owner' || role === 'admin').map((item) => {
       const Icon = item.icon ? Icons[item.icon] : Icons.logo;
       return item.items?.length ? <Collapsible key={item.title} defaultOpen={item.isActive} render={<SidebarMenuItem />}><CollapsibleTrigger render={<SidebarMenuButton tooltip={item.title} isActive={pathname === item.url} />}><Icon /><span>{item.title}</span><Icons.chevronRight className='ml-auto size-4' /></CollapsibleTrigger><CollapsibleContent><SidebarMenuSub>{item.items.map((child) => <SidebarMenuSubItem key={child.title}><SidebarMenuSubButton render={<Link href={child.url} />} isActive={pathname === child.url}>{child.title}</SidebarMenuSubButton></SidebarMenuSubItem>)}</SidebarMenuSub></CollapsibleContent></Collapsible> : <SidebarMenuItem key={item.title}><SidebarMenuButton render={<Link href={item.url} />} tooltip={item.title} isActive={pathname === item.url}><Icon /><span>{item.title}</span></SidebarMenuButton></SidebarMenuItem>;

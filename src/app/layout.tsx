@@ -12,7 +12,7 @@ import '../styles/globals.css';
 
 const META_THEME_COLORS = {
   light: '#ffffff',
-  dark: '#09090b'
+  dark: '#0a0a0b'
 };
 
 export const metadata: Metadata = {
@@ -31,10 +31,10 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/shadcn-dashboard.png',
-        width: 3200,
-        height: 1600,
-        alt: 'Shadcn Dashboard overview page'
+        url: '/ziada-final.jpeg',
+        width: 1080,
+        height: 1080,
+        alt: 'Ziada POS'
       }
     ]
   },
@@ -42,8 +42,14 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Ziada POS',
     description: 'Sales, inventory, and business management for ZiadaPOS.',
-    images: ['/shadcn-dashboard.png']
+    images: ['/ziada-final.jpeg']
   }
+};
+
+metadata.icons = {
+  icon: '/ziada-final.jpeg',
+  shortcut: '/ziada-final.jpeg',
+  apple: '/ziada-final.jpeg'
 };
 
 export const viewport: Viewport = {
