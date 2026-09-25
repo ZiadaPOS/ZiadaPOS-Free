@@ -158,9 +158,9 @@ export default function PosOverview() {
   return (
     <PageContainer>
       <div className='flex min-h-[calc(100svh-6rem)] min-w-0 flex-1 flex-col gap-4'>
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <h2 className='text-2xl font-bold tracking-tight'>Hi{userName ? `, ${userName}` : ''}! Welcome back 👋</h2>
-          <div className='flex items-center gap-2'>
+        <div className='flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center'>
+          <h2 className='text-xl font-bold tracking-tight sm:text-2xl'>Hi{userName ? `, ${userName}` : ''}! Welcome back 👋</h2>
+          <div className='flex flex-wrap items-center gap-2 sm:justify-end'>
             <Badge variant='outline' className='hidden sm:inline-flex'>Today · TZS</Badge>
             <Button variant='outline' onClick={() => void loadDashboard()} isLoading={loading}>Refresh</Button>
             <Button className='min-w-max whitespace-nowrap' onClick={() => router.push('/dashboard/checkout')}><Icons.add className='size-4' />New sale</Button>
