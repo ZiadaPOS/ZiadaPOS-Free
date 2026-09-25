@@ -47,11 +47,11 @@
 }
 
 /* POS catalog: dense product tiles that remain usable from phones to wide tills. */
-.max-h-\[calc\(100svh-18rem\)\] {
+.pos-product-catalog {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.max-h-\[calc\(100svh-18rem\)\] > button {
+.pos-product-catalog > button {
   min-width: 0;
   min-height: 168px;
   overflow: hidden;
@@ -60,7 +60,7 @@
   background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 7%, var(--card)) 0 70%, var(--card) 70% 100%);
 }
 
-.max-h-\[calc\(100svh-18rem\)\] > button::before {
+.pos-product-catalog > button::before {
   content: '';
   position: absolute;
   inset: 12px 12px auto;
@@ -69,35 +69,37 @@
   background: color-mix(in oklab, var(--primary) 12%, var(--muted));
 }
 
+.pos-product-image { position: absolute; inset: 12px 12px auto; height: 96px; overflow: hidden; border-radius: calc(var(--radius) + 2px); display: grid; place-items: center; background: color-mix(in oklab, var(--primary) 12%, var(--muted)); color: var(--primary); font-size: 2rem; font-weight: 700; }
+
 @media (min-width: 640px) {
-  .max-h-\[calc\(100svh-18rem\)\] {
+  .pos-product-catalog {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1024px) {
-  .max-h-\[calc\(100svh-18rem\)\] {
+  .pos-product-catalog {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1280px) {
-  .max-h-\[calc\(100svh-18rem\)\] {
+  .pos-product-catalog {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 
-[data-catalog-view='list'] .max-h-\[calc\(100svh-18rem\)\] {
+[data-catalog-view='list'] .pos-product-catalog {
   grid-template-columns: minmax(0, 1fr);
 }
 
-[data-catalog-view='list'] .max-h-\[calc\(100svh-18rem\)\] > button {
+[data-catalog-view='list'] .pos-product-catalog > button {
   min-height: 96px;
   padding-top: 16px;
   padding-left: 116px;
 }
 
-[data-catalog-view='list'] .max-h-\[calc\(100svh-18rem\)\] > button::before {
+[data-catalog-view='list'] .pos-product-catalog > button::before {
   inset: 12px auto 12px 12px;
   width: 88px;
   height: auto;

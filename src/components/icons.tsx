@@ -69,6 +69,7 @@ import {
   IconSend,
   IconSettings,
   IconShare,
+  IconShoppingCart,
   IconSlash,
   IconSparkles,
   IconStack2,
@@ -110,6 +111,7 @@ export const Icons = {
   info: IconInfoCircle,
   spinner: IconLoader2,
   search: IconSearch,
+  cart: IconShoppingCart,
   settings: IconSettings,
   trash: IconTrash,
 
