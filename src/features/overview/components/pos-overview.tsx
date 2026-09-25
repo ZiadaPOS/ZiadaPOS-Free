@@ -96,6 +96,9 @@ export default function PosOverview() {
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [smsBalance, setSmsBalance] = useState<{ balance: number; configured: boolean } | null>(
+    null
+  );
 
   const loadDashboard = useCallback(async () => {
     setError('');
@@ -114,7 +117,8 @@ export default function PosOverview() {
         Promise.allSettled([
           posApi<SalesSummary>(`/pos/summary?date_from=${todayKey}&date_to=${todayKey}`),
           posApi<unknown>('/pos/transactions?page=1&page_size=6'),
-          posApi<unknown>('/inventory/low-stock')
+          posApi<unknown>('/inventory/low-stock'),
+          posApi<{ balance: number; configured: boolean }>('/accounts/sms-balance')
         ]),
         Promise.allSettled(
           dates.slice(0, -1).map((date) => {
@@ -136,6 +140,8 @@ export default function PosOverview() {
       if (lowStockResult.status === 'fulfilled') {
         setLowStock(unwrapList<PosProduct>(lowStockResult.value.data));
       }
+      const smsResult = coreResults[3];
+      if (smsResult.status === 'fulfilled') setSmsBalance(smsResult.value.data);
 
       const resolvedDaily = dailyResults.flatMap((result, index) => {
         if (result.status !== 'fulfilled') return [];
@@ -591,6 +597,37 @@ export default function PosOverview() {
             </Card>
           </div>
         </div>
+        <Card className='border-sky-500/20 bg-sky-500/[0.04]'>
+          <CardContent className='flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='flex min-w-0 items-center gap-3'>
+              <div className='bg-sky-500/10 text-sky-600 dark:text-sky-300 grid size-10 shrink-0 place-items-center rounded-full'>
+                <Icons.send className='size-5' />
+              </div>
+              <div className='min-w-0'>
+                <p className='font-medium'>SMS balance</p>
+                <p className='text-muted-foreground truncate text-sm'>
+                  Send credit reminders and customer updates.
+                </p>
+              </div>
+            </div>
+            <div className='flex items-center gap-3 sm:shrink-0'>
+              <span className='text-lg font-semibold tabular-nums'>
+                {loading
+                  ? '—'
+                  : smsBalance?.configured
+                    ? `${amountOf(smsBalance.balance)} SMS`
+                    : 'Not configured'}
+              </span>
+              <Button
+                size='sm'
+                variant='outline'
+                onClick={() => router.push('/dashboard/business-settings')}
+              >
+                Manage
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </PageContainer>
   );

@@ -16,6 +16,7 @@ export default function CreditDetailPage() {
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [reminding, setReminding] = useState(false);
 
   async function load() {
     try {
@@ -47,6 +48,18 @@ export default function CreditDetailPage() {
       await load();
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : 'Payment could not be recorded.');
+    }
+  }
+  async function sendReminder() {
+    setReminding(true);
+    setMessage('');
+    try {
+      await posApi<unknown>(`/credits/customers/${params.id}/remind`, { method: 'POST' });
+      setMessage('SMS reminder sent.');
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : 'SMS reminder could not be sent.');
+    } finally {
+      setReminding(false);
     }
   }
   if (error)
@@ -140,6 +153,15 @@ export default function CreditDetailPage() {
             <CardDescription>Apply a cash payment to this account.</CardDescription>
           </CardHeader>
           <CardContent className='space-y-3'>
+            <Button
+              variant='outline'
+              className='w-full'
+              onClick={() => void sendReminder()}
+              disabled={!customer.phone || reminding}
+              isLoading={reminding}
+            >
+              <Icons.send className='size-4' /> Send SMS reminder
+            </Button>
             <Input
               type='number'
               min='1'
