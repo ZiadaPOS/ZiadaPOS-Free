@@ -347,6 +347,20 @@ balance is available.
 | POST | `/subscriptions/all/:id/activate` | Admin | Activate / grant. |
 | PATCH | `/subscriptions/all/:id/extra-stores` | Admin | Adjust extra-store allowance. |
 
+### Planned Snippe callbacks
+
+These public HTTPS routes are reserved for the ZiadaPOS payment module and are not active until
+that module is deployed:
+
+```text
+POST /subscriptions/webhooks/snippe
+POST /commerce/webhooks/snippe
+```
+
+They must verify the raw-body HMAC signature using `SNIPPE_WEBHOOK_SECRET`, deduplicate by
+provider event/payment reference, and record ZiadaPOS's own transaction before applying any
+subscription or order state change.
+
 > Registration auto-creates a **7-day trial** via the `user.registered` event
 > (`apps/subscriptions`).
 

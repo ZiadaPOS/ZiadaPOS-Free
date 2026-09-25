@@ -158,4 +158,19 @@ reserved balance, consumed balance, and a version for safe concurrent reservatio
 - Never use a shared platform SendAfrica credential for a shop's operational or promotional SMS.
 - Registration/password OTPs happen before a shop has a provider key; they require a separately
   documented platform-auth channel or temporary onboarding provider policy.
+
+## Payment-provider separation
+
+SendAfrica SMS API keys and Snippe payment API keys are different credentials. SendAfrica keys
+are used only for SMS/account operations. ZiadaPOS subscription and ecommerce payments use
+Snippe and send callbacks to the ZiadaPOS API:
+
+```text
+https://api.ziadapos.com/api/v1/subscriptions/webhooks/snippe
+https://api.ziadapos.com/api/v1/commerce/webhooks/snippe
+```
+
+The callback endpoints must not be advertised as live until their handlers exist and are
+signature-verified. A payment redirect alone must never activate a subscription or complete an
+order.
 - Never block an order or POS sale on an SMS provider call.

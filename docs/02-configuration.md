@@ -85,6 +85,21 @@ SMS free-credit policy is organisation-scoped and stored in the database: one no
 an environment variable; they are reconciled through the messaging wallet and provider
 references. Provider keys remain server-side and are never returned by the API.
 
+## Snippe payments
+
+Snippe credentials are separate from SendAfrica SMS credentials. The planned ZiadaPOS payment
+callbacks are:
+
+```text
+https://api.ziadapos.com/api/v1/subscriptions/webhooks/snippe
+https://api.ziadapos.com/api/v1/commerce/webhooks/snippe
+```
+
+These routes must not be enabled with `ENABLE_SNIPPE=true` until the subscription/commerce
+payment module is deployed. Payment completion must be accepted only from a verified Snippe
+webhook; browser redirects are informational and cannot activate a subscription or complete an
+order.
+
 ## AI (Ngamia)
 
 | Env var | Default | Meaning |
