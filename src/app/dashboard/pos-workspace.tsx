@@ -93,7 +93,7 @@ export default function PosWorkspace() {
         ]);
         setCreditTabs(unwrapList<PosCreditTab>(credit.data));
         setCustomers(unwrapList<PosCustomer>(customerResult.data));
-      } else if (pathname.includes('/settings')) {
+      } else if (pathname.includes('/settings') || pathname.includes('/business-settings')) {
         const me = await posApi<unknown>('/accounts/me');
         setSettingsData(me.data as Record<string, unknown>);
       }
@@ -230,7 +230,9 @@ export default function PosWorkspace() {
     '/expenses',
     '/staff',
     '/stores',
-    '/reports'
+    '/reports',
+    '/analytics',
+    '/help'
   ].some((route) => pathname.includes(route));
 
   return (
@@ -591,7 +593,7 @@ export default function PosWorkspace() {
             onClose={() => setReceiptTransaction(null)}
           />
         )}
-        {pathname.includes('/settings') && (
+        {(pathname.includes('/settings') || pathname.includes('/business-settings')) && (
           <>
             <Card>
               <CardHeader>

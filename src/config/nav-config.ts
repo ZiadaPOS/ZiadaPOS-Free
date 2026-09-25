@@ -88,6 +88,20 @@ export const navGroups: NavGroup[] = [
         icon: 'settings',
         isActive: false,
         items: []
+      },
+      {
+        title: 'Business settings',
+        url: '/dashboard/business-settings',
+        icon: 'settings',
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Help & support',
+        url: '/dashboard/help',
+        icon: 'help',
+        isActive: false,
+        items: []
       }
     ]
   }
