@@ -575,9 +575,11 @@ export default function PosWorkspace() {
         {pathname.includes('/credits') && (
           <CreditTable tabs={creditTabs} customers={customers} onUpdated={() => void load()} />
         )}
-        {['expenses', 'staff', 'stores', 'reports'].some((section) =>
-          pathname.includes(`/${section}`)
-        ) && <ResourcePage pathname={pathname} />}
+        {['staff', 'reports'].some((section) => pathname.includes(`/${section}`)) && (
+          <ResourcePage pathname={pathname} />
+        )}
+        {pathname.includes('/expenses') && <ExpenseWorkspace />}
+        {pathname.includes('/stores') && <StoreWorkspace />}
         {pathname.includes('/suppliers') && <SupplierWorkspace />}
         {pathname.includes('/suppliers') && <SupplierOperations />}
         {receiptTransaction && (
@@ -2622,6 +2624,356 @@ function DataTable({ columns, rows }: { columns: string[]; rows: string[][] }) {
           )}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function ExpenseWorkspace() {
+  const [records, setRecords] = useState<Record<string, unknown>[]>([]);
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('all');
+  const [showForm, setShowForm] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState('');
+  const load = useCallback(() => {
+    void posApi<unknown>('/expenses?page=1&page_size=100')
+      .then((result) => setRecords(unwrapList<Record<string, unknown>>(result.data)))
+      .catch((reason) =>
+        setMessage(reason instanceof Error ? reason.message : 'Could not load expenses.')
+      );
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  const amount = (record: Record<string, unknown>) => Number(record.amount || 0);
+  const categories = [
+    ...new Set(records.map((record) => String(record.category || 'Other')))
+  ].sort();
+  const filtered = records.filter(
+    (record) =>
+      `${record.title || record.name || ''} ${record.category || ''} ${record.notes || record.note || ''}`
+        .toLowerCase()
+        .includes(query.toLowerCase()) &&
+      (category === 'all' || String(record.category || 'Other') === category)
+  );
+  async function create(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    try {
+      await posApi<unknown>('/expenses', {
+        method: 'POST',
+        body: JSON.stringify({ ...values, amount: Number(values.amount) })
+      });
+      setShowForm(false);
+      load();
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : 'Could not save expense.');
+    } finally {
+      setPending(false);
+    }
+  }
+  const total = records.reduce((sum, record) => sum + amount(record), 0);
+  return (
+    <div className='space-y-4'>
+      <div>
+        <h1 className='text-2xl font-bold tracking-tight'>Expenses</h1>
+        <p className='text-muted-foreground'>Track operating costs and payments for this store.</p>
+      </div>
+      <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
+        {[
+          ['Total expenses', money(total), 'All recorded costs'],
+          ['Transactions', records.length, 'Expense records'],
+          ['Average expense', money(records.length ? total / records.length : 0), 'Per record'],
+          ['This month', money(total), 'Current loaded period']
+        ].map(([label, value, note]) => (
+          <Card key={label}>
+            <CardContent className='space-y-2 p-4 sm:p-5'>
+              <p className='text-muted-foreground text-xs sm:text-sm'>{label}</p>
+              <p className='truncate text-lg font-semibold sm:text-2xl'>{value}</p>
+              <p className='text-muted-foreground truncate text-[11px] sm:text-xs'>{note}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card>
+        <CardHeader>
+          <div className='flex flex-wrap items-start justify-between gap-3'>
+            <div>
+              <CardTitle>Expense ledger</CardTitle>
+              <CardDescription>
+                Track operating costs, categories, and payment methods.
+              </CardDescription>
+            </div>
+            <Button onClick={() => setShowForm(true)}>Add expense</Button>
+          </div>
+          <div className='flex flex-col gap-2 pt-2 sm:flex-row'>
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder='Search expense, category, or note…'
+              className='sm:flex-1'
+            />
+            <select
+              className='bg-background h-9 rounded-md border px-3 text-sm'
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+            >
+              <option value='all'>All categories</option>
+              {categories.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className='overflow-x-auto rounded-lg border'>
+            <table className='w-full min-w-[700px] text-left text-sm'>
+              <thead className='bg-muted/40'>
+                <tr>
+                  {['Amount', 'Category', 'Notes', 'Payment method', 'Reference', 'Date'].map(
+                    (heading) => (
+                      <th key={heading} className='px-4 py-3 font-medium'>
+                        {heading}
+                      </th>
+                    )
+                  )}
+                </tr>
+              </thead>
+              <tbody className='divide-y'>
+                {filtered.map((record) => (
+                  <tr key={String(record.id)} className='hover:bg-muted/30'>
+                    <td className='px-4 py-3 font-semibold'>{money(amount(record))}</td>
+                    <td className='px-4 py-3'>{String(record.category || 'Other')}</td>
+                    <td className='px-4 py-3'>{String(record.notes || record.note || '—')}</td>
+                    <td className='px-4 py-3'>{String(record.payment_method || 'Cash')}</td>
+                    <td className='px-4 py-3'>
+                      {String(record.payment_reference || record.reference || '—')}
+                    </td>
+                    <td className='px-4 py-3'>
+                      {String(record.expense_date || record.created_at || '—')}
+                    </td>
+                  </tr>
+                ))}
+                {!filtered.length && (
+                  <tr>
+                    <td colSpan={6} className='text-muted-foreground px-4 py-10 text-center'>
+                      No expenses match your filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          {message && (
+            <p role='alert' className='text-destructive pt-3 text-sm'>
+              {message}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+      {showForm && (
+        <div
+          className='fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4'
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowForm(false);
+          }}
+        >
+          <Card
+            className='my-4 w-full max-w-2xl shadow-2xl'
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+              <div>
+                <CardTitle>New expense</CardTitle>
+                <CardDescription>Record an operating expense for this store.</CardDescription>
+              </div>
+              <Button
+                variant='ghost'
+                size='icon'
+                aria-label='Close new expense'
+                onClick={() => setShowForm(false)}
+              >
+                <Icons.close className='h-5 w-5' />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={create} className='grid gap-3 sm:grid-cols-2'>
+                {[
+                  ['title', 'Expense title'],
+                  ['amount', 'Amount (TZS)'],
+                  ['category', 'Category'],
+                  ['payment_method', 'Payment method'],
+                  ['payment_reference', 'Payment reference'],
+                  ['notes', 'Notes']
+                ].map(([name, label]) => (
+                  <label key={name} className='text-sm'>
+                    {label}
+                    <Input
+                      name={name}
+                      type={name === 'amount' ? 'number' : 'text'}
+                      required={name === 'title' || name === 'amount'}
+                    />
+                  </label>
+                ))}
+                <div className='sm:col-span-2'>
+                  <Button isLoading={pending}>Save expense</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StoreWorkspace() {
+  const [stores, setStores] = useState<Record<string, unknown>[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState('');
+  const load = useCallback(() => {
+    void posApi<unknown>('/stores')
+      .then((result) => setStores(unwrapList<Record<string, unknown>>(result.data)))
+      .catch((reason) =>
+        setMessage(reason instanceof Error ? reason.message : 'Could not load stores.')
+      );
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  async function create(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    try {
+      await posApi<unknown>('/stores', { method: 'POST', body: JSON.stringify(values) });
+      setShowForm(false);
+      load();
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : 'Could not create store.');
+    } finally {
+      setPending(false);
+    }
+  }
+  return (
+    <div className='space-y-4'>
+      <div className='flex items-start justify-between gap-3'>
+        <div>
+          <h1 className='text-2xl font-bold tracking-tight'>Stores</h1>
+          <p className='text-muted-foreground'>Manage locations and active branch context.</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>Add store</Button>
+      </div>
+      <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
+        {[
+          ['Total stores', stores.length],
+          ['Active stores', stores.filter((store) => store.is_active !== false).length],
+          ['Total staff', stores.reduce((sum, store) => sum + Number(store.staff || 0), 0)],
+          [
+            'Open stores',
+            stores.filter((store) => store.status === 'open' || store.is_active !== false).length
+          ]
+        ].map(([label, value]) => (
+          <Card key={label}>
+            <CardContent className='space-y-2 p-4 sm:p-5'>
+              <p className='text-muted-foreground text-sm'>{label}</p>
+              <p className='text-2xl font-semibold'>{value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
+        {stores.map((store) => (
+          <Card key={String(store.id)}>
+            <CardHeader>
+              <CardTitle>{String(store.name || store.address || 'Store')}</CardTitle>
+              <CardDescription>
+                {String(store.area || store.address || 'No address')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-3 text-sm'>
+              <div className='flex justify-between'>
+                <span className='text-muted-foreground'>Code</span>
+                <span>{String(store.code || '—')}</span>
+              </div>
+              <div className='flex justify-between'>
+                <span className='text-muted-foreground'>Email</span>
+                <span className='truncate'>{String(store.email || '—')}</span>
+              </div>
+              <span className='bg-primary/10 text-primary inline-flex rounded-full px-2 py-1 text-xs'>
+                {store.is_active === false ? 'Inactive' : 'Active'}
+              </span>
+            </CardContent>
+          </Card>
+        ))}
+        {!stores.length && (
+          <Card>
+            <CardContent className='text-muted-foreground p-8 text-center'>
+              No stores found.
+            </CardContent>
+          </Card>
+        )}
+      </div>
+      {message && (
+        <p role='alert' className='text-destructive text-sm'>
+          {message}
+        </p>
+      )}
+      {showForm && (
+        <div
+          className='fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4'
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowForm(false);
+          }}
+        >
+          <Card
+            className='my-4 w-full max-w-xl shadow-2xl'
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+              <div>
+                <CardTitle>New store</CardTitle>
+                <CardDescription>Add a location to your business.</CardDescription>
+              </div>
+              <Button
+                variant='ghost'
+                size='icon'
+                aria-label='Close new store'
+                onClick={() => setShowForm(false)}
+              >
+                <Icons.close className='h-5 w-5' />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={create} className='space-y-3'>
+                <label className='block text-sm'>
+                  Store name
+                  <Input name='name' required />
+                </label>
+                <label className='block text-sm'>
+                  Address
+                  <Input name='address' />
+                </label>
+                <label className='block text-sm'>
+                  Area
+                  <Input name='area' />
+                </label>
+                <label className='block text-sm'>
+                  Code
+                  <Input name='code' />
+                </label>
+                <label className='block text-sm'>
+                  Email
+                  <Input name='email' type='email' />
+                </label>
+                <Button isLoading={pending}>Create store</Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
