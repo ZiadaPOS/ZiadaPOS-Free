@@ -3,9 +3,11 @@
 import PageContainer from '@/components/layout/page-container';
 import { posApi, unwrapList, type PosTransaction } from '@/lib/pos-api';
 import { useCallback, useEffect, useState } from 'react';
+import { useText } from '@/lib/i18n';
 import { SalesTable } from '@/features/sales/components/sales-table';
 
 export default function SalesPage() {
+  const text = useText();
   const [error, setError] = useState('');
   const [transactions, setTransactions] = useState<PosTransaction[]>([]);
   const load = useCallback(async () => {
@@ -14,7 +16,11 @@ export default function SalesPage() {
       const result = await posApi<unknown>('/pos/transactions?page=1&page_size=50');
       setTransactions(unwrapList<PosTransaction>(result.data));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not load data.');
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : text('Could not load data.', 'Imeshindikana kupakia taarifa.')
+      );
     }
   }, []);
   useEffect(() => {

@@ -28,8 +28,11 @@ export default function InventoryPage() {
   }, [load]);
   return (
     <PageContainer
-      pageTitle='Inventory'
-      pageDescription='Products and current stock for this store.'
+      pageTitle={text('Inventory', 'Stoo')}
+      pageDescription={text(
+        'Products and current stock for this store.',
+        'Bidhaa na stoo ya sasa ya tawi hili.'
+      )}
       pageHeaderAction={
         <>
           <CategoryManager />

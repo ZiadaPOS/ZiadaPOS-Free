@@ -212,9 +212,9 @@ export default function ReportsDashboard() {
                   </div>
                   <div className='grid grid-cols-2 gap-3 lg:grid-cols-4'>
                     {[
-                      ['Revenue', kpis.revenue],
-                      ['Profit', kpis.profit],
-                      ['Transactions', kpis.transaction_count],
+                      [text('Revenue', 'Mapato'), kpis.revenue],
+                      [text('Profit', 'Faida'), kpis.profit],
+                      [text('Transactions', 'Miamala'), kpis.transaction_count],
                       ['Avg. ticket', kpis.avg_ticket]
                     ].map(([label, value]) => (
                       <div className='rounded-lg border bg-card p-3' key={String(label)}>
@@ -230,7 +230,9 @@ export default function ReportsDashboard() {
                     ))}
                   </div>
                   <div className='rounded-lg border bg-card p-4 text-sm'>
-                    <p className='font-medium'>Business summary</p>
+                    <p className='font-medium'>
+                      {text('Business summary', 'Muhtasari wa biashara')}
+                    </p>
                     <p className='text-muted-foreground mt-2'>
                       This preview is generated from the server-side report data for the selected
                       period. The next enhancement can add AI-written findings and recommended
@@ -244,19 +246,24 @@ export default function ReportsDashboard() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Export history</CardTitle>
-            <CardDescription>Previously generated reports for this store.</CardDescription>
+            <CardTitle>{text('Export history', 'Historia ya ripoti zilizopakuliwa')}</CardTitle>
+            <CardDescription>
+              {text(
+                'Previously generated reports for this store.',
+                'Ripoti zilizotengenezwa awali za tawi hili.'
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className='overflow-x-auto'>
               <table className='w-full min-w-[640px] text-sm'>
                 <thead>
                   <tr className='border-b text-left text-muted-foreground'>
-                    <th className='pb-2 font-medium'>Report</th>
-                    <th className='pb-2 font-medium'>Period</th>
-                    <th className='pb-2 font-medium'>Format</th>
-                    <th className='pb-2 font-medium'>Created</th>
-                    <th className='pb-2 text-right font-medium'>Action</th>
+                    <th className='pb-2 font-medium'>{text('Report', 'Ripoti')}</th>
+                    <th className='pb-2 font-medium'>{text('Period', 'Kipindi')}</th>
+                    <th className='pb-2 font-medium'>{text('Format', 'Muundo')}</th>
+                    <th className='pb-2 font-medium'>{text('Created', 'Imetengenezwa')}</th>
+                    <th className='pb-2 text-right font-medium'>{text('Action', 'Kitendo')}</th>
                   </tr>
                 </thead>
                 <tbody>

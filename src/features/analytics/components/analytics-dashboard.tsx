@@ -149,8 +149,18 @@ export default function AnalyticsDashboard() {
   const metricCards = useMemo(() => {
     if (tab === 'products')
       return [
-        ['Revenue', money(totals.revenue), 'Selected period', Icons.trendingUp],
-        ['Profit', money(totals.profit), `${percent(totals.margin_pct)} margin`, Icons.billing],
+        [
+          text('Revenue', 'Mapato'),
+          money(totals.revenue),
+          text('Selected period', 'Kipindi kilichochaguliwa'),
+          Icons.trendingUp
+        ],
+        [
+          text('Profit', 'Faida'),
+          money(totals.profit),
+          `${percent(totals.margin_pct)} ${text('margin', 'faida')}`,
+          Icons.billing
+        ],
         ['Units sold', String(num(totals.units_sold)), 'All tracked products', Icons.product],
         ['Products', String(num(totals.sku_count)), 'With sales in range', Icons.product]
       ];
@@ -185,7 +195,12 @@ export default function AnalyticsDashboard() {
         `${percent(kpis.revenue_delta_pct)} vs previous`,
         Icons.trendingUp
       ],
-      ['Profit', money(kpis.profit), `${percent(kpis.margin_pct)} margin`, Icons.billing],
+      [
+        text('Profit', 'Faida'),
+        money(kpis.profit),
+        `${percent(kpis.margin_pct)} ${text('margin', 'faida')}`,
+        Icons.billing
+      ],
       [
         'Transactions',
         String(num(kpis.transaction_count)),
