@@ -24,6 +24,11 @@ export const metadata: Metadata = {
     template: '%s | Ziada POS'
   },
   description: 'Sales, inventory, and business management for ZiadaPOS.',
+  icons: {
+    icon: '/ziada-final.jpeg',
+    shortcut: '/ziada-final.jpeg',
+    apple: '/ziada-final.jpeg'
+  },
   openGraph: {
     title: 'Ziada POS',
     description: 'Sales, inventory, and business management for ZiadaPOS.',
@@ -44,12 +49,6 @@ export const metadata: Metadata = {
     description: 'Sales, inventory, and business management for ZiadaPOS.',
     images: ['/ziada-final.jpeg']
   }
-};
-
-metadata.icons = {
-  icon: '/ziada-final.jpeg',
-  shortcut: '/ziada-final.jpeg',
-  apple: '/ziada-final.jpeg'
 };
 
 export const viewport: Viewport = {
