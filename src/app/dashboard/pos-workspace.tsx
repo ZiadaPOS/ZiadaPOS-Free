@@ -1257,7 +1257,7 @@ function InventoryTable({
         <table className='w-full text-left text-sm'>
           <thead className='bg-muted/50'>
             <tr>
-              {['Product', 'SKU / barcode', 'Price', 'Cost', 'Stock', 'Status', 'Actions'].map(
+              {['', 'Product', 'SKU / barcode', 'Price', 'Cost', 'Stock', 'Status', 'Actions'].map(
                 (label) => (
                   <th key={label} className='px-4 py-3 font-medium'>
                     {label}
@@ -1274,6 +1274,15 @@ function InventoryTable({
                   className='cursor-pointer hover:bg-muted/30'
                   onClick={() => router.push(`/dashboard/inventory/${product.id}`)}
                 >
+                  <td className='px-4 py-3'>
+                    <div className='bg-muted/50 flex h-10 w-10 items-center justify-center overflow-hidden rounded-md font-semibold text-primary'>
+                      {product.image ? (
+                        <img src={product.image} alt='' className='h-full w-full object-cover' />
+                      ) : (
+                        product.name.slice(0, 1).toUpperCase()
+                      )}
+                    </div>
+                  </td>
                   <td className='px-4 py-3 font-medium'>{product.name}</td>
                   <td className='px-4 py-3'>{product.sku || product.barcode || '—'}</td>
                   <td className='px-4 py-3'>{money(product.selling_price)}</td>
@@ -1300,7 +1309,7 @@ function InventoryTable({
               ))
             ) : (
               <tr>
-                <td colSpan={7} className='text-muted-foreground px-4 py-8 text-center'>
+                <td colSpan={8} className='text-muted-foreground px-4 py-8 text-center'>
                   No products found.
                 </td>
               </tr>
