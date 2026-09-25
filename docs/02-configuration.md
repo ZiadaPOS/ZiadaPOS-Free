@@ -80,6 +80,11 @@ Defaults are development-friendly; set real values in production.
 | `SENDAFRICA_API_KEY` | *(empty)* | API key (`SA-…`). When empty, SMS runs in dry-run (logged, not sent). |
 | `SENDAFRICA_SENDER_ID` | `ZIADA POS` | Sender id shown to recipients. |
 
+SMS free-credit policy is organisation-scoped and stored in the database: one non-resetting
+100-message grant per organisation. SendAfrica provider balance/top-ups are not configured by
+an environment variable; they are reconciled through the messaging wallet and provider
+references. Provider keys remain server-side and are never returned by the API.
+
 ## AI (Ngamia)
 
 | Env var | Default | Meaning |

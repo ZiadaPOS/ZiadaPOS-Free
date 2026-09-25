@@ -93,6 +93,8 @@ curl -s http://localhost:8080/api/v1/accounts/me \
 | Reports | `/reports` | Report types, generation, exports, scheduled reports |
 | Analytics | `/analytics` | KPIs, trends, payment mix, top products, cashflow |
 | Notifications | `/notifications` | In-app notifications |
+| Messaging | `/messaging` | SendAfrica sender IDs, SMS wallet, templates, campaigns, and delivery logs |
+| Public commerce | `/public`, `/commerce` | Shareable storefronts, carts, orders, and invoices |
 | Notebook | `/notebook` | Store notes & reminders |
 | AI | `/ai` | Chat with the Ngamia model, suggestions, usage |
 | Subscriptions | `/subscriptions` | Plans, my-subscription, store limits, admin management |

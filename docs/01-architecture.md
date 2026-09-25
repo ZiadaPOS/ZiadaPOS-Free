@@ -93,6 +93,33 @@ Registered events include:
 | `staff.created` | accounts → SMS temp password |
 | `transaction.created` | credits → open tab for Credit sales; customers → spend/segment; notifications; analytics |
 | `transaction.refunded` / `transaction.voided` | credits → settle tab; customers → reduce spend; notifications |
+| `credit.reminder_due` | messaging → reserve SMS credits and send debt reminder |
+| `transaction.created` (daily aggregation) | messaging → optional daily sales summary |
+| `stock.adjusted` | notifications → optional low-stock SMS alert |
+| `order.created` / `order.status_changed` | commerce → invoice + optional customer SMS |
+
+## Messaging and commerce flow
+
+```text
+POS/event/scheduler
+        ↓
+Messaging module
+        ↓ reserve organisation SMS wallet
+        ↓ resolve approved sender or ZIADA POS fallback
+        ↓ SendAfrica adapter
+        ↓ persist request/message ids
+        ↓ webhook reconciles delivery state
+
+Public storefront
+        ↓ cart
+        ↓ order with price snapshots
+        ↓ owner confirms → reserve stock
+        ↓ invoice + optional SMS status update
+```
+
+The SMS wallet is a deep module at the messaging seam. Callers request a send or campaign;
+they do not implement free-grant accounting, reservation, deduplication, sender fallback,
+retry, or provider reconciliation themselves.
 
 ## Scheduler (`internal/scheduler`)
 

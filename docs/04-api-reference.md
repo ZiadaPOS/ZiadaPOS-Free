@@ -273,6 +273,60 @@ Conventions:
 
 ---
 
+## Messaging — `/messaging`
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/messaging/settings` | Owner | Sender, automation, quiet-hour, opt-out, and low-balance settings. |
+| PATCH | `/messaging/settings` | Owner | Update messaging settings. |
+| GET | `/messaging/balance` | Owner | Free, paid, reserved, consumed, and available SMS credits. |
+| GET | `/messaging/usage` | Owner | Usage totals and immutable ledger summary. |
+| GET | `/messaging/topups` | Owner | Top-up history and provider references. |
+| GET | `/messaging/sender-id` | Owner | Active sender and request status. Defaults to `ZIADA POS`. |
+| GET | `/messaging/sender-id/requirements` | Owner | Provider requirements for a custom sender request. |
+| POST | `/messaging/sender-id/request` | Owner | Submit a sender name, purpose, sample message, and required evidence. |
+| GET | `/messaging/sender-id/status` | Owner | Refresh/read provider approval state. |
+| GET | `/messaging/templates` | Owner | List SMS templates. |
+| POST | `/messaging/templates` | Owner | Create a transactional or promotional template. |
+| PATCH | `/messaging/templates/:id` | Owner | Update a template. |
+| DELETE | `/messaging/templates/:id` | Owner | Deactivate a template. |
+| POST | `/messaging/send` | Owner | Send one message after reserving SMS credits. |
+| POST | `/messaging/campaigns` | Owner | Create a deduplicated bulk campaign. Maximum provider batch is 1,000 recipients. |
+| GET | `/messaging/campaigns` | Owner | List campaigns and send totals. |
+| GET | `/messaging/campaigns/:id` | Owner | Campaign details and recipient outcomes. |
+| GET | `/messaging/messages/:id` | Owner | One message delivery record. |
+| POST | `/webhooks/sendafrica` | — | Provider delivery callback; authenticated by webhook signature. |
+
+New organisations receive a **one-time 100-SMS grant**. When it is exhausted, the owner must
+top up the SendAfrica account. The wallet rejects sends with `insufficient_sms_credits` when
+no free or paid balance is available.
+
+---
+
+## Public storefront — `/public`
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/public/stores/:slug` | — | Published store profile and storefront settings. |
+| GET | `/public/stores/:slug/categories` | — | Visible product categories. |
+| GET | `/public/stores/:slug/products` | — | Searchable visible catalogue. |
+| POST | `/public/stores/:slug/orders` | — | Create an order from cart lines, customer details, and pickup/delivery choice. |
+| GET | `/public/orders/:token` | — | Read an order using its secure public token. |
+| POST | `/public/orders/:token/cancel` | — | Cancel an eligible public order. |
+
+## Commerce — `/commerce`
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/commerce/settings` | Owner | Read public-store, delivery, payment, and sharing settings. |
+| PATCH | `/commerce/settings` | Owner | Configure or publish the storefront. |
+| GET | `/commerce/orders` | JWT | List incoming orders by status and date. |
+| GET | `/commerce/orders/:id` | JWT | Order, lines, customer, status history, and invoice. |
+| PATCH | `/commerce/orders/:id/status` | JWT | Confirm, prepare, ready, dispatch, complete, reject, or cancel. |
+| GET | `/commerce/orders/:id/invoice` | JWT | Download or view the generated invoice. |
+
+---
+
 ## Subscriptions — `/subscriptions`
 
 | Method | Path | Auth | Description |

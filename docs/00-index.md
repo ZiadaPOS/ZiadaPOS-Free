@@ -7,6 +7,8 @@
 - **[03 — Auth & Security](03-auth-and-security.md)** — JWT tokens, roles, OTP, login lockout, passwords.
 - **[06 — Internals](06-internals.md)** — `Deps`, cache, storage, mailer, provider integrations.
 - **[07 — Deployment](07-deployment.md)** — local, Docker, production VPS, CI/CD.
+- **[08 — Messaging & Commerce](08-messaging-and-commerce.md)** — SendAfrica sender IDs,
+  SMS credits, campaigns, storefronts, carts, orders, and invoices.
 
 ## Reference
 
