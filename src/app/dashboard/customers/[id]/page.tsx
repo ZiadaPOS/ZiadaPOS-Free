@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
 import { money, posApi, unwrapList, type PosCustomer, type PosTransaction } from '@/lib/pos-api';
 import { useParams, useRouter } from 'next/navigation';
@@ -14,6 +15,9 @@ export default function CustomerDetailPage() {
   const [customer, setCustomer] = useState<PosCustomer | null>(null);
   const [transactions, setTransactions] = useState<PosTransaction[]>([]);
   const [email, setEmail] = useState('');
+  const [sms, setSms] = useState('');
+  const [smsStatus, setSmsStatus] = useState('');
+  const [sendingSms, setSendingSms] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -51,6 +55,24 @@ export default function CustomerDetailPage() {
 
   const visits = customer.transaction_count ?? transactions.length;
   const average = visits ? customer.total_spent / visits : 0;
+  const currentCustomer = customer;
+  async function sendSms() {
+    if (!sms.trim() || !currentCustomer.phone) return;
+    setSendingSms(true);
+    setSmsStatus('');
+    try {
+      await posApi<unknown>(`/customers/${currentCustomer.id}/sms`, {
+        method: 'POST',
+        body: JSON.stringify({ message: sms.trim() })
+      });
+      setSms('');
+      setSmsStatus('SMS sent successfully.');
+    } catch (reason) {
+      setSmsStatus(reason instanceof Error ? reason.message : 'SMS could not be sent.');
+    } finally {
+      setSendingSms(false);
+    }
+  }
   return (
     <div className='w-full space-y-5 p-0 sm:p-6'>
       <div className='flex w-full flex-wrap items-start justify-between gap-3 px-4 pt-4 sm:px-0 sm:pt-0'>
@@ -136,6 +158,40 @@ export default function CustomerDetailPage() {
                 <span className='text-muted-foreground'>Credit limit</span>
                 <span>{customer.credit_limit == null ? '—' : money(customer.credit_limit)}</span>
               </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Send SMS</CardTitle>
+              <CardDescription>Send a message using your SendAfrica setup.</CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-3'>
+              <Textarea
+                value={sms}
+                onChange={(event) => setSms(event.target.value)}
+                placeholder={
+                  customer.phone
+                    ? 'Write a short customer message…'
+                    : 'Customer has no phone number'
+                }
+                disabled={!customer.phone}
+                maxLength={480}
+              />
+              <div className='flex items-center justify-between gap-2'>
+                <span className='text-muted-foreground text-xs'>{sms.length}/480</span>
+                <Button
+                  onClick={() => void sendSms()}
+                  disabled={!customer.phone || !sms.trim()}
+                  isLoading={sendingSms}
+                >
+                  <Icons.send className='size-4' /> Send SMS
+                </Button>
+              </div>
+              {smsStatus && (
+                <p role='status' className='text-muted-foreground text-sm'>
+                  {smsStatus}
+                </p>
+              )}
             </CardContent>
           </Card>
           <Card>
