@@ -3,7 +3,7 @@ import { NavGroup } from '@/types';
 export const navGroups: NavGroup[] = [
   { label: 'Point of sale', items: [
     { title: 'Overview', url: '/dashboard/overview', icon: 'dashboard', isActive: false, shortcut: ['d', 'd'], items: [] },
-    { title: 'Checkout', url: '/dashboard/checkout', icon: 'product', isActive: false, shortcut: ['c', 'o'], items: [] },
+    { title: 'POS', url: '/dashboard/checkout', icon: 'product', isActive: false, shortcut: ['c', 'o'], items: [] },
     { title: 'Sales', url: '/dashboard/sales', icon: 'post', isActive: false, items: [] }
   ] },
   { label: 'Business', items: [
