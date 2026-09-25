@@ -3,8 +3,6 @@ import PageContainer from '@/components/layout/page-container';
 import { TransactionsLedger } from '@/features/transactions/components/transactions-ledger';
 import { useText } from '@/lib/i18n';
 
-export const metadata = { title: 'Dashboard: Transactions' };
-
 export default function Page() {
   const text = useText();
   return (
