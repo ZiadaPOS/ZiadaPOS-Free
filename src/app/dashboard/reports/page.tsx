@@ -1,3 +1,5 @@
-import PosWorkspace from '../pos-workspace';
+import ReportsDashboard from '@/features/reports/components/reports-dashboard';
 
-export default function ReportsPage() { return <PosWorkspace />; }
+export default function ReportsPage() {
+  return <ReportsDashboard />;
+}

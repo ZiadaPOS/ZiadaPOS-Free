@@ -1,5 +1,5 @@
-import PosWorkspace from '@/app/dashboard/pos-workspace';
+import AnalyticsDashboard from '@/features/analytics/components/analytics-dashboard';
 
 export default function AnalyticsPage() {
-  return <PosWorkspace />;
+  return <AnalyticsDashboard />;
 }
