@@ -575,11 +575,14 @@ export default function PosWorkspace() {
         {pathname.includes('/credits') && (
           <CreditTable tabs={creditTabs} customers={customers} onUpdated={() => void load()} />
         )}
-        {['staff', 'reports'].some((section) => pathname.includes(`/${section}`)) && (
+        {['staff'].some((section) => pathname.includes(`/${section}`)) && (
           <ResourcePage pathname={pathname} />
         )}
+        {pathname.includes('/reports') && <ReportsWorkspace />}
         {pathname.includes('/expenses') && <ExpenseWorkspace />}
         {pathname.includes('/stores') && <StoreWorkspace />}
+        {pathname.includes('/analytics') && <AnalyticsWorkspace />}
+        {pathname.includes('/help') && <HelpWorkspace />}
         {pathname.includes('/suppliers') && <SupplierWorkspace />}
         {pathname.includes('/suppliers') && <SupplierOperations />}
         {receiptTransaction && (
@@ -2974,6 +2977,427 @@ function StoreWorkspace() {
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+function HelpWorkspace() {
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('All');
+  const articles = [
+    [
+      'Getting started',
+      'Setup',
+      'Create your business profile, add a store, invite staff, and configure tax before opening the till.'
+    ],
+    [
+      'Process your first sale',
+      'POS',
+      'Open POS, search or scan a product, tap the product to add it, choose a payment method, and complete the sale.'
+    ],
+    [
+      'Add products and stock',
+      'Inventory',
+      'Open Inventory → Add product. Add cost, selling price, opening stock, reorder point, category, and image, then save.'
+    ],
+    [
+      'Record a customer credit sale',
+      'Credits',
+      'Choose Credit at checkout, select a customer, and complete the sale. The balance appears in Credits with its due status.'
+    ],
+    [
+      'Track expenses correctly',
+      'Expenses',
+      'Record every operating cost with its category, payment method, reference, and note so analytics and reports stay accurate.'
+    ],
+    [
+      'Manage suppliers',
+      'Suppliers',
+      'Add supplier deliveries with invoice totals and item counts, then record payments against the supplier balance.'
+    ],
+    [
+      'Use multiple stores',
+      'Stores',
+      'Create each location from Stores, then switch the active branch from Settings. Inventory, sales, and reports follow the active store.'
+    ],
+    [
+      'Invite a cashier',
+      'Settings',
+      'Open Settings → Users & roles, invite the team member, assign permissions, and have them sign in with their POS PIN.'
+    ],
+    [
+      'Connect payment integrations',
+      'Integrations',
+      'Open Settings → Integrations, connect the supported payment or messaging provider, verify credentials, and run a small test transaction.'
+    ],
+    [
+      'Export and understand reports',
+      'Reports',
+      'Use Reports for focused exports and Analytics for live business trends across sales, stock, customers, expenses, credits, and suppliers.'
+    ]
+  ];
+  const categories = ['All', ...new Set(articles.map((article) => article[1]))];
+  const visible = articles.filter(
+    (article) =>
+      (category === 'All' || article[1] === category) &&
+      article.join(' ').toLowerCase().includes(query.toLowerCase())
+  );
+  return (
+    <div className='space-y-4'>
+      <div className='rounded-xl border bg-primary/5 p-5 sm:p-7'>
+        <p className='text-primary text-xs font-medium uppercase tracking-[0.18em]'>
+          Help & support
+        </p>
+        <h1 className='mt-2 text-2xl font-bold tracking-tight sm:text-3xl'>
+          Learn Ziada from setup to daily operations
+        </h1>
+        <p className='text-muted-foreground mt-2 max-w-2xl'>
+          Practical guides for connecting your store, running sales, keeping records accurate, and
+          using analytics to make better decisions.
+        </p>
+        <div className='mt-5 flex max-w-2xl items-center gap-2'>
+          <Icons.search className='text-muted-foreground h-4 w-4' />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder='Search help articles…'
+          />
+        </div>
+      </div>
+      <div className='flex gap-2 overflow-x-auto pb-1'>
+        {categories.map((item) => (
+          <Button
+            key={item}
+            size='sm'
+            variant={category === item ? 'default' : 'outline'}
+            onClick={() => setCategory(item)}
+          >
+            {item}
+          </Button>
+        ))}
+      </div>
+      <div className='grid gap-3 lg:grid-cols-2'>
+        {visible.map(([title, group, body]) => (
+          <Card key={title}>
+            <CardHeader>
+              <CardTitle className='text-base'>{title}</CardTitle>
+              <CardDescription>{group}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className='text-muted-foreground text-sm leading-6'>{body}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Need more help?</CardTitle>
+          <CardDescription>
+            Our support team can help with onboarding, integrations, and account questions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='flex flex-wrap gap-2'>
+          <a
+            className='border-input hover:bg-accent rounded-md border px-3 py-2 text-sm'
+            href='mailto:support@ziada.app'
+          >
+            Email support
+          </a>
+          <a
+            className='border-input hover:bg-accent rounded-md border px-3 py-2 text-sm'
+            href='https://wa.me/255800100200'
+          >
+            WhatsApp support
+          </a>
+          <a
+            className='border-input hover:bg-accent rounded-md border px-3 py-2 text-sm'
+            href='tel:+255800100200'
+          >
+            Call support
+          </a>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function ReportsWorkspace() {
+  const reports = [
+    ['Sales report', 'Revenue, tickets, payment mix, and trends.', '/dashboard/analytics'],
+    ['Product performance', 'Units sold, stock movement, and margin.', '/dashboard/inventory'],
+    ['Customer report', 'Top customers, visits, and lifetime spend.', '/dashboard/customers'],
+    ['Cashflow and P&L', 'Revenue, expenses, profit, and cash position.', '/dashboard/analytics'],
+    ['Expenses report', 'Spending by category and payment method.', '/dashboard/expenses'],
+    ['Credits and aging', 'Outstanding balances and overdue accounts.', '/dashboard/credits'],
+    ['Stock valuation', 'Inventory value, low stock, and active SKUs.', '/dashboard/inventory'],
+    ['Supplier spend', 'Purchases, deliveries, and payables.', '/dashboard/suppliers']
+  ];
+  const [exports, setExports] = useState<Record<string, unknown>[]>([]);
+  useEffect(() => {
+    void posApi<unknown>('/reports/exports?page=1&page_size=20')
+      .then((result) => setExports(unwrapList<Record<string, unknown>>(result.data)))
+      .catch(() => setExports([]));
+  }, []);
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-start justify-between gap-3'>
+        <div>
+          <h1 className='text-2xl font-bold tracking-tight'>Reports</h1>
+          <p className='text-muted-foreground'>
+            Every view of your business, ready to explore or export.
+          </p>
+        </div>
+        <ReportGenerator onGenerated={() => {}} />
+      </div>
+      <div className='grid gap-3 lg:grid-cols-2'>
+        {reports.map(([title, description, href]) => (
+          <a
+            key={title}
+            href={href}
+            className='hover:bg-muted/30 flex items-center gap-4 rounded-xl border p-4 transition-colors'
+          >
+            <div className='bg-primary/10 text-primary grid h-10 w-10 shrink-0 place-items-center rounded-lg'>
+              <Icons.dashboard className='h-5 w-5' />
+            </div>
+            <div className='min-w-0 flex-1'>
+              <p className='font-medium'>{title}</p>
+              <p className='text-muted-foreground text-sm'>{description}</p>
+            </div>
+            <Icons.chevronRight className='text-muted-foreground h-4 w-4' />
+          </a>
+        ))}
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent exports</CardTitle>
+          <CardDescription>Generated reports for your store.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className='divide-y'>
+            {exports.length ? (
+              exports.map((item) => (
+                <div
+                  key={String(item.id || item.file_name)}
+                  className='flex items-center justify-between gap-3 py-3 text-sm'
+                >
+                  <div>
+                    <p className='font-medium'>
+                      {String(item.file_name || item.name || 'Report export')}
+                    </p>
+                    <p className='text-muted-foreground'>
+                      {String(item.created_at || item.date_from || '—')}
+                    </p>
+                  </div>
+                  <Button size='sm' variant='outline'>
+                    <Icons.page className='mr-1 h-4 w-4' />
+                    Download
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <p className='text-muted-foreground py-6 text-center'>
+                No exports yet. Generate your first report above.
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function AnalyticsWorkspace() {
+  const [range, setRange] = useState('30d');
+  const [transactions, setTransactions] = useState<PosTransaction[]>([]);
+  const [products, setProducts] = useState<PosProduct[]>([]);
+  const [customers, setCustomers] = useState<PosCustomer[]>([]);
+  const [expenses, setExpenses] = useState<Record<string, unknown>[]>([]);
+  const [creditTabs, setCreditTabs] = useState<PosCreditTab[]>([]);
+  const [suppliers, setSuppliers] = useState<Record<string, unknown>[]>([]);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    void Promise.allSettled([
+      posApi<unknown>('/pos/transactions?page=1&page_size=100'),
+      posApi<unknown>('/inventory/products?page=1&page_size=100'),
+      posApi<unknown>('/customers?page=1&page_size=100'),
+      posApi<unknown>('/expenses?page=1&page_size=100'),
+      posApi<unknown>('/credits?page=1&page_size=100'),
+      posApi<unknown>('/suppliers?page=1&page_size=100')
+    ]).then((results) => {
+      const [t, p, c, e, cr, s] = results;
+      if (t.status === 'fulfilled') setTransactions(unwrapList<PosTransaction>(t.value.data));
+      if (p.status === 'fulfilled') setProducts(unwrapList<PosProduct>(p.value.data));
+      if (c.status === 'fulfilled') setCustomers(unwrapList<PosCustomer>(c.value.data));
+      if (e.status === 'fulfilled') setExpenses(unwrapList<Record<string, unknown>>(e.value.data));
+      if (cr.status === 'fulfilled') setCreditTabs(unwrapList<PosCreditTab>(cr.value.data));
+      if (s.status === 'fulfilled') setSuppliers(unwrapList<Record<string, unknown>>(s.value.data));
+      if (results.every((result) => result.status === 'rejected'))
+        setError('Analytics data could not be loaded.');
+    });
+  }, []);
+  const total = transactions.reduce((sum, transaction) => sum + transaction.total, 0);
+  const profit = transactions.reduce((sum, transaction) => sum + transaction.profit, 0);
+  const expenseTotal = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const creditTotal = creditTabs.reduce((sum, tab) => sum + tab.balance, 0);
+  const paymentMix = ['Cash', 'M-Pesa', 'Bank', 'Credit']
+    .map((method) => ({
+      method,
+      value: transactions
+        .filter((transaction) =>
+          transaction.payment_method.toLowerCase().includes(method.toLowerCase())
+        )
+        .reduce((sum, transaction) => sum + transaction.total, 0)
+    }))
+    .filter((item) => item.value > 0);
+  const topProducts = [...products]
+    .sort((a, b) => b.stock * b.selling_price - a.stock * a.selling_price)
+    .slice(0, 5);
+  return (
+    <div className='space-y-4'>
+      <div className='flex flex-wrap items-start justify-between gap-3'>
+        <div>
+          <h1 className='text-2xl font-bold tracking-tight'>Analytics</h1>
+          <p className='text-muted-foreground'>
+            The shop’s pulse across sales, stock, customers, and cash.
+          </p>
+        </div>
+        <div className='flex gap-2'>
+          {['7d', '30d', '90d'].map((option) => (
+            <Button
+              key={option}
+              size='sm'
+              variant={range === option ? 'default' : 'outline'}
+              onClick={() => setRange(option)}
+            >
+              {option}
+            </Button>
+          ))}
+        </div>
+      </div>
+      {error && (
+        <p role='alert' className='text-destructive text-sm'>
+          {error}
+        </p>
+      )}
+      <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
+        {[
+          ['Revenue', money(total)],
+          ['Gross profit', money(profit)],
+          ['Expenses', money(expenseTotal)],
+          ['Credit outstanding', money(creditTotal)]
+        ].map(([label, value]) => (
+          <Card key={label}>
+            <CardContent className='space-y-2 p-4 sm:p-5'>
+              <p className='text-muted-foreground text-xs sm:text-sm'>{label}</p>
+              <p className='truncate text-lg font-semibold sm:text-2xl'>{value}</p>
+              <p className='text-muted-foreground text-xs'>{range} view · live data</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className='grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]'>
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue by payment method</CardTitle>
+            <CardDescription>Where completed sales are being collected.</CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-4'>
+            {paymentMix.length ? (
+              paymentMix.map((item) => (
+                <div key={item.method}>
+                  <div className='mb-1 flex justify-between text-sm'>
+                    <span>{item.method}</span>
+                    <span className='font-medium'>{money(item.value)}</span>
+                  </div>
+                  <div className='bg-muted h-2 overflow-hidden rounded-full'>
+                    <div
+                      className='bg-primary h-full rounded-full'
+                      style={{ width: `${Math.max(8, (item.value / Math.max(total, 1)) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className='text-muted-foreground py-6 text-center'>No sales data available.</p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Business snapshot</CardTitle>
+            <CardDescription>Key operational totals.</CardDescription>
+          </CardHeader>
+          <CardContent className='space-y-3 text-sm'>
+            <div className='flex justify-between'>
+              <span className='text-muted-foreground'>Transactions</span>
+              <span>{transactions.length}</span>
+            </div>
+            <div className='flex justify-between'>
+              <span className='text-muted-foreground'>Customers</span>
+              <span>{customers.length}</span>
+            </div>
+            <div className='flex justify-between'>
+              <span className='text-muted-foreground'>Active products</span>
+              <span>{products.filter((product) => product.is_active).length}</span>
+            </div>
+            <div className='flex justify-between'>
+              <span className='text-muted-foreground'>Suppliers</span>
+              <span>{suppliers.length}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      <div className='grid gap-4 lg:grid-cols-2'>
+        <Card>
+          <CardHeader>
+            <CardTitle>Inventory value</CardTitle>
+            <CardDescription>Products with the highest stock value.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className='divide-y'>
+              {topProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className='flex items-center justify-between gap-3 py-3 text-sm'
+                >
+                  <div>
+                    <p className='font-medium'>{product.name}</p>
+                    <p className='text-muted-foreground'>{product.stock} in stock</p>
+                  </div>
+                  <span className='font-semibold'>{money(product.stock * product.cost_price)}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer value</CardTitle>
+            <CardDescription>Highest lifetime spend in the customer base.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className='divide-y'>
+              {[...customers]
+                .sort((a, b) => b.total_spent - a.total_spent)
+                .slice(0, 5)
+                .map((customer) => (
+                  <div
+                    key={customer.id}
+                    className='flex items-center justify-between gap-3 py-3 text-sm'
+                  >
+                    <div>
+                      <p className='font-medium'>{customer.name}</p>
+                      <p className='text-muted-foreground'>
+                        {customer.transaction_count || 0} transactions
+                      </p>
+                    </div>
+                    <span className='font-semibold'>{money(customer.total_spent)}</span>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
