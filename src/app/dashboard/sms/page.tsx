@@ -159,6 +159,18 @@ export default function SmsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className='space-y-3'>
+              <a
+                href='https://sendafrica.online'
+                target='_blank'
+                rel='noreferrer'
+                className='text-primary inline-flex items-center gap-1 text-sm font-medium underline-offset-4 hover:underline'
+              >
+                {text(
+                  'Create your SendAfrica account and API key',
+                  'Fungua akaunti ya SendAfrica na API key'
+                )}
+                <Icons.externalLink className='size-3.5' />
+              </a>
               <Input
                 type='password'
                 value={apiKey}
