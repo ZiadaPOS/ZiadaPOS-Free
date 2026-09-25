@@ -164,8 +164,8 @@ export function ZiadaAiChat() {
       <main className='flex min-w-0 flex-1 flex-col'>
         <header className='flex items-center justify-between border-b px-4 py-3 sm:px-6'>
           <div className='flex items-center gap-3'>
-            <div className='bg-primary text-primary-foreground grid h-9 w-9 place-items-center rounded-xl'>
-              <Icons.sparkles className='h-5 w-5' />
+            <div className='bg-muted grid h-9 w-9 place-items-center overflow-hidden rounded-xl'>
+              <img src='/ziada-ai-avatar.png' alt='' className='h-full w-full object-cover' />
             </div>
             <div>
               <h1 className='font-semibold'>{active?.title || 'Ziada AI'}</h1>

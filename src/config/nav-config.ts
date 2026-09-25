@@ -20,6 +20,13 @@ export const navGroups: NavGroup[] = [
         shortcut: ['c', 'o'],
         items: []
       },
+      {
+        title: 'Transactions',
+        url: '/dashboard/transactions',
+        icon: 'creditCard',
+        isActive: false,
+        items: []
+      },
       { title: 'Sales', url: '/dashboard/sales', icon: 'post', isActive: false, items: [] }
     ]
   },
