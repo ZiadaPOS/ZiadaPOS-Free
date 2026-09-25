@@ -235,6 +235,20 @@ export default function PosOverview() {
     }
   ];
 
+  const customerCount = new Set(
+    transactions.map((transaction) => transaction.customer_id).filter(Boolean)
+  ).size;
+  const creditSales = transactions
+    .filter(
+      (transaction) => transaction.status === 'credit' || transaction.payment_method === 'Credit'
+    )
+    .reduce((total, transaction) => total + amountOf(transaction.total), 0);
+  const averageTicket = transactions.length
+    ? transactions.reduce((total, transaction) => total + amountOf(transaction.total), 0) /
+      transactions.length
+    : 0;
+  const criticalStock = lowStock.filter((product) => product.stock <= 0).length;
+
   return (
     <PageContainer>
       <div className='flex min-h-[calc(100svh-6rem)] min-w-0 flex-1 flex-col gap-4'>
@@ -509,6 +523,73 @@ export default function PosOverview() {
               )}
             </CardContent>
           </Card>
+        </div>
+
+        <div>
+          <div className='mb-3 flex items-center justify-between gap-3'>
+            <div>
+              <h3 className='text-base font-semibold'>Business pulse</h3>
+              <p className='text-muted-foreground text-sm'>
+                Quick signals to guide today&apos;s decisions.
+              </p>
+            </div>
+            <Badge variant='outline' className='hidden sm:inline-flex'>
+              Today · TZS
+            </Badge>
+          </div>
+          <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
+            <Card className='border-blue-500/20 bg-blue-500/[0.04]'>
+              <CardHeader className='pb-2'>
+                <CardDescription>Customers served</CardDescription>
+                <CardTitle className='text-2xl tabular-nums'>
+                  {loading ? '—' : customerCount}
+                </CardTitle>
+              </CardHeader>
+              <CardFooter className='text-muted-foreground flex items-center gap-2 text-xs'>
+                <Icons.user className='size-3.5' /> Identified customers today
+              </CardFooter>
+            </Card>
+            <Card className='border-violet-500/20 bg-violet-500/[0.04]'>
+              <CardHeader className='pb-2'>
+                <CardDescription>Credit sales</CardDescription>
+                <CardTitle className='truncate text-2xl tabular-nums'>
+                  {loading ? '—' : money(creditSales)}
+                </CardTitle>
+              </CardHeader>
+              <CardFooter className='text-muted-foreground flex items-center gap-2 text-xs'>
+                <Icons.creditCard className='size-3.5' /> Review collections
+              </CardFooter>
+            </Card>
+            <Card
+              className={
+                criticalStock
+                  ? 'border-amber-500/30 bg-amber-500/[0.05]'
+                  : 'border-emerald-500/20 bg-emerald-500/[0.04]'
+              }
+            >
+              <CardHeader className='pb-2'>
+                <CardDescription>Inventory health</CardDescription>
+                <CardTitle className='text-2xl tabular-nums'>
+                  {loading ? '—' : criticalStock ? `${criticalStock} critical` : 'Healthy'}
+                </CardTitle>
+              </CardHeader>
+              <CardFooter className='text-muted-foreground flex items-center gap-2 text-xs'>
+                <Icons.product className='size-3.5' />{' '}
+                {loading ? 'Checking stock…' : `${lowStock.length} items need review`}
+              </CardFooter>
+            </Card>
+            <Card className='border-emerald-500/20 bg-emerald-500/[0.04]'>
+              <CardHeader className='pb-2'>
+                <CardDescription>Average ticket</CardDescription>
+                <CardTitle className='truncate text-2xl tabular-nums'>
+                  {loading ? '—' : money(averageTicket)}
+                </CardTitle>
+              </CardHeader>
+              <CardFooter className='text-muted-foreground flex items-center gap-2 text-xs'>
+                <Icons.trendingUp className='size-3.5' /> Revenue per transaction
+              </CardFooter>
+            </Card>
+          </div>
         </div>
       </div>
     </PageContainer>
