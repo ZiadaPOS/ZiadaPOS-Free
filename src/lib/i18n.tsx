@@ -26,6 +26,7 @@ type TranslationKey =
   | 'branches'
   | 'analytics'
   | 'reports'
+  | 'sms'
   | 'ziadaAI'
   | 'settings'
   | 'businessSettings'
@@ -55,6 +56,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     branches: 'Branches',
     analytics: 'Analytics',
     reports: 'Reports',
+    sms: 'SMS messaging',
     ziadaAI: 'Ziada AI',
     settings: 'Settings',
     businessSettings: 'Business settings',
@@ -83,6 +85,7 @@ const translations: Record<Language, Record<TranslationKey, string>> = {
     branches: 'Matawi',
     analytics: 'Uchambuzi',
     reports: 'Ripoti',
+    sms: 'Ujumbe wa SMS',
     ziadaAI: 'Ziada AI',
     settings: 'Mipangilio',
     businessSettings: 'Mipangilio ya biashara',

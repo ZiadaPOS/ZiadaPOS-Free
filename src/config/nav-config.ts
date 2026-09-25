@@ -91,6 +91,13 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
+        title: 'SMS messaging',
+        url: '/dashboard/sms',
+        icon: 'send',
+        isActive: false,
+        items: []
+      },
+      {
         title: 'Ziada AI',
         url: '/dashboard/ai-chat',
         icon: 'sparkles',

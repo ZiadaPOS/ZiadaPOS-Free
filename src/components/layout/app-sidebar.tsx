@@ -46,7 +46,7 @@ export default function AppSidebar() {
       router.replace('/auth/sign-in');
     }
   }
-  const managerOnly = new Set(['Staff', 'Branches', 'Reports', 'Settings']);
+  const managerOnly = new Set(['Staff', 'Branches', 'Reports', 'SMS messaging', 'Settings']);
   const label = (value: string) => {
     const key = (
       {
@@ -66,6 +66,7 @@ export default function AppSidebar() {
         Branches: 'branches',
         Analytics: 'analytics',
         Reports: 'reports',
+        'SMS messaging': 'sms',
         'Ziada AI': 'ziadaAI',
         Settings: 'settings',
         'Business settings': 'businessSettings',
