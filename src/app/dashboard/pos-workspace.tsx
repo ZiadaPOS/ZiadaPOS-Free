@@ -1694,7 +1694,7 @@ function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
   const averageSpend = customers.length ? totalSpend / customers.length : 0;
   return (
     <div className='space-y-4'>
-      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
+      <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
           ['Total customers', customers.length, 'All active profiles'],
           ['VIP customers', vip, 'High-value relationships'],
