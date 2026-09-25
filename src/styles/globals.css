@@ -97,9 +97,14 @@
   min-height: 96px;
   padding-top: 16px;
   padding-left: 116px;
+  background: var(--card);
 }
 
 [data-catalog-view='list'] .pos-product-catalog > button::before {
+  display: none;
+}
+
+[data-catalog-view='list'] .pos-product-catalog .pos-product-image {
   inset: 12px auto 12px 12px;
   width: 88px;
   height: auto;

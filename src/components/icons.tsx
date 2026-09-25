@@ -4,6 +4,7 @@ import {
   IconAlertTriangle,
   IconArrowRight,
   IconBell,
+  IconBarcode,
   IconBold,
   IconBox,
   IconBrandGithub,
@@ -112,6 +113,7 @@ export const Icons = {
   spinner: IconLoader2,
   search: IconSearch,
   cart: IconShoppingCart,
+  barcode: IconBarcode,
   settings: IconSettings,
   trash: IconTrash,
 
