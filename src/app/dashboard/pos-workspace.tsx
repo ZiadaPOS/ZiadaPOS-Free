@@ -29,6 +29,7 @@ export default function PosWorkspace() {
   const [discountPct, setDiscountPct] = useState('0');
   const [paymentReference, setPaymentReference] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [catalogView, setCatalogView] = useState<'grid' | 'list'>('grid');
   const [scanCode, setScanCode] = useState('');
   const [receiptTransaction, setReceiptTransaction] = useState<PosTransaction | null>(null);
   const [settingsData, setSettingsData] = useState<Record<string, unknown> | null>(null);
@@ -71,6 +72,11 @@ export default function PosWorkspace() {
     void fetch('/api/pos-session').then((response) => { if (!response.ok) router.replace('/auth/sign-in'); }).catch(() => undefined);
     void load();
   }, [load, router]);
+
+  useEffect(() => {
+    document.documentElement.dataset.catalogView = catalogView;
+    return () => { delete document.documentElement.dataset.catalogView; };
+  }, [catalogView]);
 
   const filteredProducts = useMemo(() => products.filter((product) => `${product.name} ${product.sku} ${product.barcode}`.toLowerCase().includes(search.toLowerCase())), [products, search]);
   const subtotal = products.reduce((sum, p) => sum + (cart[p.id] || 0) * p.selling_price, 0);
@@ -121,6 +127,7 @@ export default function PosWorkspace() {
   return <PageContainer pageTitle={usesOwnHeader ? undefined : pageMeta.title} pageDescription={usesOwnHeader ? undefined : pageMeta.description}>
       <div className='flex min-h-[calc(100svh-6rem)] min-w-0 flex-1 flex-col gap-5'>
         {error && <div role='alert' className='border-destructive/40 bg-destructive/5 text-destructive rounded-md border p-3 text-sm'>{error}</div>}
+        {pathname.includes('/checkout') && <div className='flex justify-end gap-2'><Button size='sm' variant={catalogView === 'grid' ? 'default' : 'outline'} onClick={() => setCatalogView('grid')}>Grid</Button><Button size='sm' variant={catalogView === 'list' ? 'default' : 'outline'} onClick={() => setCatalogView('list')}>List</Button></div>}
 
         {pathname.includes('/overview') && <>
           <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>{[
