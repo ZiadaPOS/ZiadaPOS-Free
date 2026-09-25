@@ -51,6 +51,7 @@ import {
   IconLayoutDashboard,
   IconLayoutKanban,
   IconLayoutSidebar,
+  IconLanguage,
   IconLoader2,
   IconLock,
   IconLogin,
@@ -120,6 +121,7 @@ export const Icons = {
   cart: IconShoppingCart,
   barcode: IconBarcode,
   settings: IconSettings,
+  language: IconLanguage,
   trash: IconTrash,
   refresh: IconRefresh,
 

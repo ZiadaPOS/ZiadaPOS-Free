@@ -2,6 +2,7 @@
 import React from 'react';
 import { ActiveThemeProvider } from '../themes/active-theme';
 import QueryProvider from './query-provider';
+import { LanguageProvider } from '@/lib/i18n';
 
 export default function Providers({
   activeThemeValue,
@@ -12,9 +13,11 @@ export default function Providers({
 }) {
   return (
     <>
-      <ActiveThemeProvider initialTheme={activeThemeValue}>
-        <QueryProvider>{children}</QueryProvider>
-      </ActiveThemeProvider>
+      <LanguageProvider>
+        <ActiveThemeProvider initialTheme={activeThemeValue}>
+          <QueryProvider>{children}</QueryProvider>
+        </ActiveThemeProvider>
+      </LanguageProvider>
     </>
   );
 }
