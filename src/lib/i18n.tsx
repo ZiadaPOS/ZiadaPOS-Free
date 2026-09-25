@@ -133,4 +133,9 @@ export function useLanguage() {
   return context;
 }
 
+export function useText() {
+  const { language } = useLanguage();
+  return (english: string, swahili: string) => (language === 'sw' ? swahili : english);
+}
+
 export type { TranslationKey };

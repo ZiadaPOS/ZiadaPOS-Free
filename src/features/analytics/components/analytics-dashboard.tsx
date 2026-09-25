@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
 import { money, posApi } from '@/lib/pos-api';
+import { useText } from '@/lib/i18n';
 
 type Range = '7d' | '30d' | '90d' | 'ytd';
 type AnyRecord = Record<string, any>;
@@ -107,6 +108,7 @@ function SectionCard({
 }
 
 export default function AnalyticsDashboard() {
+  const text = useText();
   const [range, setRange] = useState<Range>('30d');
   const [tab, setTab] = useState<'sales' | 'products' | 'customers' | 'cashflow'>('sales');
   const [data, setData] = useState<AnyRecord>({});
@@ -201,8 +203,11 @@ export default function AnalyticsDashboard() {
 
   return (
     <PageContainer
-      pageTitle='Analytics'
-      pageDescription='Understand what is driving sales, profit, customers, and cashflow.'
+      pageTitle={text('Analytics', 'Uchambuzi')}
+      pageDescription={text(
+        'Understand what is driving sales, profit, customers, and cashflow.',
+        'Elewa kinachoendesha mauzo, faida, wateja na mtiririko wa fedha.'
+      )}
       pageHeaderAction={
         <Button variant='outline' onClick={() => void load()} isLoading={loading}>
           <Icons.refresh className='size-4' /> Refresh
@@ -220,7 +225,13 @@ export default function AnalyticsDashboard() {
                 className='shrink-0 capitalize'
                 onClick={() => setTab(item)}
               >
-                {item === 'cashflow' ? 'Cashflow & expenses' : item}
+                {item === 'cashflow'
+                  ? text('Cashflow & expenses', 'Mtiririko wa fedha na gharama')
+                  : item === 'sales'
+                    ? text('Sales', 'Mauzo')
+                    : item === 'products'
+                      ? text('Products', 'Bidhaa')
+                      : text('Customers', 'Wateja')}
               </Button>
             ))}
           </div>

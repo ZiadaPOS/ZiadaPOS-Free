@@ -37,6 +37,7 @@ import {
 import PageContainer from '@/components/layout/page-container';
 import { Icons } from '@/components/icons';
 import { money, posApi, unwrapList, type PosProduct, type PosTransaction } from '@/lib/pos-api';
+import { useText } from '@/lib/i18n';
 
 type SalesSummary = {
   gross_sales?: number;
@@ -87,6 +88,7 @@ const trendConfig = {
 } satisfies ChartConfig;
 
 export default function PosOverview() {
+  const text = useText();
   const router = useRouter();
   const [summary, setSummary] = useState<SalesSummary>({});
   const [transactions, setTransactions] = useState<PosTransaction[]>([]);
@@ -264,7 +266,7 @@ export default function PosOverview() {
           </h2>
           <div className='flex flex-wrap items-center gap-2 sm:justify-end'>
             <Badge variant='outline' className='hidden sm:inline-flex'>
-              Today · TZS
+              {text('Today · TZS', 'Leo · TZS')}
             </Badge>
             <Button variant='outline' onClick={() => void loadDashboard()} isLoading={loading}>
               Refresh
@@ -274,7 +276,7 @@ export default function PosOverview() {
               onClick={() => router.push('/dashboard/checkout')}
             >
               <Icons.add className='size-4' />
-              New sale
+              {text('New sale', 'Mauzo mapya')}
             </Button>
           </div>
         </div>
@@ -314,8 +316,13 @@ export default function PosOverview() {
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'>
           <Card className='col-span-4'>
             <CardHeader>
-              <CardTitle>Sales and profit</CardTitle>
-              <CardDescription>Daily totals for the last seven days</CardDescription>
+              <CardTitle>{text('Sales and profit', 'Mauzo na faida')}</CardTitle>
+              <CardDescription>
+                {text(
+                  'Daily totals for the last seven days',
+                  'Jumla za kila siku kwa siku saba zilizopita'
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {trend.length ? (
@@ -401,8 +408,10 @@ export default function PosOverview() {
 
           <Card className='col-span-4 md:col-span-3'>
             <CardHeader>
-              <CardTitle>Recent sales</CardTitle>
-              <CardDescription>Latest receipts for this store</CardDescription>
+              <CardTitle>{text('Recent sales', 'Mauzo ya hivi karibuni')}</CardTitle>
+              <CardDescription>
+                {text('Latest receipts for this store', 'Risiti za mwisho za duka hili')}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className='space-y-5'>
@@ -449,8 +458,10 @@ export default function PosOverview() {
 
           <Card className='col-span-4'>
             <CardHeader>
-              <CardTitle>Top products</CardTitle>
-              <CardDescription>Sales by product today</CardDescription>
+              <CardTitle>{text('Top products', 'Bidhaa zinazoongoza')}</CardTitle>
+              <CardDescription>
+                {text('Sales by product today', 'Mauzo ya bidhaa leo')}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {topProducts.length ? (
@@ -483,8 +494,13 @@ export default function PosOverview() {
 
           <Card className='col-span-4 flex min-h-0 flex-col md:col-span-3'>
             <CardHeader className='items-center pb-0'>
-              <CardTitle>Payment methods</CardTitle>
-              <CardDescription>Sales value by payment method today</CardDescription>
+              <CardTitle>{text('Payment methods', 'Njia za malipo')}</CardTitle>
+              <CardDescription>
+                {text(
+                  'Sales value by payment method today',
+                  'Thamani ya mauzo kwa njia ya malipo leo'
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent className='flex flex-1 items-center justify-center pb-2'>
               {paymentData.length ? (
@@ -534,19 +550,26 @@ export default function PosOverview() {
         <div>
           <div className='mb-3 flex items-center justify-between gap-3'>
             <div>
-              <h3 className='text-base font-semibold'>Business pulse</h3>
+              <h3 className='text-base font-semibold'>
+                {text('Business pulse', 'Hali ya biashara')}
+              </h3>
               <p className='text-muted-foreground text-sm'>
-                Quick signals to guide today&apos;s decisions.
+                {text(
+                  "Quick signals to guide today's decisions.",
+                  'Taarifa za haraka za kusaidia maamuzi ya leo.'
+                )}
               </p>
             </div>
             <Badge variant='outline' className='hidden sm:inline-flex'>
-              Today · TZS
+              {text('Today · TZS', 'Leo · TZS')}
             </Badge>
           </div>
           <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
             <Card className='border-blue-500/20 bg-blue-500/[0.04]'>
               <CardHeader className='pb-2'>
-                <CardDescription>Customers served</CardDescription>
+                <CardDescription>
+                  {text('Customers served', 'Wateja waliohudumiwa')}
+                </CardDescription>
                 <CardTitle className='text-2xl tabular-nums'>
                   {loading ? '—' : customerCount}
                 </CardTitle>
@@ -557,7 +580,7 @@ export default function PosOverview() {
             </Card>
             <Card className='border-violet-500/20 bg-violet-500/[0.04]'>
               <CardHeader className='pb-2'>
-                <CardDescription>Credit sales</CardDescription>
+                <CardDescription>{text('Credit sales', 'Mauzo ya mkopo')}</CardDescription>
                 <CardTitle className='truncate text-2xl tabular-nums'>
                   {loading ? '—' : money(creditSales)}
                 </CardTitle>
@@ -574,7 +597,7 @@ export default function PosOverview() {
               }
             >
               <CardHeader className='pb-2'>
-                <CardDescription>Inventory health</CardDescription>
+                <CardDescription>{text('Inventory health', 'Hali ya stoo')}</CardDescription>
                 <CardTitle className='text-2xl tabular-nums'>
                   {loading ? '—' : criticalStock ? `${criticalStock} critical` : 'Healthy'}
                 </CardTitle>
@@ -586,7 +609,7 @@ export default function PosOverview() {
             </Card>
             <Card className='border-emerald-500/20 bg-emerald-500/[0.04]'>
               <CardHeader className='pb-2'>
-                <CardDescription>Average ticket</CardDescription>
+                <CardDescription>{text('Average ticket', 'Wastani wa mauzo')}</CardDescription>
                 <CardTitle className='truncate text-2xl tabular-nums'>
                   {loading ? '—' : money(averageTicket)}
                 </CardTitle>
@@ -604,9 +627,12 @@ export default function PosOverview() {
                 <Icons.send className='size-5' />
               </div>
               <div className='min-w-0'>
-                <p className='font-medium'>SMS balance</p>
+                <p className='font-medium'>{text('SMS balance', 'Salio la SMS')}</p>
                 <p className='text-muted-foreground truncate text-sm'>
-                  Send credit reminders and customer updates.
+                  {text(
+                    'Send credit reminders and customer updates.',
+                    'Tuma vikumbusho vya mikopo na taarifa kwa wateja.'
+                  )}
                 </p>
               </div>
             </div>
@@ -623,7 +649,7 @@ export default function PosOverview() {
                 variant='outline'
                 onClick={() => router.push('/dashboard/business-settings')}
               >
-                Manage
+                {text('Manage', 'Dhibiti')}
               </Button>
             </div>
           </CardContent>

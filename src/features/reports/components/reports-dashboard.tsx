@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
 import { money, posApi } from '@/lib/pos-api';
+import { useText } from '@/lib/i18n';
 
 type ReportType = {
   id: string;
@@ -26,6 +27,7 @@ type ExportRow = {
 };
 
 export default function ReportsDashboard() {
+  const text = useText();
   const [types, setTypes] = useState<ReportType[]>([]);
   const [exports, setExports] = useState<ExportRow[]>([]);
   const [reportType, setReportType] = useState('sales');
@@ -100,8 +102,11 @@ export default function ReportsDashboard() {
 
   return (
     <PageContainer
-      pageTitle='Reports'
-      pageDescription='Build, preview, export, or schedule business reports.'
+      pageTitle={text('Reports', 'Ripoti')}
+      pageDescription={text(
+        'Build, preview, export, or schedule business reports.',
+        'Tengeneza, angalia, pakua au panga ripoti za biashara.'
+      )}
       pageHeaderAction={
         <Button variant='outline' onClick={() => void load()} isLoading={loading}>
           <Icons.refresh className='size-4' /> Refresh
@@ -120,8 +125,13 @@ export default function ReportsDashboard() {
         <div className='grid gap-4 lg:grid-cols-[280px_1fr]'>
           <Card className='h-fit'>
             <CardHeader>
-              <CardTitle>Choose report</CardTitle>
-              <CardDescription>Select a business question to answer.</CardDescription>
+              <CardTitle>{text('Choose report', 'Chagua ripoti')}</CardTitle>
+              <CardDescription>
+                {text(
+                  'Select a business question to answer.',
+                  'Chagua swali la biashara la kujibu.'
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent className='grid gap-2'>
               {(types.length

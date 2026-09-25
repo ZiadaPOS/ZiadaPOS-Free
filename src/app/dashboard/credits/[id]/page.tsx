@@ -7,8 +7,10 @@ import { Icons } from '@/components/icons';
 import { money, posApi, unwrapList, type PosCreditTab, type PosCustomer } from '@/lib/pos-api';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export default function CreditDetailPage() {
+  const text = useText();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [customer, setCustomer] = useState<PosCustomer | null>(null);
@@ -86,7 +88,10 @@ export default function CreditDetailPage() {
             Credits
           </Button>
           <h1 className='text-2xl font-bold tracking-tight'>{customer.name}</h1>
-          <p className='text-muted-foreground'>{customer.phone || 'No phone'} · Credit account</p>
+          <p className='text-muted-foreground'>
+            {customer.phone || text('No phone', 'Hakuna simu')} ·{' '}
+            {text('Credit account', 'Akaunti ya mkopo')}
+          </p>
         </div>
         <span className='bg-destructive/10 text-destructive rounded-full px-3 py-1 text-sm'>
           {tabs.some((tab) => tab.is_overdue) ? 'Overdue' : 'Open'}
@@ -94,10 +99,10 @@ export default function CreditDetailPage() {
       </div>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
-          ['Original debt', money(original)],
-          ['Paid', money(paid)],
-          ['Balance', money(balance)],
-          ['Open tabs', tabs.length]
+          [text('Original debt', 'Deni la mwanzo'), money(original)],
+          [text('Paid', 'Imelipwa'), money(paid)],
+          [text('Balance', 'Salio'), money(balance)],
+          [text('Open tabs', 'Mikopo wazi'), tabs.length]
         ].map(([label, value]) => (
           <Card key={label}>
             <CardContent className='space-y-2 p-4 sm:p-5'>
@@ -110,8 +115,10 @@ export default function CreditDetailPage() {
       <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]'>
         <Card>
           <CardHeader>
-            <CardTitle>Credit history</CardTitle>
-            <CardDescription>All credit tabs linked to this customer.</CardDescription>
+            <CardTitle>{text('Credit history', 'Historia ya mkopo')}</CardTitle>
+            <CardDescription>
+              {text('All credit tabs linked to this customer.', 'Mikopo yote ya mteja huyu.')}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className='divide-y'>
@@ -149,8 +156,13 @@ export default function CreditDetailPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Record payment</CardTitle>
-            <CardDescription>Apply a cash payment to this account.</CardDescription>
+            <CardTitle>{text('Record payment', 'Rekodi malipo')}</CardTitle>
+            <CardDescription>
+              {text(
+                'Apply a cash payment to this account.',
+                'Weka malipo ya fedha kwenye akaunti hii.'
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent className='space-y-3'>
             <Button
@@ -160,17 +172,18 @@ export default function CreditDetailPage() {
               disabled={!customer.phone || reminding}
               isLoading={reminding}
             >
-              <Icons.send className='size-4' /> Send SMS reminder
+              <Icons.send className='size-4' />{' '}
+              {text('Send SMS reminder', 'Tuma kikumbusho cha SMS')}
             </Button>
             <Input
               type='number'
               min='1'
-              placeholder='Amount (TZS)'
+              placeholder={text('Amount (TZS)', 'Kiasi (TZS)')}
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
             />
             <Button className='w-full' onClick={() => void recordPayment()} disabled={!balance}>
-              Record payment
+              {text('Record payment', 'Rekodi malipo')}
             </Button>
             {message && (
               <p role='status' className='text-muted-foreground text-sm'>
