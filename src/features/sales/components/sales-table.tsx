@@ -8,6 +8,7 @@ import { Icons } from '@/components/icons';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useText } from '@/lib/i18n';
+import { BusinessKpiCard } from '@/components/business/business-kpi-card';
 
 export function SalesTable({
   transactions,
@@ -61,38 +62,30 @@ export function SalesTable({
   return (
     <div className='space-y-4'>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
-        {[
-          [
-            text('Sales revenue', 'Mapato ya mauzo'),
-            money(revenue),
-            text('From matching sales', 'Kutoka mauzo yanayolingana')
-          ],
-          [
-            text('Transactions', 'Miamala'),
-            String(filtered.length),
-            `${paid} ${text('paid', 'imelipwa')}`
-          ],
-          [
-            text('Average sale', 'Wastani wa mauzo'),
-            money(average),
-            text('Per transaction', 'Kwa muamala')
-          ],
-          [
-            'Refund / void ready',
-            String(filtered.filter((item) => item.status === 'paid').length),
-            'Paid sales available'
-          ]
-        ].map(([label, value, detail]) => (
-          <Card key={label} className='min-w-0'>
-            <CardHeader className='p-3 pb-2 sm:p-6 sm:pb-2'>
-              <CardDescription className='truncate text-xs sm:text-sm'>{label}</CardDescription>
-              <CardTitle className='truncate text-lg sm:text-2xl'>{value}</CardTitle>
-            </CardHeader>
-            <CardContent className='truncate p-3 pt-0 text-[11px] text-muted-foreground sm:p-6 sm:pt-0 sm:text-xs'>
-              {detail}
-            </CardContent>
-          </Card>
-        ))}
+        <BusinessKpiCard
+          label={text('Sales revenue', 'Mapato ya mauzo')}
+          value={money(revenue)}
+          helper={text('From matching sales', 'Kutoka mauzo yanayolingana')}
+          icon={Icons.trendingUp}
+        />
+        <BusinessKpiCard
+          label={text('Transactions', 'Miamala')}
+          value={String(filtered.length)}
+          helper={`${paid} ${text('paid', 'imelipwa')}`}
+          icon={Icons.post}
+        />
+        <BusinessKpiCard
+          label={text('Average sale', 'Wastani wa mauzo')}
+          value={money(average)}
+          helper={text('Per transaction', 'Kwa muamala')}
+          icon={Icons.trendingUp}
+        />
+        <BusinessKpiCard
+          label={text('Refund / void ready', 'Marejesho / kufuta tayari')}
+          value={String(filtered.filter((item) => item.status === 'paid').length)}
+          helper={text('Paid sales available', 'Mauzo yaliyolipwa yapo')}
+          icon={Icons.toastInfo}
+        />
       </div>
       <Card>
         <CardHeader>

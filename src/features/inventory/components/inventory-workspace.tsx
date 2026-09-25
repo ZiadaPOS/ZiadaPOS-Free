@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { InventoryTable } from '@/features/inventory/components/inventory-table';
 import { useText } from '@/lib/i18n';
+import { BusinessKpiCard } from '@/components/business/business-kpi-card';
 
 export function InventoryWorkspace({
   products,
@@ -52,38 +53,38 @@ export function InventoryWorkspace({
   return (
     <div className='space-y-4'>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
-        {[
-          [
-            'Total SKU',
-            String(products.length),
-            `${products.filter((product) => product.is_active).length} active`
-          ],
-          ['Inventory value', money(totalValue), 'At cost value'],
-          [
-            text('Low stock', 'Stoo kidogo'),
-            String(lowStock),
+        <BusinessKpiCard
+          label={text('Total SKU', 'Jumla ya SKU')}
+          value={String(products.length)}
+          helper={`${products.filter((product) => product.is_active).length} ${text('active', 'hai')}`}
+          icon={Icons.product}
+        />
+        <BusinessKpiCard
+          label={text('Inventory value', 'Thamani ya stoo')}
+          value={money(totalValue)}
+          helper={text('At cost value', 'Kwa thamani ya gharama')}
+          icon={Icons.product}
+        />
+        <BusinessKpiCard
+          label={text('Low stock', 'Stoo kidogo')}
+          value={String(lowStock)}
+          helper={
             lowStock
               ? text('Needs restock', 'Inahitaji kuongezwa')
               : text('All above reorder point', 'Zote ziko juu ya kiwango')
-          ],
-          [
-            text('Out of stock', 'Imeisha stoo'),
-            String(outOfStock),
+          }
+          icon={Icons.toastWarning}
+        />
+        <BusinessKpiCard
+          label={text('Out of stock', 'Imeisha stoo')}
+          value={String(outOfStock)}
+          helper={
             outOfStock
               ? text('Needs restock now', 'Inahitaji kuongezwa sasa')
               : text('Nothing out yet', 'Hakuna iliyoisha')
-          ]
-        ].map(([label, value, detail]) => (
-          <Card key={label} className='min-w-0'>
-            <CardHeader className='p-3 pb-2 sm:p-6 sm:pb-2'>
-              <CardDescription className='truncate text-xs sm:text-sm'>{label}</CardDescription>
-              <CardTitle className='truncate text-lg sm:text-2xl'>{value}</CardTitle>
-            </CardHeader>
-            <CardContent className='truncate p-3 pt-0 text-[11px] text-muted-foreground sm:p-6 sm:pt-0 sm:text-xs'>
-              {detail}
-            </CardContent>
-          </Card>
-        ))}
+          }
+          icon={Icons.toastInfo}
+        />
       </div>
       <Card>
         <CardHeader>
