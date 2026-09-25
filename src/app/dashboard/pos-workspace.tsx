@@ -1572,7 +1572,7 @@ function SalesTable({
   }
   return (
     <div className='space-y-4'>
-      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
+      <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
           ['Sales revenue', money(revenue), 'From matching sales'],
           ['Transactions', String(filtered.length), `${paid} paid`],
@@ -1583,12 +1583,14 @@ function SalesTable({
             'Paid sales available'
           ]
         ].map(([label, value, detail]) => (
-          <Card key={label}>
-            <CardHeader className='pb-2'>
-              <CardDescription>{label}</CardDescription>
-              <CardTitle className='text-2xl'>{value}</CardTitle>
+          <Card key={label} className='min-w-0'>
+            <CardHeader className='p-3 pb-2 sm:p-6 sm:pb-2'>
+              <CardDescription className='truncate text-xs sm:text-sm'>{label}</CardDescription>
+              <CardTitle className='truncate text-lg sm:text-2xl'>{value}</CardTitle>
             </CardHeader>
-            <CardContent className='text-muted-foreground text-xs'>{detail}</CardContent>
+            <CardContent className='truncate p-3 pt-0 text-[11px] text-muted-foreground sm:p-6 sm:pt-0 sm:text-xs'>
+              {detail}
+            </CardContent>
           </Card>
         ))}
       </div>
