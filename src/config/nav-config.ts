@@ -76,7 +76,20 @@ export const navGroups: NavGroup[] = [
         isActive: false,
         items: []
       },
-      { title: 'Reports', url: '/dashboard/reports', icon: 'dashboard', isActive: false, items: [] }
+      {
+        title: 'Reports',
+        url: '/dashboard/reports',
+        icon: 'dashboard',
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Ziada AI',
+        url: '/dashboard/ai-chat',
+        icon: 'sparkles',
+        isActive: false,
+        items: []
+      }
     ]
   },
   {
