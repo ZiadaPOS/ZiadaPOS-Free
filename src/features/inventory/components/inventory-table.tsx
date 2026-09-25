@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { posApi, money, type PosProduct } from '@/lib/pos-api';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export function InventoryTable({
   products,
@@ -14,6 +15,7 @@ export function InventoryTable({
   products: PosProduct[];
   onUpdated: () => void;
 }) {
+  const text = useText();
   const router = useRouter();
   const [error, setError] = useState('');
   const [adjustId, setAdjustId] = useState('');
@@ -54,7 +56,11 @@ export function InventoryTable({
       });
       onUpdated();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Product update failed.');
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : text('Product update failed.', 'Imeshindikana kusasisha bidhaa.')
+      );
     }
   }
   async function deactivate(product: PosProduct) {
@@ -72,13 +78,20 @@ export function InventoryTable({
         <table className='w-full text-left text-sm'>
           <thead className='bg-muted/50'>
             <tr>
-              {['', 'Product', 'SKU / barcode', 'Price', 'Cost', 'Stock', 'Status', 'Actions'].map(
-                (label) => (
-                  <th key={label} className='px-4 py-3 font-medium'>
-                    {label}
-                  </th>
-                )
-              )}
+              {[
+                '',
+                text('Product', 'Bidhaa'),
+                text('SKU / barcode', 'SKU / barcode'),
+                text('Price', 'Bei'),
+                text('Cost', 'Gharama'),
+                text('Stock', 'Stoo'),
+                text('Status', 'Hali'),
+                text('Actions', 'Vitendo')
+              ].map((label) => (
+                <th key={label} className='px-4 py-3 font-medium'>
+                  {label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody className='divide-y'>
@@ -110,7 +123,7 @@ export function InventoryTable({
                   <td className='px-4 py-3'>
                     <div className='flex gap-1'>
                       <Button size='sm' variant='outline' onClick={() => setAdjustId(product.id)}>
-                        Adjust stock
+                        {text('Adjust stock', 'Rekebisha stoo')}
                       </Button>
                       <Button size='sm' variant='ghost' onClick={() => void updatePrice(product)}>
                         Price
@@ -141,7 +154,7 @@ export function InventoryTable({
         <div className='fixed inset-0 z-50 grid place-items-center bg-black/40 p-4'>
           <Card className='w-full max-w-md'>
             <CardHeader>
-              <CardTitle>Adjust stock</CardTitle>
+              <CardTitle>{text('Adjust stock', 'Rekebisha stoo')}</CardTitle>
               <CardDescription>
                 {products.find((product) => product.id === adjustId)?.name}
               </CardDescription>
@@ -149,7 +162,10 @@ export function InventoryTable({
             <CardContent>
               <form onSubmit={adjust} className='space-y-3'>
                 <label className='block text-sm'>
-                  Quantity change (use a negative number to remove stock)
+                  {text(
+                    'Quantity change (use a negative number to remove stock)',
+                    'Mabadiliko ya kiasi (tumia namba hasi kupunguza stoo)'
+                  )}
                   <Input name='qty_change' type='number' required />
                 </label>
                 <label className='block text-sm'>
@@ -158,7 +174,7 @@ export function InventoryTable({
                     className='bg-background mt-1 h-9 w-full rounded-md border px-3'
                     name='reason'
                   >
-                    <option value='restock'>Restock</option>
+                    <option value='restock'>{text('Restock', 'Ongeza stoo')}</option>
                     <option value='damage'>Damage</option>
                     <option value='correction'>Correction</option>
                     <option value='return'>Return</option>
@@ -170,9 +186,9 @@ export function InventoryTable({
                 </label>
                 <div className='flex justify-end gap-2'>
                   <Button type='button' variant='outline' onClick={() => setAdjustId('')}>
-                    Cancel
+                    {text('Cancel', 'Ghairi')}
                   </Button>
-                  <Button type='submit'>Save adjustment</Button>
+                  <Button type='submit'>{text('Save adjustment', 'Hifadhi marekebisho')}</Button>
                 </div>
               </form>
             </CardContent>

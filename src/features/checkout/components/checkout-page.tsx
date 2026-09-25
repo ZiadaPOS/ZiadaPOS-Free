@@ -10,10 +10,12 @@ import {
   type PosTransaction
 } from '@/lib/pos-api';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { useText } from '@/lib/i18n';
 import { CheckoutWorkspace } from '@/features/checkout/components/checkout-workspace';
 import { ReceiptDialog } from '@/features/sales/components/receipt-dialog';
 
 export default function CheckoutPage() {
+  const text = useText();
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [products, setProducts] = useState<PosProduct[]>([]);
@@ -41,7 +43,11 @@ export default function CheckoutPage() {
       setCustomers(unwrapList<PosCustomer>(c.data));
       setCategories(unwrapList<PosCategory>(categoryResult.data));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not load data.');
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : text('Could not load data.', 'Imeshindikana kupakia taarifa.')
+      );
     }
   }, []);
   useEffect(() => {
@@ -79,7 +85,11 @@ export default function CheckoutPage() {
       }));
       setScanCode('');
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Product barcode was not found.');
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : text('Product barcode was not found.', 'Barcode ya bidhaa haikupatikana.')
+      );
     }
   }
 
@@ -91,9 +101,14 @@ export default function CheckoutPage() {
       const lines = Object.entries(cart)
         .filter(([, qty]) => qty > 0)
         .map(([product_id, qty]) => ({ product_id, qty }));
-      if (!lines.length) throw new Error('Add at least one product to the sale.');
+      if (!lines.length)
+        throw new Error(
+          text('Add at least one product to the sale.', 'Ongeza bidhaa angalau moja kwenye mauzo.')
+        );
       if (paymentMethod === 'Credit' && !customerId)
-        throw new Error('Select a customer for a credit sale.');
+        throw new Error(
+          text('Select a customer for a credit sale.', 'Chagua mteja kwa mauzo ya mkopo.')
+        );
       const customer = customers.find((item) => item.id === customerId);
       const result = await posApi<PosTransaction>('/pos/sale', {
         method: 'POST',
@@ -114,7 +129,11 @@ export default function CheckoutPage() {
       await load();
       if (result.data?.id) setReceiptTransaction(result.data);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Sale could not be completed.');
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : text('Sale could not be completed.', 'Mauzo hayakuweza kukamilika.')
+      );
     } finally {
       setBusy(false);
     }

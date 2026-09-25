@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { money, type PosCategory, type PosCustomer, type PosProduct } from '@/lib/pos-api';
 import { Icons } from '@/components/icons';
 import { Dispatch, FormEvent, SetStateAction, useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export function CheckoutWorkspace({
   products,
@@ -66,6 +67,7 @@ export function CheckoutWorkspace({
   mobileCartOpen: boolean;
   setMobileCartOpen: Dispatch<SetStateAction<boolean>>;
 }) {
+  const text = useText();
   const [activeCategory, setActiveCategory] = useState('');
   const visibleProducts = activeCategory
     ? filteredProducts.filter(
@@ -118,13 +120,13 @@ export function CheckoutWorkspace({
           ))}
       </div>
       <label className='block text-sm font-medium'>
-        Customer
+        {text('Customer', 'Mteja')}
         <select
           className='bg-background mt-1 h-11 w-full rounded-md border px-3 text-sm'
           value={customerId}
           onChange={(event) => setCustomerId(event.target.value)}
         >
-          <option value=''>Walk-in customer</option>
+          <option value=''>{text('Walk-in customer', 'Mteja wa kawaida')}</option>
           {customers.map((customer) => (
             <option key={customer.id} value={customer.id}>
               {customer.name}
@@ -133,7 +135,7 @@ export function CheckoutWorkspace({
         </select>
       </label>
       <label className='block text-sm font-medium'>
-        Payment method
+        {text('Payment method', 'Njia ya malipo')}
         <select
           className='bg-background mt-1 h-11 w-full rounded-md border px-3 text-sm'
           value={paymentMethod}
@@ -146,7 +148,7 @@ export function CheckoutWorkspace({
       </label>
       <div className='grid grid-cols-2 gap-2'>
         <label className='text-sm'>
-          Discount %
+          {text('Discount %', 'Punguzo %')}
           <Input
             className='mt-1 h-11'
             min='0'
@@ -157,7 +159,7 @@ export function CheckoutWorkspace({
           />
         </label>
         <label className='text-sm'>
-          Reference
+          {text('Reference', 'Kumbukumbu')}
           <Input
             className='mt-1 h-11'
             value={paymentReference}
@@ -168,7 +170,7 @@ export function CheckoutWorkspace({
       </div>
       <div className='border-t pt-3 text-sm'>
         <div className='flex justify-between'>
-          <span>Subtotal</span>
+          <span>{text('Subtotal', 'Jumla ndogo')}</span>
           <span>{money(subtotal)}</span>
         </div>
         <div className='flex justify-between'>
@@ -176,16 +178,16 @@ export function CheckoutWorkspace({
           <span>{money(discountAmount)}</span>
         </div>
         <div className='flex justify-between'>
-          <span>Tax (18%)</span>
+          <span>{text('Tax (18%)', 'Kodi (18%)')}</span>
           <span>{money(checkoutTax)}</span>
         </div>
         <div className='mt-2 flex justify-between font-semibold'>
-          <span>Total</span>
+          <span>{text('Total', 'Jumla')}</span>
           <span>{money(subtotal - discountAmount + checkoutTax)}</span>
         </div>
       </div>
       <Button className='h-11 w-full' isLoading={busy} disabled={!itemCount}>
-        Complete sale
+        {text('Complete sale', 'Kamilisha mauzo')}
       </Button>
     </form>
   );
@@ -194,7 +196,7 @@ export function CheckoutWorkspace({
       <Button
         size='icon'
         variant={catalogView === 'grid' ? 'default' : 'outline'}
-        aria-label='Grid view'
+        aria-label={text('Grid view', 'Mwonekano wa gridi')}
         onClick={() => setCatalogView('grid')}
       >
         <Icons.dashboard className='h-4 w-4' />
@@ -202,7 +204,7 @@ export function CheckoutWorkspace({
       <Button
         size='icon'
         variant={catalogView === 'list' ? 'default' : 'outline'}
-        aria-label='List view'
+        aria-label={text('List view', 'Mwonekano wa orodha')}
         onClick={() => setCatalogView('list')}
       >
         <Icons.page className='h-4 w-4' />
@@ -226,7 +228,7 @@ export function CheckoutWorkspace({
   return (
     <>
       <div>
-        <h1 className='text-2xl font-bold tracking-tight'>Checkout</h1>
+        <h1 className='text-2xl font-bold tracking-tight'>{text('Checkout', 'Malipo')}</h1>
         <p className='text-muted-foreground'>
           Scan or search products, select payment, and complete the sale.
         </p>
@@ -240,7 +242,7 @@ export function CheckoutWorkspace({
             </div>
             <div className='pos-search-row grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]'>
               <Input
-                aria-label='Search products'
+                aria-label={text('Search products', 'Tafuta bidhaa')}
                 placeholder='Search name, SKU, or barcode…'
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -306,8 +308,9 @@ export function CheckoutWorkspace({
                   </div>
                   <p className='font-medium'>{product.name}</p>
                   <p className='text-muted-foreground mt-1 text-xs'>
-                    {product.sku || product.barcode || 'No SKU'} · stock{' '}
-                    {product.is_service ? 'service' : product.stock}
+                    {product.sku || product.barcode || text('No SKU', 'Hakuna SKU')} ·{' '}
+                    {text('stock', 'stoo')}{' '}
+                    {product.is_service ? text('service', 'huduma') : product.stock}
                   </p>
                   <p className='mt-3 font-semibold'>{money(product.selling_price)}</p>
                 </button>
@@ -315,15 +318,21 @@ export function CheckoutWorkspace({
             ) : (
               <div className='text-muted-foreground flex min-h-40 items-center justify-center text-center text-sm'>
                 {products.length
-                  ? 'No products match your search.'
-                  : 'No products are available at this store yet.'}
+                  ? text(
+                      'No products match your search.',
+                      'Hakuna bidhaa zinazolingana na utafutaji wako.'
+                    )
+                  : text(
+                      'No products are available at this store yet.',
+                      'Hakuna bidhaa katika stoo hii bado.'
+                    )}
               </div>
             )}
           </CardContent>
         </Card>
         <Card className='hidden xl:sticky xl:top-20 xl:block xl:self-start'>
           <CardHeader>
-            <CardTitle>Current sale</CardTitle>
+            <CardTitle>{text('Current sale', 'Mauzo ya sasa')}</CardTitle>
             <CardDescription>{itemCount} items</CardDescription>
           </CardHeader>
           <CardContent>{saleForm}</CardContent>
@@ -342,8 +351,10 @@ export function CheckoutWorkspace({
           >
             <div className='mb-4 flex items-center justify-between'>
               <div>
-                <h2 className='text-lg font-semibold'>Current sale</h2>
-                <p className='text-muted-foreground text-sm'>{itemCount} items</p>
+                <h2 className='text-lg font-semibold'>{text('Current sale', 'Mauzo ya sasa')}</h2>
+                <p className='text-muted-foreground text-sm'>
+                  {itemCount} {text('items', 'bidhaa')}
+                </p>
               </div>
               <Button size='icon' variant='ghost' onClick={() => setMobileCartOpen(false)}>
                 <Icons.close className='h-5 w-5' />

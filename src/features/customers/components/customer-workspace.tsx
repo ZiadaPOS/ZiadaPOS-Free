@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { money, type PosCustomer } from '@/lib/pos-api';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
+  const text = useText();
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('All');
@@ -26,10 +28,26 @@ export function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
     <div className='space-y-4'>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
-          ['Total customers', customers.length, 'All active profiles'],
-          ['VIP customers', vip, 'High-value relationships'],
-          ['With open credit', withCredit, 'Needs follow-up'],
-          ['Average spend', money(averageSpend), 'Per customer']
+          [
+            text('Total customers', 'Jumla ya wateja'),
+            customers.length,
+            text('All active profiles', 'Wasifu wote hai')
+          ],
+          [
+            text('VIP customers', 'Wateja VIP'),
+            vip,
+            text('High-value relationships', 'Wateja wa thamani kubwa')
+          ],
+          [
+            text('With open credit', 'Wenye mkopo unaodaiwa'),
+            withCredit,
+            text('Needs follow-up', 'Wanahitaji ufuatiliaji')
+          ],
+          [
+            text('Average spend', 'Wastani wa matumizi'),
+            money(averageSpend),
+            text('Per customer', 'Kwa mteja')
+          ]
         ].map(([label, value, note]) => (
           <Card key={label}>
             <CardContent className='space-y-3 p-5'>
@@ -42,7 +60,7 @@ export function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
       </div>
       <Card>
         <CardHeader className='pb-3'>
-          <CardTitle>Customer directory</CardTitle>
+          <CardTitle>{text('Customer directory', 'Orodha ya wateja')}</CardTitle>
           <CardDescription>
             Search profiles, review spending, and open customer details.
           </CardDescription>
@@ -52,7 +70,10 @@ export function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder='Search name, phone, or email…'
+              placeholder={text(
+                'Search name, phone, or email…',
+                'Tafuta jina, simu, au barua pepe…'
+              )}
               className='lg:flex-1'
             />
             <div className='flex gap-2 overflow-x-auto pb-1'>
@@ -72,13 +93,18 @@ export function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
             <table className='w-full min-w-[720px] text-sm'>
               <thead className='bg-muted/40 text-muted-foreground text-left'>
                 <tr>
-                  {['Customer', 'Phone', 'Segment', 'Lifetime spend', 'Open credit', ''].map(
-                    (heading) => (
-                      <th key={heading} className='px-4 py-3 font-medium'>
-                        {heading}
-                      </th>
-                    )
-                  )}
+                  {[
+                    text('Customer', 'Mteja'),
+                    text('Phone', 'Simu'),
+                    text('Segment', 'Kundi'),
+                    text('Lifetime spend', 'Matumizi yote'),
+                    text('Open credit', 'Mkopo unaodaiwa'),
+                    ''
+                  ].map((heading) => (
+                    <th key={heading} className='px-4 py-3 font-medium'>
+                      {heading}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className='divide-y'>
@@ -107,7 +133,7 @@ export function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
                           router.push(`/dashboard/customers/${customer.id}`);
                         }}
                       >
-                        View
+                        {text('View', 'Tazama')}
                       </Button>
                     </td>
                   </tr>
@@ -115,7 +141,10 @@ export function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
                 {!filtered.length && (
                   <tr>
                     <td colSpan={6} className='text-muted-foreground px-4 py-10 text-center'>
-                      No customers match your search.
+                      {text(
+                        'No customers match your search.',
+                        'Hakuna wateja wanaolingana na utafutaji wako.'
+                      )}
                     </td>
                   </tr>
                 )}

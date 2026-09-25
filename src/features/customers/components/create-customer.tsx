@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { posApi, type PosCustomer } from '@/lib/pos-api';
 import { Icons } from '@/components/icons';
 import { FormEvent, useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export function CreateCustomer({ onCreated }: { onCreated: () => void }) {
+  const text = useText();
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -29,7 +31,11 @@ export function CreateCustomer({ onCreated }: { onCreated: () => void }) {
       });
       onCreated();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not create customer.');
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : text('Could not create customer.', 'Imeshindikana kuunda mteja.')
+      );
     } finally {
       setPending(false);
     }
@@ -47,7 +53,7 @@ export function CreateCustomer({ onCreated }: { onCreated: () => void }) {
       >
         <CardHeader className='flex flex-row items-center justify-between space-y-0'>
           <div>
-            <CardTitle>New customer</CardTitle>
+            <CardTitle>{text('New customer', 'Mteja mpya')}</CardTitle>
             <CardDescription>Add a profile for repeat sales and credit tracking.</CardDescription>
           </div>
           <Button
@@ -63,15 +69,15 @@ export function CreateCustomer({ onCreated }: { onCreated: () => void }) {
         <CardContent>
           <form onSubmit={submit} className='grid gap-3 sm:grid-cols-2'>
             <label className='text-sm'>
-              Full name
+              {text('Full name', 'Jina kamili')}
               <Input name='name' required />
             </label>
             <label className='text-sm'>
-              Phone
+              {text('Phone', 'Simu')}
               <Input name='phone' />
             </label>
             <label className='text-sm'>
-              Email
+              {text('Email', 'Barua pepe')}
               <Input type='email' name='email' />
             </label>
             <label className='text-sm'>
@@ -87,11 +93,14 @@ export function CreateCustomer({ onCreated }: { onCreated: () => void }) {
               </select>
             </label>
             <label className='text-sm'>
-              Credit limit (TZS, -1 for unlimited)
+              {text(
+                'Credit limit (TZS, -1 for unlimited)',
+                'Kikomo cha mkopo (TZS, -1 bila kikomo)'
+              )}
               <Input type='number' name='credit_limit' defaultValue='0' />
             </label>
             <label className='text-sm'>
-              Notes
+              {text('Notes', 'Maelezo')}
               <Input name='notes' />
             </label>
             {error && <p className='text-destructive sm:col-span-2'>{error}</p>}

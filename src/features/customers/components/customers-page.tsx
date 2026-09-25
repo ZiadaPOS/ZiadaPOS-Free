@@ -4,10 +4,12 @@ import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import { posApi, unwrapList, type PosCustomer } from '@/lib/pos-api';
 import { useCallback, useEffect, useState } from 'react';
+import { useText } from '@/lib/i18n';
 import { CreateCustomer } from '@/features/customers/components/create-customer';
 import { CustomerWorkspace } from '@/features/customers/components/customer-workspace';
 
 export default function CustomersPage() {
+  const text = useText();
   const [error, setError] = useState('');
   const [customers, setCustomers] = useState<PosCustomer[]>([]);
   const [showCreate, setShowCreate] = useState(false);
@@ -29,7 +31,7 @@ export default function CustomersPage() {
       pageDescription='Customer profiles, segments, spend, and outstanding credit.'
       pageHeaderAction={
         <Button onClick={() => setShowCreate((v) => !v)}>
-          {showCreate ? 'Close' : 'Add customer'}
+          {showCreate ? text('Close', 'Funga') : text('Add customer', 'Ongeza mteja')}
         </Button>
       }
     >

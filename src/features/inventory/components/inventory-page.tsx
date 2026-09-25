@@ -4,11 +4,13 @@ import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import { posApi, unwrapList, type PosProduct } from '@/lib/pos-api';
 import { useCallback, useEffect, useState } from 'react';
+import { useText } from '@/lib/i18n';
 import { InventoryWorkspace } from '@/features/inventory/components/inventory-workspace';
 import { CategoryManager } from '@/features/inventory/components/category-manager';
 import { CreateProduct } from '@/features/inventory/components/create-product';
 
 export default function InventoryPage() {
+  const text = useText();
   const [error, setError] = useState('');
   const [products, setProducts] = useState<PosProduct[]>([]);
   const [showCreate, setShowCreate] = useState(false);
@@ -32,7 +34,7 @@ export default function InventoryPage() {
         <>
           <CategoryManager />
           <Button onClick={() => setShowCreate((v) => !v)}>
-            {showCreate ? 'Close' : 'Add product'}
+            {showCreate ? text('Close', 'Funga') : text('Add product', 'Ongeza bidhaa')}
           </Button>
         </>
       }
