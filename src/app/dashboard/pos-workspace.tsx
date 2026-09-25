@@ -1570,6 +1570,12 @@ function SalesTable({
       setMessage(error instanceof Error ? error.message : `Could not ${actionName} transaction.`);
     }
   }
+  function clearFilters() {
+    setQuery('');
+    setStatus('all');
+    setPayment('all');
+    setRange('all');
+  }
   return (
     <div className='space-y-4'>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
@@ -1603,57 +1609,63 @@ function SalesTable({
                 Search receipts, review payment details, and manage completed sales.
               </CardDescription>
             </div>
-            <Button
-              variant='outline'
-              onClick={() => {
-                setQuery('');
-                setStatus('all');
-                setPayment('all');
-                setRange('all');
-              }}
-            >
+            <Button variant='outline' className='hidden sm:inline-flex' onClick={clearFilters}>
               Clear filters
             </Button>
           </div>
-          <div className='grid gap-2 md:grid-cols-[minmax(0,1fr)_150px_150px_140px]'>
+          <div className='sales-filter-toolbar grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(520px,auto)]'>
             <Input
+              className='h-11'
               aria-label='Search sales'
               placeholder='Search receipt, customer, or payment…'
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
-            <select
-              aria-label='Filter by status'
-              className='bg-background h-11 rounded-md border px-3 text-sm'
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-            >
-              <option value='all'>All statuses</option>
-              <option value='paid'>Paid</option>
-              <option value='refunded'>Refunded</option>
-              <option value='voided'>Voided</option>
-            </select>
-            <select
-              aria-label='Filter by payment'
-              className='bg-background h-11 rounded-md border px-3 text-sm'
-              value={payment}
-              onChange={(event) => setPayment(event.target.value)}
-            >
-              <option value='all'>All payments</option>
-              {['Cash', 'M-Pesa', 'Tigo Pesa', 'Bank', 'Credit'].map((method) => (
-                <option key={method}>{method}</option>
-              ))}
-            </select>
-            <select
-              aria-label='Filter by date'
-              className='bg-background h-11 rounded-md border px-3 text-sm'
-              value={range}
-              onChange={(event) => setRange(event.target.value)}
-            >
-              <option value='all'>All dates</option>
-              <option value='today'>Today</option>
-              <option value='7d'>Last 7 days</option>
-            </select>
+            <div className='sales-filter-row'>
+              <select
+                aria-label='Filter by status'
+                className='bg-background h-11 rounded-md border px-3 text-sm'
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+              >
+                <option value='all'>All statuses</option>
+                <option value='paid'>Paid</option>
+                <option value='refunded'>Refunded</option>
+                <option value='voided'>Voided</option>
+              </select>
+              <select
+                aria-label='Filter by payment'
+                className='bg-background h-11 rounded-md border px-3 text-sm'
+                value={payment}
+                onChange={(event) => setPayment(event.target.value)}
+              >
+                <option value='all'>All payments</option>
+                {['Cash', 'M-Pesa', 'Tigo Pesa', 'Bank', 'Credit'].map((method) => (
+                  <option key={method}>{method}</option>
+                ))}
+              </select>
+              <select
+                aria-label='Filter by date'
+                className='bg-background h-11 rounded-md border px-3 text-sm'
+                value={range}
+                onChange={(event) => setRange(event.target.value)}
+              >
+                <option value='all'>All dates</option>
+                <option value='today'>Today</option>
+                <option value='7d'>Last 7 days</option>
+              </select>
+              <Button
+                type='button'
+                size='icon'
+                variant='outline'
+                className='sm:hidden'
+                aria-label='Clear filters'
+                title='Clear filters'
+                onClick={clearFilters}
+              >
+                <Icons.close className='h-4 w-4' />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
