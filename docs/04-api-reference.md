@@ -279,9 +279,11 @@ Conventions:
 | --- | --- | --- | --- |
 | GET | `/messaging/settings` | Owner | Sender, automation, quiet-hour, opt-out, and low-balance settings. |
 | PATCH | `/messaging/settings` | Owner | Update messaging settings. |
-| GET | `/messaging/balance` | Owner | Free, paid, reserved, consumed, and available SMS credits. |
+| GET | `/messaging/balance` | Owner | Free, paid, reserved, consumed, available credits, and provider connection state. |
 | GET | `/messaging/usage` | Owner | Usage totals and immutable ledger summary. |
 | GET | `/messaging/topups` | Owner | Top-up history and provider references. |
+| POST | `/messaging/provider-key` | Owner | Connect or rotate the shop owner's SendAfrica API key. The raw key is write-only. |
+| DELETE | `/messaging/provider-key` | Owner | Disconnect the shop's SendAfrica account after queued sends finish. |
 | GET | `/messaging/sender-id` | Owner | Active sender and request status. Defaults to `ZIADA POS`. |
 | GET | `/messaging/sender-id/requirements` | Owner | Provider requirements for a custom sender request. |
 | POST | `/messaging/sender-id/request` | Owner | Submit a sender name, purpose, sample message, and required evidence. |
@@ -297,9 +299,10 @@ Conventions:
 | GET | `/messaging/messages/:id` | Owner | One message delivery record. |
 | POST | `/webhooks/sendafrica` | — | Provider delivery callback; authenticated by webhook signature. |
 
-New organisations receive a **one-time 100-SMS grant**. When it is exhausted, the owner must
-top up the SendAfrica account. The wallet rejects sends with `insufficient_sms_credits` when
-no free or paid balance is available.
+Each shop owner/organisation receives a **one-time 100-SMS grant** shared by that shop's stores
+and authorised staff. When it is exhausted, the owner must connect their own SendAfrica API key
+and top up their own provider balance. The wallet rejects sends with `provider_key_required` or
+`insufficient_sms_credits` when no usable balance is available.
 
 ---
 

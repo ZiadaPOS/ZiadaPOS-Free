@@ -18,8 +18,13 @@ draft → submitted → under_review → approved
 
 ## SMS allowance and top-ups
 
-Each organisation receives **100 free SMS credits once**. The grant belongs to the
-organisation, not an individual user or store, and is never reset monthly.
+Each shop owner receives **100 free SMS credits once**. In the data model this is an
+organisation-level wallet shared by that shop's stores and authorised staff. It is not a
+separate wallet for every cashier and is never reset monthly.
+
+After the free allowance is exhausted, the owner must connect their own SendAfrica API key in
+Messaging Settings. The key belongs to that shop's organisation and is never shown to staff,
+customers, or the browser after it is saved. The owner may rotate or remove the key.
 
 - One recipient message consumes one SMS credit unless SendAfrica reports a different cost.
 - Bulk campaigns are charged per accepted recipient, not per HTTP request.
@@ -27,7 +32,8 @@ organisation, not an individual user or store, and is never reset monthly.
 - Provider-submitted messages are reserved before dispatch and reconciled with the provider response.
 - Failed provider submission releases the reservation.
 - Delivery failure after provider acceptance remains in the message log for reconciliation.
-- Once free credits are exhausted, the shop must top up its SendAfrica balance before sending.
+- Once free credits are exhausted, the shop must connect its own SendAfrica API key and top up
+  its own SendAfrica balance before sending.
 - SendAfrica/provider balance is the source of truth for actual deliverability.
 
 The UI must show `free_sms_remaining`, `paid_sms_balance`, `reserved_sms`,
@@ -130,6 +136,8 @@ Public order tokens are random, non-sequential, and separate from internal UUIDs
 
 - `sender_id_requests`, `messaging_settings`
 - `sms_wallets`, `sms_ledger_entries`, `sms_campaigns`, `sms_messages`
+- encrypted organisation SendAfrica credential metadata (fingerprint, configured-at, rotated-at,
+  and active state; never return the raw key)
 - `storefront_settings`
 - `orders`, `order_lines`, `invoices`
 
@@ -142,5 +150,5 @@ reserved balance, consumed balance, and a version for safe concurrent reservatio
 - Deduplicate recipients before charging credits.
 - Enforce daily organisation send limits and rate limits.
 - Support STOP/opt-out records for promotional messages.
-- Keep SendAfrica credentials server-side.
+- Keep each organisation's SendAfrica credential server-side and encrypted at rest.
 - Never block an order or POS sale on an SMS provider call.

@@ -138,13 +138,18 @@ See [08 — Messaging & Commerce](08-messaging-and-commerce.md) for the full con
 
 - `sender_id_requests` — tenant sender-ID approval workflow; `ZIADA POS` is the fallback.
 - `messaging_settings` — sender selection, automation toggles, templates, quiet hours, and limits.
-- `sms_wallets` — organisation-level one-time 100-SMS grant plus paid/reserved/consumed balance.
+- `sms_wallets` — organisation-level one-time 100-SMS grant plus paid/reserved/consumed balance;
+  shared by the shop's stores and authorised staff.
 - `sms_ledger_entries` — immutable SMS credit accounting and provider references.
 - `sms_campaigns` — bulk promotional or operational sends.
 - `sms_messages` — one-recipient delivery record with provider status and IDs.
 - `storefront_settings` — public store slug, branding, catalogue visibility, and delivery rules.
 - `orders` / `order_lines` — public customer orders with immutable price snapshots.
 - `invoices` — invoice numbers and secure public invoice tokens.
+
+SendAfrica credentials are organisation-owned and must be encrypted at rest. Store only the
+encrypted secret plus a fingerprint and lifecycle timestamps in application data; never expose
+the raw key in API responses or staff-facing screens.
 
 ---
 
