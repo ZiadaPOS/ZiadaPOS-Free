@@ -7,10 +7,12 @@ import { Icons } from '@/components/icons';
 import { money, posApi, unwrapList } from '@/lib/pos-api';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 type SupplierRecord = Record<string, unknown>;
 
 export default function SupplierDetailPage() {
+  const text = useText();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [supplier, setSupplier] = useState<SupplierRecord | null>(null);
@@ -27,7 +29,11 @@ export default function SupplierDetailPage() {
       setSupplier(supplierResult.data);
       setDeliveries(unwrapList<SupplierRecord>(deliveryResult.data));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not load supplier.');
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : text('Could not load supplier.', 'Imeshindikana kupakia msambazaji.')
+      );
     }
   }
   useEffect(() => {
@@ -35,14 +41,17 @@ export default function SupplierDetailPage() {
   }, [params.id]);
   async function pay() {
     const value = Number(amount);
-    if (!value || value <= 0) return setMessage('Enter a payment amount greater than zero.');
+    if (!value || value <= 0)
+      return setMessage(
+        text('Enter a payment amount greater than zero.', 'Weka kiasi cha malipo zaidi ya sifuri.')
+      );
     try {
       await posApi<unknown>(`/suppliers/${params.id}/pay`, {
         method: 'POST',
         body: JSON.stringify({ amount: value, payment_method: 'cash' })
       });
       setAmount('');
-      setMessage('Payment recorded.');
+      setMessage(text('Payment recorded.', 'Malipo yamehifadhiwa.'));
       await load();
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : 'Payment could not be recorded.');

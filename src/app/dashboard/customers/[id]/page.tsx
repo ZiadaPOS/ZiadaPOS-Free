@@ -8,8 +8,10 @@ import { Icons } from '@/components/icons';
 import { money, posApi, unwrapList, type PosCustomer, type PosTransaction } from '@/lib/pos-api';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 export default function CustomerDetailPage() {
+  const text = useText();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [customer, setCustomer] = useState<PosCustomer | null>(null);
@@ -36,7 +38,11 @@ export default function CustomerDetailPage() {
         );
       })
       .catch((reason) =>
-        setError(reason instanceof Error ? reason.message : 'Could not load customer.')
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : text('Could not load customer.', 'Imeshindikana kupakia mteja.')
+        )
       );
   }, [params.id]);
 
@@ -108,8 +114,13 @@ export default function CustomerDetailPage() {
       <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]'>
         <Card>
           <CardHeader>
-            <CardTitle>Purchase history</CardTitle>
-            <CardDescription>Recent sales connected to this customer.</CardDescription>
+            <CardTitle>{text('Purchase history', 'Historia ya manunuzi')}</CardTitle>
+            <CardDescription>
+              {text(
+                'Recent sales connected to this customer.',
+                'Mauzo ya hivi karibuni yanayohusiana na mteja huyu.'
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className='divide-y'>
@@ -135,7 +146,9 @@ export default function CustomerDetailPage() {
                   </div>
                 ))
               ) : (
-                <p className='text-muted-foreground py-8 text-center'>No purchase history found.</p>
+                <p className='text-muted-foreground py-8 text-center'>
+                  {text('No purchase history found.', 'Hakuna historia ya manunuzi iliyopatikana.')}
+                </p>
               )}
             </div>
           </CardContent>
@@ -143,27 +156,34 @@ export default function CustomerDetailPage() {
         <div className='space-y-4'>
           <Card>
             <CardHeader>
-              <CardTitle>Customer profile</CardTitle>
+              <CardTitle>{text('Customer profile', 'Wasifu wa mteja')}</CardTitle>
             </CardHeader>
             <CardContent className='space-y-3 text-sm'>
               <div className='flex justify-between gap-3'>
-                <span className='text-muted-foreground'>Phone</span>
+                <span className='text-muted-foreground'>{text('Phone', 'Simu')}</span>
                 <span>{customer.phone || '—'}</span>
               </div>
               <div className='flex justify-between gap-3'>
-                <span className='text-muted-foreground'>Email</span>
+                <span className='text-muted-foreground'>{text('Email', 'Barua pepe')}</span>
                 <span className='truncate'>{customer.email || '—'}</span>
               </div>
               <div className='flex justify-between gap-3'>
-                <span className='text-muted-foreground'>Credit limit</span>
+                <span className='text-muted-foreground'>
+                  {text('Credit limit', 'Kikomo cha mkopo')}
+                </span>
                 <span>{customer.credit_limit == null ? '—' : money(customer.credit_limit)}</span>
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Send SMS</CardTitle>
-              <CardDescription>Send a message using your SendAfrica setup.</CardDescription>
+              <CardTitle>{text('Send SMS', 'Tuma SMS')}</CardTitle>
+              <CardDescription>
+                {text(
+                  'Send a message using your SendAfrica setup.',
+                  'Tuma ujumbe kwa kutumia usanidi wako wa SendAfrica.'
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent className='space-y-3'>
               <Textarea
@@ -196,8 +216,13 @@ export default function CustomerDetailPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Send receipt</CardTitle>
-              <CardDescription>Email a copy of a recent receipt.</CardDescription>
+              <CardTitle>{text('Send receipt', 'Tuma risiti')}</CardTitle>
+              <CardDescription>
+                {text(
+                  'Email a copy of a recent receipt.',
+                  'Tuma nakala ya risiti ya hivi karibuni kwa barua pepe.'
+                )}
+              </CardDescription>
             </CardHeader>
             <CardContent className='flex gap-2'>
               <Input

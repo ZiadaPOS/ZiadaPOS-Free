@@ -6,6 +6,7 @@ import { Icons } from '@/components/icons';
 import { money, posApi, unwrapList, type PosProduct, type PosTransaction } from '@/lib/pos-api';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { useText } from '@/lib/i18n';
 
 type Adjustment = {
   id: string;
@@ -16,6 +17,7 @@ type Adjustment = {
 };
 
 export default function InventoryProductDetailPage() {
+  const text = useText();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [product, setProduct] = useState<PosProduct | null>(null);
@@ -34,7 +36,11 @@ export default function InventoryProductDetailPage() {
         setTransactions(unwrapList<PosTransaction>(transactionResult.data));
       })
       .catch((reason) =>
-        setError(reason instanceof Error ? reason.message : 'Could not load product details.')
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : text('Could not load product details.', 'Imeshindikana kupakia maelezo ya bidhaa.')
+        )
       );
   }, [params.id]);
   const sold = useMemo(
