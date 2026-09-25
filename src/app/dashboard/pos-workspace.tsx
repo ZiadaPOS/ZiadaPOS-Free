@@ -25,6 +25,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react';
 
@@ -1375,6 +1376,7 @@ function CategoryManager() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
+  const panelRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     posApi<unknown>('/inventory/categories')
       .then((result) => setCategories(unwrapList<PosCategory>(result.data)))
@@ -1382,6 +1384,16 @@ function CategoryManager() {
         setError(reason instanceof Error ? reason.message : 'Could not load categories.')
       );
   }, [reload]);
+  useEffect(() => {
+    if (!open) return;
+    function closeOnOutsidePointer(event: PointerEvent) {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer);
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer);
+  }, [open]);
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
@@ -1400,14 +1412,23 @@ function CategoryManager() {
     category.name.toLowerCase().includes(query.toLowerCase())
   );
   return (
-    <div className='relative'>
+    <div ref={panelRef} className='relative'>
       <Button variant='outline' onClick={() => setOpen((value) => !value)}>
         Categories ({categories.length})
       </Button>
       {open && (
-        <Card className='absolute right-0 top-11 z-20 w-80'>
-          <CardHeader>
+        <Card className='absolute right-0 top-11 z-30 w-[min(22rem,calc(100vw-2rem))] shadow-xl'>
+          <CardHeader className='flex flex-row items-center justify-between space-y-0'>
             <CardTitle>Product categories</CardTitle>
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon'
+              aria-label='Close categories'
+              onClick={() => setOpen(false)}
+            >
+              <Icons.close className='h-4 w-4' />
+            </Button>
           </CardHeader>
           <CardContent className='space-y-3'>
             <Input
@@ -1488,11 +1509,21 @@ function CreateProduct({ onCreated }: { onCreated: () => void }) {
     }
   }
   return (
-    <div className='fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4'>
-      <Card className='my-4 w-full max-w-3xl shadow-2xl'>
-        <CardHeader>
-          <CardTitle>New product</CardTitle>
+    <div
+      className='fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4'
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCreated();
+      }}
+    >
+      <Card className='my-4 w-full max-w-4xl shadow-2xl' onMouseDown={(event) => event.stopPropagation()}>
+        <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+          <div>
+            <CardTitle>New product</CardTitle>
           <CardDescription>Amounts are entered in Tanzanian shillings.</CardDescription>
+          </div>
+          <Button type='button' variant='ghost' size='icon' aria-label='Close new product' onClick={onCreated}>
+            <Icons.close className='h-5 w-5' />
+          </Button>
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className='grid gap-3 sm:grid-cols-2'>
