@@ -51,8 +51,8 @@ export default function SaleDetailPage() {
   if (!transaction) return <div className='text-muted-foreground p-6'>Loading sale…</div>;
   const lines = transaction.lines || [];
   return (
-    <div className='space-y-5 p-4 sm:p-6'>
-      <div className='flex flex-wrap items-start justify-between gap-3'>
+    <div className='w-full space-y-5 p-0 sm:p-6'>
+      <div className='flex w-full flex-wrap items-start justify-between gap-3 px-4 pt-4 sm:px-0 sm:pt-0'>
         <div>
           <Button variant='ghost' className='mb-2 -ml-3' onClick={() => router.back()}>
             <Icons.chevronLeft className='mr-1 h-4 w-4' />
@@ -65,8 +65,8 @@ export default function SaleDetailPage() {
           {transaction.status}
         </span>
       </div>
-      <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]'>
-        <Card>
+      <div className='grid w-full gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(420px,520px)]'>
+        <Card className='w-full'>
           <CardHeader>
             <CardTitle>Items</CardTitle>
             <CardDescription>
@@ -100,7 +100,7 @@ export default function SaleDetailPage() {
           </CardContent>
         </Card>
         <div className='space-y-4'>
-          <Card>
+          <Card className='w-full'>
             <CardHeader>
               <CardTitle>Payment summary</CardTitle>
             </CardHeader>
@@ -124,7 +124,7 @@ export default function SaleDetailPage() {
               <p className='text-muted-foreground pt-2'>Paid with {transaction.payment_method}</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className='w-full'>
             <CardHeader>
               <CardTitle>Send receipt</CardTitle>
               <CardDescription>Email a copy to the customer.</CardDescription>
