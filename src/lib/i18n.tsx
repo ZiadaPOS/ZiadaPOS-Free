@@ -100,7 +100,8 @@ type LanguageContextValue = {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en');
+  // Ziada POS is Swahili-first; users can switch to English from the header.
+  const [language, setLanguageState] = useState<Language>('sw');
 
   useEffect(() => {
     const saved = window.localStorage.getItem('ziada-language');
