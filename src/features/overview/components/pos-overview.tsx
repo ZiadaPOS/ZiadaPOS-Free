@@ -264,15 +264,20 @@ export default function PosOverview() {
           <h2 className='text-xl font-bold tracking-tight sm:text-2xl'>
             Hi{userName ? `, ${userName}` : ''}! Welcome back 👋
           </h2>
-          <div className='flex flex-wrap items-center gap-2 sm:justify-end'>
+          <div className='grid w-full grid-cols-[3fr_7fr] items-center gap-2 sm:flex sm:w-auto sm:justify-end'>
             <Badge variant='outline' className='hidden sm:inline-flex'>
               {text('Today · TZS', 'Leo · TZS')}
             </Badge>
-            <Button variant='outline' onClick={() => void loadDashboard()} isLoading={loading}>
+            <Button
+              className='w-full sm:w-auto'
+              variant='outline'
+              onClick={() => void loadDashboard()}
+              isLoading={loading}
+            >
               Refresh
             </Button>
             <Button
-              className='min-w-max flex-row whitespace-nowrap'
+              className='w-full min-w-0 flex-row whitespace-nowrap sm:w-auto sm:min-w-max'
               onClick={() => router.push('/dashboard/checkout')}
             >
               <span className='inline-flex items-center gap-1.5'>
