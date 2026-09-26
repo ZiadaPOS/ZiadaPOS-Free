@@ -78,12 +78,15 @@ export function CheckoutWorkspace({
   const itemCount = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
   const saleForm = (
     <form onSubmit={checkout} className='space-y-4'>
-      <div className='max-h-44 space-y-3 overflow-y-auto'>
+      <div className='space-y-3 border-b pb-4'>
         {products
           .filter((product) => cart[product.id])
           .map((product) => (
-            <div key={product.id} className='flex items-center justify-between gap-2 text-sm'>
-              <span className='min-w-0 truncate'>
+            <div
+              key={product.id}
+              className='grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 text-sm'
+            >
+              <span className='min-w-0 break-words'>
                 {cart[product.id]} × {product.name}
               </span>
               <span>{money(cart[product.id] * product.selling_price)}</span>
@@ -330,7 +333,7 @@ export function CheckoutWorkspace({
             )}
           </CardContent>
         </Card>
-        <Card className='hidden xl:sticky xl:top-20 xl:block xl:self-start'>
+        <Card className='hidden xl:sticky xl:top-20 xl:block xl:max-h-[calc(100svh-6rem)] xl:self-start xl:overflow-y-auto'>
           <CardHeader>
             <CardTitle>{text('Current sale', 'Mauzo ya sasa')}</CardTitle>
             <CardDescription>{itemCount} items</CardDescription>
@@ -346,7 +349,7 @@ export function CheckoutWorkspace({
           <section
             role='dialog'
             aria-modal='true'
-            className='bg-background absolute inset-x-0 bottom-0 max-h-[85svh] overflow-y-auto rounded-t-2xl border p-4 shadow-2xl'
+            className='bg-background absolute inset-x-0 bottom-0 max-h-[90svh] overflow-y-auto rounded-t-2xl border p-4 shadow-2xl'
             onClick={(event) => event.stopPropagation()}
           >
             <div className='mb-4 flex items-center justify-between'>
