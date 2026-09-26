@@ -148,7 +148,7 @@ export function SalesTable({
                 type='button'
                 size='icon'
                 variant='outline'
-                className='sm:hidden'
+                className='h-11 w-full min-w-0 p-0 sm:hidden'
                 aria-label='Clear filters'
                 title='Clear filters'
                 onClick={clearFilters}
