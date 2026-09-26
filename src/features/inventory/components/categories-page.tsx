@@ -165,7 +165,7 @@ export default function CategoriesPage() {
           }}
         >
           <Card
-            className='w-full rounded-b-none shadow-2xl sm:max-w-md sm:rounded-xl'
+            className='min-h-[50svh] w-full rounded-b-none shadow-2xl sm:min-h-0 sm:max-w-md sm:rounded-xl'
             onMouseDown={(event) => event.stopPropagation()}
           >
             <CardHeader className='flex flex-row items-center justify-between space-y-0'>
