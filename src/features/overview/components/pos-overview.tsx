@@ -272,11 +272,13 @@ export default function PosOverview() {
               Refresh
             </Button>
             <Button
-              className='min-w-max whitespace-nowrap'
+              className='min-w-max flex-row whitespace-nowrap'
               onClick={() => router.push('/dashboard/checkout')}
             >
-              <Icons.add className='size-4' />
-              {text('New sale', 'Mauzo mapya')}
+              <span className='inline-flex items-center gap-1.5'>
+                <Icons.add className='size-4 shrink-0' />
+                <span>{text('New sale', 'Mauzo mapya')}</span>
+              </span>
             </Button>
           </div>
         </div>
