@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Icons } from '@/components/icons';
 import { money, posApi, unwrapList, type PosTransaction } from '@/lib/pos-api';
 import { useText } from '@/lib/i18n';
+import { useRouter } from 'next/navigation';
 
 type TransactionKind = 'sale' | 'credit' | 'discount' | 'refund' | 'void';
 
@@ -31,6 +32,7 @@ function kindLabel(kind: TransactionKind): string {
 
 export function TransactionsLedger() {
   const text = useText();
+  const router = useRouter();
   const [transactions, setTransactions] = useState<PosTransaction[]>([]);
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState<'all' | TransactionKind>('all');
@@ -208,7 +210,20 @@ export function TransactionsLedger() {
                   filtered.map((transaction) => {
                     const activity = kindOf(transaction);
                     return (
-                      <tr key={transaction.id} className='hover:bg-muted/30'>
+                      <tr
+                        key={transaction.id}
+                        className='hover:bg-muted/30 cursor-pointer'
+                        onClick={() => router.push(`/dashboard/sales/${transaction.id}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            router.push(`/dashboard/sales/${transaction.id}`);
+                          }
+                        }}
+                        tabIndex={0}
+                        role='link'
+                        aria-label={`Open transaction ${transaction.txn_number}`}
+                      >
                         <td className='px-3 py-3 font-medium'>{transaction.txn_number}</td>
                         <td className='px-3 py-3'>
                           {transaction.customer_name || 'Walk-in customer'}
@@ -224,9 +239,10 @@ export function TransactionsLedger() {
                           <Button
                             size='sm'
                             variant='outline'
-                            onClick={() =>
-                              window.location.assign(`/dashboard/sales/${transaction.id}`)
-                            }
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              router.push(`/dashboard/sales/${transaction.id}`);
+                            }}
                           >
                             View
                           </Button>
