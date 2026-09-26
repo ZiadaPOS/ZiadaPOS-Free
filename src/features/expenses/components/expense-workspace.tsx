@@ -8,12 +8,16 @@ import { Icons } from '@/components/icons';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useText } from '@/lib/i18n';
 
-export function ExpenseWorkspace() {
+interface ExpenseWorkspaceProps {
+  showForm: boolean;
+  onShowFormChange: (show: boolean) => void;
+}
+
+export function ExpenseWorkspace({ showForm, onShowFormChange }: ExpenseWorkspaceProps) {
   const text = useText();
   const [records, setRecords] = useState<Record<string, unknown>[]>([]);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
-  const [showForm, setShowForm] = useState(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
   const load = useCallback(() => {
@@ -46,7 +50,7 @@ export function ExpenseWorkspace() {
         method: 'POST',
         body: JSON.stringify({ ...values, amount: Number(values.amount) })
       });
-      setShowForm(false);
+      onShowFormChange(false);
       load();
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : 'Could not save expense.');
@@ -75,20 +79,6 @@ export function ExpenseWorkspace() {
       </div>
       <Card>
         <CardHeader>
-          <div className='flex flex-wrap items-start justify-between gap-3'>
-            <div>
-              <CardTitle>{text('Expense ledger', 'Orodha ya gharama')}</CardTitle>
-              <CardDescription>
-                {text(
-                  'Track operating costs, categories, and payment methods.',
-                  'Fuatilia gharama za uendeshaji, makundi, na njia za malipo.'
-                )}
-              </CardDescription>
-            </div>
-            <Button className='w-full sm:w-auto' onClick={() => setShowForm(true)}>
-              {text('Add expense', 'Ongeza gharama')}
-            </Button>
-          </div>
           <div className='flex flex-col gap-2 pt-2 sm:flex-row'>
             <Input
               value={query}
@@ -161,7 +151,7 @@ export function ExpenseWorkspace() {
         <div
           className='fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4'
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setShowForm(false);
+            if (event.target === event.currentTarget) onShowFormChange(false);
           }}
         >
           <Card
@@ -177,7 +167,7 @@ export function ExpenseWorkspace() {
                 variant='ghost'
                 size='icon'
                 aria-label='Close new expense'
-                onClick={() => setShowForm(false)}
+                onClick={() => onShowFormChange(false)}
               >
                 <Icons.close className='h-5 w-5' />
               </Button>
