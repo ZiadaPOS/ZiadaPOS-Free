@@ -169,8 +169,10 @@ export function TransactionsLedger() {
                 <option value='7d'>Last 7 days</option>
               </select>
               <Button variant='outline' onClick={clear}>
-                <Icons.close className='mr-2 h-4 w-4' />
-                Clear
+                <span className='inline-flex items-center gap-1.5'>
+                  <Icons.close className='size-4 shrink-0' />
+                  <span>Clear</span>
+                </span>
               </Button>
             </div>
           </div>
