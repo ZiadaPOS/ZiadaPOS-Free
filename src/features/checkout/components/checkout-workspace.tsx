@@ -140,6 +140,16 @@ export function CheckoutWorkspace({
         </Button>
       ) : (
         <>
+          <Button
+            type='button'
+            variant='ghost'
+            size='sm'
+            className='-ml-2 w-fit justify-start px-2'
+            onClick={() => setShowCheckoutDetails(false)}
+          >
+            <Icons.chevronLeft className='size-4' />
+            {text('Back to items', 'Rudi kwenye bidhaa')}
+          </Button>
           <label className='block text-sm font-medium'>
             {text('Customer', 'Mteja')}
             <select
