@@ -72,14 +72,23 @@ export function CategoryManager() {
               <Icons.close className='h-4 w-4' />
             </Button>
           </CardHeader>
-          <CardContent className='space-y-3'>
+          <CardContent className='flex flex-col gap-3'>
+            <form onSubmit={create} className='flex gap-2'>
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder='New category'
+                required
+              />
+              <Button size='sm'>Add</Button>
+            </form>
             <Input
               aria-label='Search categories'
               placeholder='Search categories…'
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
-            <div className='max-h-40 space-y-1 overflow-y-auto text-sm'>
+            <div className='max-h-48 space-y-1 overflow-y-auto pr-1 text-sm'>
               {visibleCategories.map((category) => (
                 <p key={category.id} className='rounded border px-2 py-1'>
                   {category.name}
@@ -91,15 +100,6 @@ export function CategoryManager() {
                 </p>
               )}
             </div>
-            <form onSubmit={create} className='flex gap-2'>
-              <Input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder='New category'
-                required
-              />
-              <Button size='sm'>Add</Button>
-            </form>
             {error && (
               <p role='alert' className='text-destructive text-xs'>
                 {error}
