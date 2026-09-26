@@ -29,7 +29,8 @@ export default function PageContainer({
   pageTitle,
   pageDescription,
   infoContent,
-  pageHeaderAction
+  pageHeaderAction,
+  pageHeaderActionInlineMobile = false
 }: {
   children: React.ReactNode;
   isLoading?: boolean;
@@ -39,6 +40,7 @@ export default function PageContainer({
   pageDescription?: string;
   infoContent?: InfobarContent;
   pageHeaderAction?: React.ReactNode;
+  pageHeaderActionInlineMobile?: boolean;
 }) {
   if (!access) {
     return (
@@ -59,13 +61,17 @@ export default function PageContainer({
   return (
     <div className='flex min-w-0 flex-1 flex-col px-3 pt-2 pb-4 sm:px-4 md:px-6 md:pt-4'>
       {hasHeader && (
-        <div className='mb-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-start sm:gap-4'>
+        <div
+          className={`mb-4 flex ${pageHeaderActionInlineMobile ? 'flex-row items-start' : 'flex-col items-stretch'} justify-between gap-3 sm:flex-row sm:items-start sm:gap-4`}
+        >
           <Heading
             title={pageTitle ?? ''}
             description={pageDescription ?? ''}
             infoContent={infoContent}
           />
-          {pageHeaderAction && <div className='flex shrink-0 flex-wrap gap-2 sm:justify-end'>{pageHeaderAction}</div>}
+          {pageHeaderAction && (
+            <div className='flex shrink-0 flex-wrap gap-2 sm:justify-end'>{pageHeaderAction}</div>
+          )}
         </div>
       )}
       {content}

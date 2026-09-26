@@ -223,6 +223,7 @@ export default function AnalyticsDashboard() {
         'Understand what is driving sales, profit, customers, and cashflow.',
         'Elewa kinachoendesha mauzo, faida, wateja na mtiririko wa fedha.'
       )}
+      pageHeaderActionInlineMobile
       pageHeaderAction={
         <Button variant='outline' onClick={() => void load()} isLoading={loading}>
           <Icons.refresh className='size-4' /> Refresh
@@ -230,8 +231,8 @@ export default function AnalyticsDashboard() {
       }
     >
       <div className='flex min-w-0 flex-1 flex-col gap-4 sm:gap-6'>
-        <div className='flex flex-col gap-3 rounded-xl border bg-card p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4'>
-          <div className='flex min-w-0 items-center gap-2 overflow-x-auto pb-1'>
+        <div className='space-y-3 rounded-xl border bg-card p-3 sm:flex sm:items-center sm:justify-between sm:space-y-0 sm:p-4'>
+          <div className='flex min-w-0 items-center gap-1 overflow-x-auto border-b pb-2 sm:border-b-0 sm:pb-0'>
             {(['sales', 'products', 'customers', 'cashflow'] as const).map((item) => (
               <Button
                 key={item}
@@ -250,7 +251,7 @@ export default function AnalyticsDashboard() {
               </Button>
             ))}
           </div>
-          <div className='flex items-center gap-2 overflow-x-auto'>
+          <div className='grid grid-cols-4 gap-1 sm:flex sm:items-center sm:gap-2'>
             {(['7d', '30d', '90d', 'ytd'] as const).map((item) => (
               <Button
                 key={item}
