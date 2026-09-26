@@ -37,8 +37,13 @@ export default function SignUpPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [draft, setDraft] = useState<Record<string, FormDataEntryValue>>({});
   function next(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setDraft((current) => ({
+      ...current,
+      ...Object.fromEntries(new FormData(event.currentTarget).entries())
+    }));
     setStep((value) => value + 1);
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -46,7 +51,8 @@ export default function SignUpPage() {
     setPending(true);
     setError('');
     const form = new FormData(event.currentTarget);
-    const value = (key: string) => String(form.get(key) || '');
+    const values = { ...draft, ...Object.fromEntries(form.entries()) };
+    const value = (key: string) => String(values[key] || '');
     try {
       const response = await fetch('/api/pos/auth/register', {
         method: 'POST',
