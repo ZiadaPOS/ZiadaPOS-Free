@@ -375,8 +375,12 @@ export function CheckoutWorkspace({
         </Card>
         <Card className='hidden xl:sticky xl:top-20 xl:block xl:max-h-[calc(100svh-6rem)] xl:self-start xl:overflow-y-auto'>
           <CardHeader>
-            <CardTitle>{text('Current sale', 'Mauzo ya sasa')}</CardTitle>
-            <CardDescription>{itemCount} items</CardDescription>
+            <div className='flex items-center justify-between gap-3'>
+              <CardTitle>{text('Current sale', 'Mauzo ya sasa')}</CardTitle>
+              <CardDescription>
+                {itemCount} {text('items', 'bidhaa')}
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>{saleForm}</CardContent>
         </Card>
@@ -393,9 +397,9 @@ export function CheckoutWorkspace({
             onClick={(event) => event.stopPropagation()}
           >
             <div className='mb-4 flex items-center justify-between'>
-              <div>
+              <div className='flex min-w-0 items-center gap-3'>
                 <h2 className='text-lg font-semibold'>{text('Current sale', 'Mauzo ya sasa')}</h2>
-                <p className='text-muted-foreground text-sm'>
+                <p className='text-muted-foreground text-sm whitespace-nowrap'>
                   {itemCount} {text('items', 'bidhaa')}
                 </p>
               </div>
