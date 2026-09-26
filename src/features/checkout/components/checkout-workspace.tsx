@@ -266,20 +266,6 @@ export function CheckoutWorkspace({
       >
         <Icons.page className='h-4 w-4' />
       </Button>
-      <Button
-        className='pos-title-cart relative xl:hidden'
-        size='icon'
-        variant='outline'
-        aria-label={`Open current sale, ${itemCount} items`}
-        onClick={() => setMobileCartOpen(true)}
-      >
-        <Icons.cart className='h-4 w-4' />
-        {itemCount > 0 && (
-          <span className='bg-primary text-primary-foreground absolute -right-1 -top-1 min-w-4 rounded-full px-1 text-[10px]'>
-            {itemCount}
-          </span>
-        )}
-      </Button>
     </div>
   );
   return (
@@ -316,6 +302,20 @@ export function CheckoutWorkspace({
                   <Icons.barcode className='h-4 w-4' />
                 </Button>
               </form>
+              <Button
+                className='relative xl:hidden'
+                size='icon'
+                variant='outline'
+                aria-label={`Open current sale, ${itemCount} items`}
+                onClick={() => setMobileCartOpen(true)}
+              >
+                <Icons.cart className='h-4 w-4' />
+                {itemCount > 0 && (
+                  <span className='bg-primary text-primary-foreground absolute -right-1 -top-1 min-w-4 rounded-full px-1 text-[10px]'>
+                    {itemCount}
+                  </span>
+                )}
+              </Button>
             </div>
             <div className='pos-category-rail' aria-label='Product categories'>
               <button type='button' className='pos-category-chip pos-category-chip-active'>
