@@ -69,6 +69,7 @@ export function CheckoutWorkspace({
 }) {
   const text = useText();
   const [activeCategory, setActiveCategory] = useState('');
+  const [showCheckoutDetails, setShowCheckoutDetails] = useState(false);
   const visibleProducts = activeCategory
     ? filteredProducts.filter(
         (product) =>
@@ -122,76 +123,93 @@ export function CheckoutWorkspace({
             </div>
           ))}
       </div>
-      <label className='block text-sm font-medium'>
-        {text('Customer', 'Mteja')}
-        <select
-          className='bg-background mt-1 h-11 w-full rounded-md border px-3 text-sm'
-          value={customerId}
-          onChange={(event) => setCustomerId(event.target.value)}
-        >
-          <option value=''>{text('Walk-in customer', 'Mteja wa kawaida')}</option>
-          {customers.map((customer) => (
-            <option key={customer.id} value={customer.id}>
-              {customer.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className='block text-sm font-medium'>
-        {text('Payment method', 'Njia ya malipo')}
-        <select
-          className='bg-background mt-1 h-11 w-full rounded-md border px-3 text-sm'
-          value={paymentMethod}
-          onChange={(event) => setPaymentMethod(event.target.value)}
-        >
-          {['Cash', 'M-Pesa', 'Tigo Pesa', 'Bank', 'Credit'].map((method) => (
-            <option key={method}>{method}</option>
-          ))}
-        </select>
-      </label>
-      <div className='grid grid-cols-2 gap-2'>
-        <label className='text-sm'>
-          {text('Discount %', 'Punguzo %')}
-          <Input
-            className='mt-1 h-11'
-            min='0'
-            max='100'
-            type='number'
-            value={discountPct}
-            onChange={(event) => setDiscountPct(event.target.value)}
-          />
-        </label>
-        <label className='text-sm'>
-          {text('Reference', 'Kumbukumbu')}
-          <Input
-            className='mt-1 h-11'
-            value={paymentReference}
-            onChange={(event) => setPaymentReference(event.target.value)}
-            placeholder='Optional'
-          />
-        </label>
+      <div className='flex items-center justify-between text-sm font-semibold'>
+        <span>{text('Items total', 'Jumla ya bidhaa')}</span>
+        <span>{money(subtotal)}</span>
       </div>
-      <div className='border-t pt-3 text-sm'>
-        <div className='flex justify-between'>
-          <span>{text('Subtotal', 'Jumla ndogo')}</span>
-          <span>{money(subtotal)}</span>
-        </div>
-        <div className='flex justify-between'>
-          <span>Discount</span>
-          <span>{money(discountAmount)}</span>
-        </div>
-        <div className='flex justify-between'>
-          <span>{text('Tax (18%)', 'Kodi (18%)')}</span>
-          <span>{money(checkoutTax)}</span>
-        </div>
-        <div className='mt-2 flex justify-between font-semibold'>
-          <span>{text('Total', 'Jumla')}</span>
-          <span>{money(subtotal - discountAmount + checkoutTax)}</span>
-        </div>
-      </div>
-      <Button className='h-11 w-full' isLoading={busy} disabled={!itemCount}>
-        {text('Complete sale', 'Kamilisha mauzo')}
-      </Button>
+      {!showCheckoutDetails ? (
+        <Button
+          type='button'
+          className='h-11 w-full'
+          disabled={!itemCount}
+          onClick={() => setShowCheckoutDetails(true)}
+        >
+          {text('Continue', 'Endelea')}
+        </Button>
+      ) : (
+        <>
+          <label className='block text-sm font-medium'>
+            {text('Customer', 'Mteja')}
+            <select
+              className='bg-background mt-1 h-11 w-full rounded-md border px-3 text-sm'
+              value={customerId}
+              onChange={(event) => setCustomerId(event.target.value)}
+            >
+              <option value=''>{text('Walk-in customer', 'Mteja wa kawaida')}</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className='block text-sm font-medium'>
+            {text('Payment method', 'Njia ya malipo')}
+            <select
+              className='bg-background mt-1 h-11 w-full rounded-md border px-3 text-sm'
+              value={paymentMethod}
+              onChange={(event) => setPaymentMethod(event.target.value)}
+            >
+              {['Cash', 'M-Pesa', 'Tigo Pesa', 'Bank', 'Credit'].map((method) => (
+                <option key={method}>{method}</option>
+              ))}
+            </select>
+          </label>
+          <div className='grid grid-cols-2 gap-2'>
+            <label className='text-sm'>
+              {text('Discount %', 'Punguzo %')}
+              <Input
+                className='mt-1 h-11'
+                min='0'
+                max='100'
+                type='number'
+                value={discountPct}
+                onChange={(event) => setDiscountPct(event.target.value)}
+              />
+            </label>
+            <label className='text-sm'>
+              {text('Reference', 'Kumbukumbu')}
+              <Input
+                className='mt-1 h-11'
+                value={paymentReference}
+                onChange={(event) => setPaymentReference(event.target.value)}
+                placeholder='Optional'
+              />
+            </label>
+          </div>
+          <div className='border-t pt-3 text-sm'>
+            <div className='flex justify-between'>
+              <span>{text('Subtotal', 'Jumla ndogo')}</span>
+              <span>{money(subtotal)}</span>
+            </div>
+            <div className='flex justify-between'>
+              <span>Discount</span>
+              <span>{money(discountAmount)}</span>
+            </div>
+            <div className='flex justify-between'>
+              <span>{text('Tax (18%)', 'Kodi (18%)')}</span>
+              <span>{money(checkoutTax)}</span>
+            </div>
+            <div className='mt-2 flex justify-between font-semibold'>
+              <span>{text('Total', 'Jumla')}</span>
+              <span>{money(subtotal - discountAmount + checkoutTax)}</span>
+            </div>
+          </div>
+          <Button className='h-11 w-full' isLoading={busy} disabled={!itemCount}>
+            {text('Complete sale', 'Kamilisha mauzo')}
+          </Button>
+        </>
+      )}
     </form>
   );
   const controls = (
