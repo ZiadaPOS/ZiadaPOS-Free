@@ -125,10 +125,12 @@ export function CheckoutWorkspace({
             ))}
         </div>
       )}
-      <div className='flex items-center justify-between text-sm font-semibold'>
-        <span>{text('Items total', 'Jumla ya bidhaa')}</span>
-        <span>{money(subtotal)}</span>
-      </div>
+      {!showCheckoutDetails && (
+        <div className='flex items-center justify-between text-sm font-semibold'>
+          <span>{text('Items total', 'Jumla ya bidhaa')}</span>
+          <span>{money(subtotal)}</span>
+        </div>
+      )}
       {!showCheckoutDetails ? (
         <Button
           type='button'
