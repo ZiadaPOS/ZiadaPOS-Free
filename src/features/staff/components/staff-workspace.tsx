@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { posApi, unwrapList } from '@/lib/pos-api';
+import { Icons } from '@/components/icons';
 import { FormEvent, useEffect, useState } from 'react';
 import { StaffTable } from '@/features/staff/components/staff-table';
 
@@ -63,7 +64,7 @@ export function ResourcePage() {
   }
   return (
     <>
-      <div className='flex flex-wrap items-start justify-between gap-3'>
+      <div className='flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-start'>
         <div>
           <h1 className='text-2xl font-bold tracking-tight'>{title}</h1>
           <p className='text-muted-foreground'>
@@ -71,7 +72,7 @@ export function ResourcePage() {
           </p>
         </div>
         {fields.length > 0 && (
-          <Button onClick={() => setShowForm((value) => !value)}>
+          <Button className='w-full sm:w-auto' onClick={() => setShowForm((value) => !value)}>
             {showForm ? 'Close form' : `Add ${'staff member'}`}
           </Button>
         )}
@@ -82,31 +83,52 @@ export function ResourcePage() {
         </p>
       )}
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>New {'staff member'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={create} className='grid gap-4 sm:grid-cols-2'>
-              {fields.map(([name, label]) => (
-                <div key={name} className='space-y-1'>
-                  <label className='text-sm font-medium' htmlFor={name}>
-                    {label}
-                  </label>
-                  <Input
-                    id={name}
-                    name={name}
-                    required={name === 'name' || name === 'title' || name === 'first_name'}
-                    type={name === 'amount' ? 'number' : 'text'}
-                  />
+        <div
+          className='fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4'
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowForm(false);
+          }}
+        >
+          <Card
+            className='min-h-[50svh] w-full rounded-b-none shadow-2xl sm:min-h-0 sm:max-w-2xl sm:rounded-xl'
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+              <CardTitle>New staff member</CardTitle>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon'
+                aria-label='Close new staff member dialog'
+                onClick={() => setShowForm(false)}
+              >
+                <Icons.close className='size-4' />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={create} className='grid gap-4 sm:grid-cols-2'>
+                {fields.map(([name, label]) => (
+                  <div key={name} className='space-y-1'>
+                    <label className='text-sm font-medium' htmlFor={name}>
+                      {label}
+                    </label>
+                    <Input
+                      id={name}
+                      name={name}
+                      required={name === 'name' || name === 'title' || name === 'first_name'}
+                      type={name === 'amount' ? 'number' : 'text'}
+                    />
+                  </div>
+                ))}
+                <div className='sm:col-span-2'>
+                  <Button className='w-full' isLoading={pending}>
+                    Save
+                  </Button>
                 </div>
-              ))}
-              <div className='sm:col-span-2'>
-                <Button isLoading={pending}>Save</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       )}
       <StaffTable records={records} onUpdated={() => setReload((n) => n + 1)} />
     </>
