@@ -241,7 +241,7 @@ export function CheckoutWorkspace({
               <span>{money(subtotal - discountAmount + checkoutTax)}</span>
             </div>
           </div>
-          <Button className='h-11 w-full' isLoading={busy} disabled={!itemCount}>
+          <Button type='submit' className='h-11 w-full' isLoading={busy} disabled={!itemCount}>
             {text('Complete sale', 'Kamilisha mauzo')}
           </Button>
         </>
