@@ -4,7 +4,6 @@ import PageContainer from '@/components/layout/page-container';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { posApi } from '@/lib/pos-api';
 import { ThemeModeToggle } from '@/components/themes/theme-mode-toggle';
-import { ThemeSelector } from '@/components/themes/theme-selector';
 import { useCallback, useEffect, useState } from 'react';
 import { useText } from '@/lib/i18n';
 import { StoreSwitcher } from '@/features/settings/components/store-switcher';
@@ -56,8 +55,8 @@ export default function SettingsPage() {
               )}
             </CardDescription>
           </CardHeader>
-          <CardContent className='flex flex-wrap items-center gap-3'>
-            <ThemeSelector />
+          <CardContent className='flex items-center gap-3'>
+            <span className='text-muted-foreground text-sm'>Supabase</span>
             <ThemeModeToggle />
           </CardContent>
         </Card>

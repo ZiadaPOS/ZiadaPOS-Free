@@ -1,6 +1,5 @@
 /* Import individual theme files */
 @import './themes/supabase.css';
-@import './themes/ziada.css';
 
 body {
   @apply overscroll-none;
