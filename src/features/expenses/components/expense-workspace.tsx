@@ -57,15 +57,6 @@ export function ExpenseWorkspace() {
   const total = records.reduce((sum, record) => sum + amount(record), 0);
   return (
     <div className='space-y-4'>
-      <div>
-        <h1 className='text-2xl font-bold tracking-tight'>{text('Expenses', 'Gharama')}</h1>
-        <p className='text-muted-foreground'>
-          {text(
-            'Track operating costs and payments for this store.',
-            'Fuatilia gharama za uendeshaji na malipo ya tawi hili.'
-          )}
-        </p>
-      </div>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
           ['Total expenses', money(total), 'All recorded costs'],
@@ -94,7 +85,7 @@ export function ExpenseWorkspace() {
                 )}
               </CardDescription>
             </div>
-            <Button onClick={() => setShowForm(true)}>
+            <Button className='w-full sm:w-auto' onClick={() => setShowForm(true)}>
               {text('Add expense', 'Ongeza gharama')}
             </Button>
           </div>
