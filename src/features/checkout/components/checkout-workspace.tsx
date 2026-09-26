@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { money, type PosCategory, type PosCustomer, type PosProduct } from '@/lib/pos-api';
 import { Icons } from '@/components/icons';
-import { Dispatch, FormEvent, SetStateAction, useState } from 'react';
+import { Dispatch, FormEvent, SetStateAction, useEffect, useState } from 'react';
 import { useText } from '@/lib/i18n';
 
 export function CheckoutWorkspace({
@@ -69,7 +69,15 @@ export function CheckoutWorkspace({
 }) {
   const text = useText();
   const [activeCategory, setActiveCategory] = useState('');
-  const [showCheckoutDetails, setShowCheckoutDetails] = useState(false);
+  const [showCheckoutDetails, setShowCheckoutDetails] = useState(() => {
+    return (
+      typeof window !== 'undefined' &&
+      window.localStorage.getItem('ziada-checkout-step') === 'details'
+    );
+  });
+  useEffect(() => {
+    window.localStorage.setItem('ziada-checkout-step', showCheckoutDetails ? 'details' : 'items');
+  }, [showCheckoutDetails]);
   const visibleProducts = activeCategory
     ? filteredProducts.filter(
         (product) =>

@@ -9,7 +9,7 @@ import {
   type PosProduct,
   type PosTransaction
 } from '@/lib/pos-api';
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useText } from '@/lib/i18n';
 import { CheckoutWorkspace } from '@/features/checkout/components/checkout-workspace';
 import { ReceiptDialog } from '@/features/sales/components/receipt-dialog';
@@ -31,6 +31,7 @@ export default function CheckoutPage() {
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [scanCode, setScanCode] = useState('');
   const [receiptTransaction, setReceiptTransaction] = useState<PosTransaction | null>(null);
+  const cartRestored = useRef(false);
   const load = useCallback(async () => {
     setError('');
     try {
@@ -53,6 +54,43 @@ export default function CheckoutPage() {
   useEffect(() => {
     void load();
   }, [load]);
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem('ziada-checkout-cart');
+      if (saved) {
+        const parsed = JSON.parse(saved) as Record<string, unknown>;
+        setCart(
+          Object.fromEntries(
+            Object.entries(parsed).filter(
+              ([, quantity]) => typeof quantity === 'number' && quantity > 0
+            )
+          ) as Record<string, number>
+        );
+      }
+    } catch {
+      window.localStorage.removeItem('ziada-checkout-cart');
+    } finally {
+      cartRestored.current = true;
+    }
+  }, []);
+  useEffect(() => {
+    if (!cartRestored.current) return;
+    if (Object.keys(cart).length) {
+      window.localStorage.setItem('ziada-checkout-cart', JSON.stringify(cart));
+    } else {
+      window.localStorage.removeItem('ziada-checkout-cart');
+    }
+  }, [cart]);
+  useEffect(() => {
+    if (!products.length) return;
+    const available = new Set(products.map((product) => product.id));
+    setCart((current) => {
+      const next = Object.fromEntries(
+        Object.entries(current).filter(([productId]) => available.has(productId))
+      ) as Record<string, number>;
+      return Object.keys(next).length === Object.keys(current).length ? current : next;
+    });
+  }, [products]);
   useEffect(() => {
     document.documentElement.dataset.catalogView = catalogView;
     return () => {
@@ -123,6 +161,8 @@ export default function CheckoutPage() {
         })
       });
       setCart({});
+      window.localStorage.removeItem('ziada-checkout-cart');
+      window.localStorage.removeItem('ziada-checkout-step');
       setCustomerId('');
       setDiscountPct('0');
       setPaymentReference('');
