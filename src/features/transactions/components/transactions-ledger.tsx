@@ -138,7 +138,7 @@ export function TransactionsLedger() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder='Search receipt, customer, payment, or reference…'
             />
-            <div className='grid grid-cols-2 gap-2 sm:grid-cols-4'>
+            <div className='grid grid-cols-[3fr_3fr_3fr_1fr] gap-2 sm:grid-cols-4'>
               <select
                 className='bg-background h-10 rounded-md border px-3 text-sm'
                 value={kind}
@@ -170,10 +170,15 @@ export function TransactionsLedger() {
                 <option value='today'>Today</option>
                 <option value='7d'>Last 7 days</option>
               </select>
-              <Button variant='outline' onClick={clear}>
+              <Button
+                className='h-10 w-full px-0 sm:h-7 sm:w-auto sm:px-2.5'
+                variant='outline'
+                aria-label='Clear filters'
+                onClick={clear}
+              >
                 <span className='inline-flex items-center gap-1.5'>
                   <Icons.close className='size-4 shrink-0' />
-                  <span>Clear</span>
+                  <span className='hidden sm:inline'>Clear</span>
                 </span>
               </Button>
             </div>
