@@ -59,7 +59,7 @@ export function CategoryManager() {
         Categories ({categories.length})
       </Button>
       {open && (
-        <Card className='absolute right-0 top-11 z-30 w-[min(22rem,calc(100vw-2rem))] shadow-xl'>
+        <Card className='fixed top-20 right-2 left-2 z-30 max-h-[calc(100svh-6rem)] w-auto overflow-y-auto shadow-xl sm:absolute sm:top-11 sm:right-0 sm:left-auto sm:max-h-none sm:w-[min(22rem,calc(100vw-2rem))]'>
           <CardHeader className='flex flex-row items-center justify-between space-y-0'>
             <CardTitle>Product categories</CardTitle>
             <Button
