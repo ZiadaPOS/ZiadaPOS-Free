@@ -30,7 +30,7 @@ export default function CustomersPage() {
       pageTitle='Customers'
       pageDescription='Customer profiles, segments, spend, and outstanding credit.'
       pageHeaderAction={
-        <Button onClick={() => setShowCreate((v) => !v)}>
+        <Button className='w-full sm:w-auto' onClick={() => setShowCreate((v) => !v)}>
           {showCreate ? text('Close', 'Funga') : text('Add customer', 'Ongeza mteja')}
         </Button>
       }
