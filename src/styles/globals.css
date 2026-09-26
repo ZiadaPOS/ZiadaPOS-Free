@@ -136,11 +136,12 @@
 
 .sales-filter-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 3fr) minmax(0, 3fr) minmax(2.75rem, 1fr);
   gap: 0.5rem;
 }
 .sales-filter-row select {
   min-width: 0;
+  width: 100%;
 }
 .inventory-mobile-view-controls {
   display: none;
