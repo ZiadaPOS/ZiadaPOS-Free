@@ -110,7 +110,9 @@ export function CreateProduct({ onCreated }: { onCreated: () => void }) {
                     />
                   ) : (
                     <span className='text-muted-foreground flex flex-col items-center gap-2 text-center text-xs'>
-                      <Icons.media className='size-6' />
+                      <span className='bg-muted flex size-10 items-center justify-center rounded-full'>
+                        <Icons.media className='size-5' />
+                      </span>
                       Add photo
                     </span>
                   )}
