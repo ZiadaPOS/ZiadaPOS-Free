@@ -78,7 +78,7 @@ export function CreateProduct({ onCreated }: { onCreated: () => void }) {
       }}
     >
       <Card
-        className='my-4 max-h-[min(90svh,48rem)] w-full max-w-3xl overflow-y-auto shadow-2xl'
+        className='my-4 max-h-[min(90svh,48rem)] w-full max-w-2xl overflow-y-auto shadow-2xl'
         onMouseDown={(event) => event.stopPropagation()}
       >
         <CardHeader className='flex flex-row items-center justify-between space-y-0'>
@@ -98,7 +98,7 @@ export function CreateProduct({ onCreated }: { onCreated: () => void }) {
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className='flex flex-col gap-4'>
-            <div className='grid grid-cols-[3fr_7fr] gap-3'>
+            <div className='grid grid-cols-[7rem_1fr] items-start gap-3 sm:grid-cols-[8rem_1fr]'>
               <label className='text-sm'>
                 <span className='sr-only'>Product image</span>
                 <span className='bg-muted/30 border-border/70 relative flex aspect-square cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed transition-colors hover:bg-muted/60'>
@@ -195,8 +195,10 @@ export function CreateProduct({ onCreated }: { onCreated: () => void }) {
                 {error}
               </p>
             )}
-            <div className='flex justify-end'>
-              <Button isLoading={pending}>Create product</Button>
+            <div className='w-full'>
+              <Button className='w-full' isLoading={pending}>
+                Create product
+              </Button>
             </div>
           </form>
         </CardContent>
