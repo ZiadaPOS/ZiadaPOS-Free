@@ -119,14 +119,14 @@ export function TransactionsLedger() {
       </div>
       <Card>
         <CardHeader>
-          <div className='flex flex-wrap items-start justify-between gap-3'>
-            <div>
+          <div className='flex items-start justify-between gap-2'>
+            <div className='min-w-0 flex-1'>
               <CardTitle>{text('Transaction ledger', 'Orodha ya miamala')}</CardTitle>
               <CardDescription>
                 Every recorded money movement and sale adjustment in one place.
               </CardDescription>
             </div>
-            <Button variant='outline' size='sm' onClick={() => void load()}>
+            <Button className='shrink-0' variant='outline' size='sm' onClick={() => void load()}>
               Refresh
             </Button>
           </div>
