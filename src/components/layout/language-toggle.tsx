@@ -19,8 +19,10 @@ export function LanguageToggle() {
           />
         }
       >
-        <Icons.language className='size-4' />
-        <span className='text-xs font-semibold'>{language === 'en' ? 'EN' : 'SW'}</span>
+        <span className='inline-flex items-center gap-1.5'>
+          <Icons.language className='size-4 shrink-0' />
+          <span className='text-xs font-semibold'>{language === 'en' ? 'EN' : 'SW'}</span>
+        </span>
         <span className='sr-only'>{t('toggleLanguage')}</span>
       </TooltipTrigger>
       <TooltipContent>{t('toggleLanguage')}</TooltipContent>
