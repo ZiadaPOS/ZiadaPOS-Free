@@ -16,9 +16,10 @@ export type ApiEnvelope<T> = {
 export type ApiResult<T> = ApiEnvelope<T> & { data: T };
 
 export async function posApi<T>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
   const response = await fetch(`/api/pos${path.startsWith('/') ? path : `/${path}`}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init.headers }
+    headers: { ...(isFormData ? {} : { 'Content-Type': 'application/json' }), ...init.headers }
   });
   if (response.status === 204) return { success: true, message: 'OK', data: undefined as T };
   const body = (await response.json().catch(() => ({}))) as ApiEnvelope<T>;
