@@ -98,6 +98,20 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
+        title: 'Notebook',
+        url: '/dashboard/notebook',
+        icon: 'post',
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Subscriptions',
+        url: '/dashboard/billing',
+        icon: 'billing',
+        isActive: false,
+        items: []
+      },
+      {
         title: 'SMS messaging',
         url: '/dashboard/sms',
         icon: 'send',
