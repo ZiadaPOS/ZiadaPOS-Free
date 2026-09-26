@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
     }
   }
   return (
-    <main className='bg-muted/30 flex min-h-svh items-center justify-center p-4'>
+    <main className='bg-muted/30 flex min-h-svh items-center justify-center p-4 font-sans'>
       <Card className='w-full max-w-md'>
         <CardHeader>
           <CardTitle>Reset your password</CardTitle>

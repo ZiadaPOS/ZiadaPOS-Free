@@ -85,7 +85,7 @@ export default function SignUpPage() {
     }
   }
   return (
-    <main className='bg-muted/30 flex min-h-svh items-center justify-center p-4'>
+    <main className='bg-muted/30 flex min-h-svh items-center justify-center p-4 font-sans'>
       <Card className='w-full max-w-2xl'>
         <CardHeader className='space-y-4'>
           <div className='flex items-center justify-center gap-3'>
