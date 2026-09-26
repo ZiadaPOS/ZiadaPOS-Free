@@ -68,7 +68,7 @@ export function StoreWorkspace() {
           <Card key={label}>
             <CardContent className='space-y-2 p-4 sm:p-5'>
               <p className='text-muted-foreground text-sm'>{label}</p>
-              <p className='text-2xl font-semibold'>{value}</p>
+              <p className='text-3xl font-semibold'>{value}</p>
             </CardContent>
           </Card>
         ))}

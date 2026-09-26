@@ -71,7 +71,7 @@ export function ExpenseWorkspace({ showForm, onShowFormChange }: ExpenseWorkspac
           <Card key={label}>
             <CardContent className='space-y-2 p-4 sm:p-5'>
               <p className='text-muted-foreground text-xs sm:text-sm'>{label}</p>
-              <p className='truncate text-lg font-semibold sm:text-2xl'>{value}</p>
+              <p className='truncate text-2xl font-semibold sm:text-3xl'>{value}</p>
               <p className='text-muted-foreground truncate text-[11px] sm:text-xs'>{note}</p>
             </CardContent>
           </Card>

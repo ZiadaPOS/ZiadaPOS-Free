@@ -52,7 +52,7 @@ export function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
           <Card key={label}>
             <CardContent className='space-y-3 p-5'>
               <p className='text-muted-foreground text-sm'>{label}</p>
-              <p className='text-2xl font-semibold tracking-tight'>{value}</p>
+              <p className='text-3xl font-semibold tracking-tight'>{value}</p>
               <p className='text-muted-foreground text-xs'>{note}</p>
             </CardContent>
           </Card>

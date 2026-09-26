@@ -78,7 +78,7 @@ function Metric({
           <CardDescription className='truncate'>{label}</CardDescription>
           <Icon className='text-muted-foreground size-4 shrink-0' />
         </div>
-        <CardTitle className='truncate text-xl tabular-nums sm:text-2xl'>{value}</CardTitle>
+        <CardTitle className='truncate text-2xl tabular-nums sm:text-3xl'>{value}</CardTitle>
         {detail && <CardDescription className='truncate text-xs'>{detail}</CardDescription>}
       </CardHeader>
     </Card>

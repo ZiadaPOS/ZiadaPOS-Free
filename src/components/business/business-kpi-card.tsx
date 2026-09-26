@@ -26,7 +26,7 @@ export function BusinessKpiCard({
           <CardDescription className='truncate text-xs sm:text-sm'>{label}</CardDescription>
           {Icon && <Icon className='text-muted-foreground size-4 shrink-0' />}
         </div>
-        <CardTitle className='truncate text-xl tabular-nums sm:text-2xl'>{value}</CardTitle>
+        <CardTitle className='truncate text-2xl tabular-nums sm:text-3xl'>{value}</CardTitle>
       </CardHeader>
       <CardContent className='flex items-center justify-between gap-2 p-4 pt-0 sm:p-5 sm:pt-0'>
         <span className='text-muted-foreground min-w-0 truncate text-xs'>{helper}</span>
