@@ -175,7 +175,20 @@ export function SalesTable({
               <tbody className='divide-y'>
                 {filtered.length ? (
                   filtered.map((transaction) => (
-                    <tr key={transaction.id} className='hover:bg-muted/30'>
+                    <tr
+                      key={transaction.id}
+                      className='hover:bg-muted/30 cursor-pointer'
+                      onClick={() => router.push(`/dashboard/sales/${transaction.id}`)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          router.push(`/dashboard/sales/${transaction.id}`);
+                        }
+                      }}
+                      tabIndex={0}
+                      role='link'
+                      aria-label={`Open sale ${transaction.txn_number}`}
+                    >
                       <td className='px-3 py-3 font-medium'>{transaction.txn_number}</td>
                       <td className='px-3 py-3'>
                         {transaction.customer_name || 'Walk-in customer'}
@@ -191,7 +204,10 @@ export function SalesTable({
                           <Button
                             size='sm'
                             variant='outline'
-                            onClick={() => router.push(`/dashboard/sales/${transaction.id}`)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              router.push(`/dashboard/sales/${transaction.id}`);
+                            }}
                           >
                             View
                           </Button>
@@ -200,14 +216,20 @@ export function SalesTable({
                               <Button
                                 size='sm'
                                 variant='ghost'
-                                onClick={() => void action(transaction.id, 'refund')}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void action(transaction.id, 'refund');
+                                }}
                               >
                                 Refund
                               </Button>
                               <Button
                                 size='sm'
                                 variant='ghost'
-                                onClick={() => void action(transaction.id, 'void')}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void action(transaction.id, 'void');
+                                }}
                               >
                                 Void
                               </Button>
