@@ -284,11 +284,14 @@ export function CheckoutWorkspace({
   );
   return (
     <>
-      <div>
-        <h1 className='text-2xl font-bold tracking-tight'>{text('Products', 'Bidhaa')}</h1>
-        <p className='text-muted-foreground'>
-          Scan or search products, select payment, and complete the sale.
-        </p>
+      <div className='flex items-start justify-between gap-3'>
+        <div className='min-w-0 flex-1'>
+          <h1 className='text-2xl font-bold tracking-tight'>{text('Products', 'Bidhaa')}</h1>
+          <p className='text-muted-foreground'>
+            Scan or search products, select payment, and complete the sale.
+          </p>
+        </div>
+        <div className='shrink-0'>{controls}</div>
       </div>
       <div className='grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]'>
         <Card className='min-w-0'>
@@ -313,7 +316,6 @@ export function CheckoutWorkspace({
                   <Icons.barcode className='h-4 w-4' />
                 </Button>
               </form>
-              {controls}
             </div>
             <div className='pos-category-rail' aria-label='Product categories'>
               <button type='button' className='pos-category-chip pos-category-chip-active'>
