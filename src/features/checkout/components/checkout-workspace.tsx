@@ -285,7 +285,7 @@ export function CheckoutWorkspace({
   return (
     <>
       <div>
-        <h1 className='text-2xl font-bold tracking-tight'>{text('Checkout', 'Malipo')}</h1>
+        <h1 className='text-2xl font-bold tracking-tight'>{text('Products', 'Bidhaa')}</h1>
         <p className='text-muted-foreground'>
           Scan or search products, select payment, and complete the sale.
         </p>
@@ -293,18 +293,15 @@ export function CheckoutWorkspace({
       <div className='grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]'>
         <Card className='min-w-0'>
           <CardHeader>
-            <div className='flex items-center justify-between gap-3'>
-              <CardTitle>Products</CardTitle>
-              {controls}
-            </div>
-            <div className='pos-search-row grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]'>
+            <div className='pos-search-row flex items-center gap-2'>
               <Input
+                className='min-w-0 flex-1'
                 aria-label={text('Search products', 'Tafuta bidhaa')}
                 placeholder='Search name, SKU, or barcode…'
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <form onSubmit={scanProduct} className='pos-scan-form flex min-w-0 gap-2'>
+              <form onSubmit={scanProduct} className='pos-scan-form flex shrink-0 gap-2'>
                 <Input
                   className='hidden'
                   aria-label='Scan barcode'
@@ -316,20 +313,7 @@ export function CheckoutWorkspace({
                   <Icons.barcode className='h-4 w-4' />
                 </Button>
               </form>
-              <Button
-                className='pos-row-cart relative'
-                size='icon'
-                variant='outline'
-                aria-label={`Open current sale, ${itemCount} items`}
-                onClick={() => setMobileCartOpen(true)}
-              >
-                <Icons.cart className='h-4 w-4' />
-                {itemCount > 0 && (
-                  <span className='bg-primary text-primary-foreground absolute -right-1 -top-1 min-w-4 rounded-full px-1 text-[10px]'>
-                    {itemCount}
-                  </span>
-                )}
-              </Button>
+              {controls}
             </div>
             <div className='pos-category-rail' aria-label='Product categories'>
               <button type='button' className='pos-category-chip pos-category-chip-active'>
