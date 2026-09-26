@@ -15,6 +15,7 @@ export default function CategoriesPage() {
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -41,6 +42,7 @@ export default function CategoriesPage() {
       });
       setName('');
       await load();
+      setShowCreate(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not create category.');
     } finally {
@@ -74,6 +76,11 @@ export default function CategoriesPage() {
     <PageContainer
       pageTitle='Categories'
       pageDescription='Organize products into clear, manageable groups.'
+      pageHeaderAction={
+        <Button className='w-full sm:w-auto' onClick={() => setShowCreate(true)}>
+          Add category
+        </Button>
+      }
     >
       <div className='space-y-5'>
         <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
@@ -115,17 +122,6 @@ export default function CategoriesPage() {
             <CardDescription>Create, find, and remove product categories.</CardDescription>
           </CardHeader>
           <CardContent className='space-y-4'>
-            <form onSubmit={create} className='flex flex-col gap-2 sm:flex-row'>
-              <Input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder='New category name'
-                required
-              />
-              <Button type='submit' disabled={busy} className='sm:w-auto'>
-                {busy ? 'Adding…' : 'Add category'}
-              </Button>
-            </form>
             <Input
               aria-label='Search categories'
               value={query}
@@ -161,6 +157,49 @@ export default function CategoriesPage() {
           </CardContent>
         </Card>
       </div>
+      {showCreate && (
+        <div
+          className='fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4'
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setShowCreate(false);
+          }}
+        >
+          <Card
+            className='w-full rounded-b-none shadow-2xl sm:max-w-md sm:rounded-xl'
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+              <div>
+                <CardTitle>Add category</CardTitle>
+                <CardDescription>Create a new product group.</CardDescription>
+              </div>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon'
+                aria-label='Close add category dialog'
+                onClick={() => setShowCreate(false)}
+              >
+                <Icons.close className='size-4' />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={create} className='space-y-3'>
+                <Input
+                  autoFocus
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder='Category name'
+                  required
+                />
+                <Button type='submit' disabled={busy} className='w-full'>
+                  {busy ? 'Adding…' : 'Add category'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </PageContainer>
   );
 }
