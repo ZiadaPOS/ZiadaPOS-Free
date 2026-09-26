@@ -94,41 +94,55 @@ export function CheckoutWorkspace({
             .map((product) => (
               <div
                 key={product.id}
-                className='grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 text-sm'
+                className='grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 text-sm'
               >
                 <span className='min-w-0 break-words'>
                   {cart[product.id]} × {product.name}
                 </span>
                 <span>{money(cart[product.id] * product.selling_price)}</span>
-                <div className='flex gap-1'>
-                  <Button
-                    type='button'
-                    size='sm'
-                    variant='outline'
-                    onClick={() =>
-                      setCart((current) => ({
-                        ...current,
-                        [product.id]: Math.max(0, (current[product.id] || 0) - 1)
-                      }))
-                    }
-                  >
-                    −
-                  </Button>
-                  <Button
-                    type='button'
-                    size='sm'
-                    variant='ghost'
-                    onClick={() =>
-                      setCart((current) => {
-                        const next = { ...current };
-                        delete next[product.id];
-                        return next;
-                      })
-                    }
-                  >
-                    ×
-                  </Button>
-                </div>
+                <Button
+                  type='button'
+                  size='icon-sm'
+                  variant='outline'
+                  aria-label={`Decrease ${product.name}`}
+                  onClick={() =>
+                    setCart((current) => ({
+                      ...current,
+                      [product.id]: Math.max(0, (current[product.id] || 0) - 1)
+                    }))
+                  }
+                >
+                  −
+                </Button>
+                <Button
+                  type='button'
+                  size='icon-sm'
+                  variant='outline'
+                  aria-label={`Increase ${product.name}`}
+                  onClick={() =>
+                    setCart((current) => ({
+                      ...current,
+                      [product.id]: (current[product.id] || 0) + 1
+                    }))
+                  }
+                >
+                  <Icons.add className='size-3.5' />
+                </Button>
+                <Button
+                  type='button'
+                  size='icon-sm'
+                  variant='ghost'
+                  aria-label={`Remove ${product.name}`}
+                  onClick={() =>
+                    setCart((current) => {
+                      const next = { ...current };
+                      delete next[product.id];
+                      return next;
+                    })
+                  }
+                >
+                  <Icons.trash className='size-3.5' />
+                </Button>
               </div>
             ))}
         </div>
