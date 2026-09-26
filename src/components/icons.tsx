@@ -115,6 +115,7 @@ export const Icons = {
   dots: IconDots,
   ellipsis: IconDotsVertical,
   externalLink: IconExternalLink,
+  folder: IconFolder,
   download: IconDownload,
   eye: IconEye,
   help: IconHelpCircle,

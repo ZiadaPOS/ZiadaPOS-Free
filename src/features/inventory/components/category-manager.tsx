@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -62,15 +63,20 @@ export function CategoryManager() {
         <Card className='fixed top-20 right-2 left-2 z-30 max-h-[calc(100svh-6rem)] w-auto overflow-y-auto shadow-xl sm:absolute sm:top-11 sm:right-0 sm:left-auto sm:max-h-none sm:w-[min(22rem,calc(100vw-2rem))]'>
           <CardHeader className='flex flex-row items-center justify-between space-y-0'>
             <CardTitle>Product categories</CardTitle>
-            <Button
-              type='button'
-              variant='ghost'
-              size='icon'
-              aria-label='Close categories'
-              onClick={() => setOpen(false)}
-            >
-              <Icons.close className='h-4 w-4' />
-            </Button>
+            <div className='flex items-center gap-1'>
+              <Button variant='ghost' size='sm' render={<Link href='/dashboard/categories' />}>
+                View all
+              </Button>
+              <Button
+                type='button'
+                variant='ghost'
+                size='icon'
+                aria-label='Close categories'
+                onClick={() => setOpen(false)}
+              >
+                <Icons.close className='h-4 w-4' />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
             <form onSubmit={create} className='flex gap-2'>

@@ -41,6 +41,13 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
+        title: 'Categories',
+        url: '/dashboard/categories',
+        icon: 'folder',
+        isActive: false,
+        items: []
+      },
+      {
         title: 'Customers',
         url: '/dashboard/customers',
         icon: 'teams',

@@ -91,7 +91,13 @@ export type PosTransaction = {
     total: number;
   }[];
 };
-export type PosCategory = { id: string; name: string; description?: string; sort_order?: number };
+export type PosCategory = {
+  id: string;
+  name: string;
+  description?: string;
+  sort_order?: number;
+  product_count?: number;
+};
 export type PosCreditTab = {
   id: string;
   customer_id: string;
