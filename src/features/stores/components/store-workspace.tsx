@@ -40,12 +40,14 @@ export function StoreWorkspace() {
   }
   return (
     <div className='space-y-4'>
-      <div className='flex items-start justify-between gap-3'>
+      <div className='flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-start'>
         <div>
           <h1 className='text-2xl font-bold tracking-tight'>{text('Stores', 'Matawi')}</h1>
           <p className='text-muted-foreground'>Manage locations and active branch context.</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>{text('Add store', 'Ongeza tawi')}</Button>
+        <Button className='w-full sm:w-auto' onClick={() => setShowForm(true)}>
+          {text('Add store', 'Ongeza tawi')}
+        </Button>
       </div>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         {[
@@ -110,13 +112,13 @@ export function StoreWorkspace() {
       )}
       {showForm && (
         <div
-          className='fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4'
+          className='fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4'
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setShowForm(false);
           }}
         >
           <Card
-            className='my-4 w-full max-w-xl shadow-2xl'
+            className='min-h-[50svh] w-full rounded-b-none shadow-2xl sm:min-h-0 sm:max-w-xl sm:rounded-xl'
             onMouseDown={(event) => event.stopPropagation()}
           >
             <CardHeader className='flex flex-row items-center justify-between space-y-0'>
