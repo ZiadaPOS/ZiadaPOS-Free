@@ -50,8 +50,12 @@ export function CategoryManager() {
     category.name.toLowerCase().includes(query.toLowerCase())
   );
   return (
-    <div ref={panelRef} className='relative'>
-      <Button variant='outline' onClick={() => setOpen((value) => !value)}>
+    <div ref={panelRef} className='relative w-full sm:w-auto'>
+      <Button
+        className='w-full sm:w-auto'
+        variant='outline'
+        onClick={() => setOpen((value) => !value)}
+      >
         Categories ({categories.length})
       </Button>
       {open && (

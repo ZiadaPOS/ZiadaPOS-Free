@@ -34,12 +34,12 @@ export default function InventoryPage() {
         'Bidhaa na stoo ya sasa ya tawi hili.'
       )}
       pageHeaderAction={
-        <>
+        <div className='grid w-full grid-cols-[2fr_3fr] gap-2 sm:flex sm:w-auto'>
           <CategoryManager />
-          <Button onClick={() => setShowCreate((v) => !v)}>
+          <Button className='w-full sm:w-auto' onClick={() => setShowCreate((v) => !v)}>
             {showCreate ? text('Close', 'Funga') : text('Add product', 'Ongeza bidhaa')}
           </Button>
-        </>
+        </div>
       }
     >
       <div className='flex min-h-[calc(100svh-6rem)] min-w-0 flex-1 flex-col gap-5'>

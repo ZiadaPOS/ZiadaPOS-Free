@@ -88,14 +88,14 @@ export function InventoryWorkspace({
       </div>
       <Card>
         <CardHeader>
-          <div className='flex flex-wrap items-center justify-between gap-3'>
-            <div>
+          <div className='flex items-start justify-between gap-3'>
+            <div className='min-w-0 flex-1'>
               <CardTitle>{text('Products', 'Bidhaa')}</CardTitle>
               <CardDescription>
                 Search, filter, and manage every product in this store.
               </CardDescription>
             </div>
-            <div className='inventory-view-controls flex gap-1'>
+            <div className='flex shrink-0 gap-1'>
               <Button
                 size='icon'
                 variant={view === 'table' ? 'default' : 'outline'}
@@ -146,24 +146,6 @@ export function InventoryWorkspace({
               <option value='low'>Low stock</option>
               <option value='out'>Out of stock</option>
             </select>
-            <div className='inventory-mobile-view-controls inventory-view-controls flex gap-1'>
-              <Button
-                size='icon'
-                variant={view === 'table' ? 'default' : 'outline'}
-                aria-label='Table view'
-                onClick={() => setView('table')}
-              >
-                <Icons.page className='h-4 w-4' />
-              </Button>
-              <Button
-                size='icon'
-                variant={view === 'grid' ? 'default' : 'outline'}
-                aria-label='Grid view'
-                onClick={() => setView('grid')}
-              >
-                <Icons.dashboard className='h-4 w-4' />
-              </Button>
-            </div>
           </div>
         </CardHeader>
         <CardContent>
