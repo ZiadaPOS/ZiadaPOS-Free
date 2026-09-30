@@ -2,6 +2,7 @@ package inventory
 
 import (
 	"context"
+	cryptorand "crypto/rand"
 	"errors"
 	"fmt"
 	"math"
@@ -24,6 +25,7 @@ const (
 	ReasonDamage     = "damage"
 	ReasonCorrection = "correction"
 	ReasonTheft      = "theft"
+	ReasonDisposal   = "disposal"
 	ReasonSale       = "sale"
 	ReasonRefund     = "refund"
 )
@@ -100,6 +102,9 @@ func (s *Service) CreateCategory(ctx context.Context, orgID uuid.UUID, name, des
 // ListCategories returns an organisation's categories with product counts,
 // cached in Redis for 5 minutes.
 func (s *Service) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Category, error) {
+	if err := s.ensureBusinessDefaults(ctx, orgID); err != nil {
+		return nil, err
+	}
 	var cats []Category
 	key := s.categoryKey(orgID)
 	if s.cache != nil {
@@ -124,7 +129,16 @@ func (s *Service) UpdateCategory(ctx context.Context, orgID, id uuid.UUID, name,
 		return nil, apierr.NotFound("Category not found")
 	}
 	if strings.TrimSpace(name) != "" {
-		cat.Name = strings.TrimSpace(name)
+		name = strings.TrimSpace(name)
+		if cat.Name != name {
+			if existing, err := s.repo.FindCategoryByName(orgID, name); err == nil && existing.ID != cat.ID {
+				return nil, apierr.Conflict("A category with this name already exists")
+			} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, err
+			}
+			cat.IsDefault = false
+			cat.Name = name
+		}
 	}
 	cat.Description = description
 	cat.SortOrder = sortOrder
@@ -142,7 +156,7 @@ func (s *Service) UpdateCategory(ctx context.Context, orgID, id uuid.UUID, name,
 func (s *Service) DeleteCategory(ctx context.Context, orgID, id uuid.UUID) error {
 	var count int64
 	if err := s.repo.db.Model(&Product{}).
-		Where("category_id = ? AND is_active = true", id).Count(&count).Error; err != nil {
+		Where("category_id = ?", id).Count(&count).Error; err != nil {
 		return err
 	}
 	if count > 0 {
@@ -155,32 +169,165 @@ func (s *Service) DeleteCategory(ctx context.Context, orgID, id uuid.UUID) error
 	return nil
 }
 
+// CreateUnit adds a reusable organisation-level product unit.
+func (s *Service) CreateUnit(ctx context.Context, orgID uuid.UUID, name, description string) (*Unit, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, apierr.BadRequest("Unit name is required")
+	}
+	if existing, err := s.repo.FindUnitByName(orgID, name); err == nil && existing != nil {
+		return nil, apierr.Conflict("A unit with this name already exists")
+	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	unit := &Unit{OrganisationID: orgID, Name: name, Description: strings.TrimSpace(description), IsActive: true}
+	if err := s.repo.CreateUnit(unit); err != nil {
+		return nil, err
+	}
+	return unit, nil
+}
+func (s *Service) ListUnits(ctx context.Context, orgID uuid.UUID) ([]Unit, error) {
+	if err := s.ensureBusinessDefaults(ctx, orgID); err != nil {
+		return nil, err
+	}
+	return s.repo.ListUnits(orgID)
+}
+func (s *Service) UpdateUnit(ctx context.Context, orgID, id uuid.UUID, name, description string, isActive *bool) (*Unit, error) {
+	unit, err := s.repo.GetUnit(orgID, id)
+	if err != nil {
+		return nil, apierr.NotFound("Unit not found")
+	}
+	oldName := unit.Name
+	if name = strings.TrimSpace(name); name != "" && !strings.EqualFold(name, unit.Name) {
+		if existing, err := s.repo.FindUnitByName(orgID, name); err == nil && existing != nil {
+			return nil, apierr.Conflict("A unit with this name already exists")
+		} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		unit.Name = name
+		unit.IsDefault = false
+	}
+	unit.Description = strings.TrimSpace(description)
+	if isActive != nil {
+		unit.IsActive = *isActive
+	}
+	if err := s.repo.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(unit).Error; err != nil {
+			return err
+		}
+		if oldName == unit.Name {
+			return nil
+		}
+		storeIDs := tx.Table("stores").Select("id").Where("organisation_id = ?", orgID)
+		if err := tx.Model(&Product{}).Where("store_id IN (?) AND lower(unit) = lower(?)", storeIDs, oldName).
+			Update("unit", unit.Name).Error; err != nil {
+			return err
+		}
+		return tx.Table("medicine_profiles").Where("store_id IN (?) AND lower(unit) = lower(?)", storeIDs, oldName).
+			Update("unit", unit.Name).Error
+	}); err != nil {
+		return nil, err
+	}
+	return unit, nil
+}
+func (s *Service) DeleteUnit(ctx context.Context, orgID, id uuid.UUID) error {
+	unit, err := s.repo.GetUnit(orgID, id)
+	if err != nil {
+		return apierr.NotFound("Unit not found")
+	}
+	var productUsage, medicineUsage int64
+	if err := s.repo.db.WithContext(ctx).Table("products AS p").
+		Joins("JOIN stores ON stores.id = p.store_id").
+		Where("stores.organisation_id = ? AND lower(p.unit) = lower(?)", orgID, unit.Name).
+		Count(&productUsage).Error; err != nil {
+		return err
+	}
+	if err := s.repo.db.WithContext(ctx).Table("medicine_profiles AS mp").
+		Joins("JOIN stores ON stores.id = mp.store_id").
+		Where("stores.organisation_id = ? AND lower(mp.unit) = lower(?)", orgID, unit.Name).
+		Count(&medicineUsage).Error; err != nil {
+		return err
+	}
+	if productUsage > 0 || medicineUsage > 0 {
+		return apierr.Conflict("Unit is used by products; change their unit before deleting it")
+	}
+	return s.repo.DeleteUnit(orgID, id)
+}
+
 // ── Product operations ──────────────────────────────────────────────────────
+
+func generateOpeningBatchNumber() (string, error) {
+	const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	var randomBytes [8]byte
+	if _, err := cryptorand.Read(randomBytes[:]); err != nil {
+		return "", err
+	}
+
+	var suffix [8]byte
+	for i, value := range randomBytes {
+		suffix[i] = alphabet[value&31]
+	}
+	return "OPN-" + string(suffix[:]), nil
+}
 
 // CreateProduct adds a product to a store.
 func (s *Service) CreateProduct(ctx context.Context, storeID uuid.UUID, in *ProductInput) (*Product, error) {
 	orgID, _ := s.repo.StoreOrgID(storeID)
+	var businessType string
+	if err := s.repo.db.WithContext(ctx).Table("organisations").Select("business_type").Where("id = ?", orgID).Scan(&businessType).Error; err != nil {
+		return nil, err
+	}
+	var initialExpiry time.Time
+	initialBatchNumber := strings.TrimSpace(in.InitialBatchNumber)
+	if businessType == "pharmacy" && !in.IsService && in.Stock > 0 {
+		if initialBatchNumber == "" {
+			var err error
+			initialBatchNumber, err = generateOpeningBatchNumber()
+			if err != nil {
+				return nil, fmt.Errorf("generate opening medicine batch number: %w", err)
+			}
+		}
+		var err error
+		initialExpiry, err = ParseMedicineExpiryDate(in.InitialExpiryDate, time.Now())
+		if err != nil {
+			return nil, err
+		}
+	}
 	name := strings.TrimSpace(in.Name)
 	if name == "" {
 		return nil, apierr.BadRequest("Product name is required")
 	}
+	openingStock := in.Stock
 	p := &Product{
-		StoreID:      storeID,
-		Name:         name,
-		SKU:          optStr(in.SKU),
-		Barcode:      optStr(in.Barcode),
-		CostPrice:    in.CostPrice,
-		SellingPrice: in.SellingPrice,
-		Stock:        in.Stock,
-		ReorderPoint: in.ReorderPoint,
-		Image:        in.Image,
-		TaxRate:      in.TaxRate,
-		Description:  in.Description,
-		IsActive:     true,
-		IsService:    in.IsService,
+		StoreID:          storeID,
+		Name:             name,
+		Unit:             strings.TrimSpace(in.Unit),
+		SKU:              optStr(in.SKU),
+		Barcode:          optStr(in.Barcode),
+		CostPrice:        in.CostPrice,
+		SellingPrice:     in.SellingPrice,
+		WholesalePrice:   in.WholesalePrice,
+		WholesaleMinimum: in.WholesaleMinimum,
+		Stock:            in.Stock,
+		ReorderPoint:     in.ReorderPoint,
+		Image:            in.Image,
+		TaxRate:          in.TaxRate,
+		Description:      in.Description,
+		IsActive:         true,
+		IsService:        in.IsService,
 	}
 	if p.SellingPrice <= 0 {
 		return nil, apierr.BadRequest("Selling price must be greater than zero").WithField("selling_price", "required")
+	}
+	if (businessType == "wholesale" || businessType == "retail_wholesale") && p.WholesalePrice == nil {
+		defaultWholesale := p.SellingPrice
+		p.WholesalePrice = &defaultWholesale
+	}
+	if p.WholesalePrice != nil && *p.WholesalePrice <= 0 {
+		return nil, apierr.BadRequest("Wholesale price must be greater than zero").WithField("wholesale_price", "invalid")
+	}
+	if p.WholesaleMinimum <= 0 {
+		p.WholesaleMinimum = 1
 	}
 	if in.CategoryID != nil {
 		if orgID != uuid.Nil {
@@ -193,14 +340,30 @@ func (s *Service) CreateProduct(ctx context.Context, storeID uuid.UUID, in *Prod
 	if p.ReorderPoint < 0 {
 		p.ReorderPoint = 0
 	}
+	if businessType == "pharmacy" {
+		p.Stock = 0
+	}
 
 	if err := s.repo.WithTx(func(tx *gorm.DB) error {
 		if err := tx.Create(p).Error; err != nil {
 			return err
 		}
-		if !p.IsService && p.Stock > 0 {
+		if !p.IsService && openingStock > 0 {
+			if businessType == "pharmacy" {
+				batch := &MedicineBatch{StoreID: storeID, ProductID: p.ID, BatchNumber: initialBatchNumber, Quantity: 0, ExpiryDate: initialExpiry, CostPrice: p.CostPrice}
+				if err := tx.Create(batch).Error; err != nil {
+					return err
+				}
+				if err := tx.Create(&MedicineStockMovement{StoreID: storeID, ProductID: p.ID, BatchID: batch.ID, Quantity: openingStock, MovementType: "opening_balance", Reason: "Initial product stock", PerformedBy: in.CreatedBy}).Error; err != nil {
+					return err
+				}
+				if err := ReconcilePharmacyStock(tx, storeID, p.ID, 0); err != nil {
+					return err
+				}
+				p.Stock = openingStock
+			}
 			adj := &StockAdjustment{
-				ProductID: p.ID, QtyChange: p.Stock, Reason: ReasonRestock,
+				ProductID: p.ID, QtyChange: openingStock, Reason: ReasonRestock,
 				Note: "Initial stock", CreatedBy: in.CreatedBy,
 			}
 			return tx.Create(adj).Error
@@ -245,6 +408,36 @@ func (s *Service) ListProducts(ctx context.Context, storeID uuid.UUID, f Product
 	items := make([]map[string]interface{}, 0, len(products))
 	for i := range products {
 		items = append(items, productResponse(&products[i]))
+	}
+	orgID, orgErr := s.repo.StoreOrgID(storeID)
+	if orgErr != nil {
+		return nil, orgErr
+	}
+	var businessType string
+	if err := s.repo.db.WithContext(ctx).Table("organisations").Select("business_type").Where("id = ?", orgID).Scan(&businessType).Error; err != nil {
+		return nil, err
+	}
+	if businessType == "pharmacy" && len(products) > 0 {
+		location, err := time.LoadLocation("Africa/Dar_es_Salaam")
+		if err != nil {
+			location = time.FixedZone("EAT", 3*60*60)
+		}
+		today := time.Now().In(location).Format("2006-01-02")
+		var summaries []struct {
+			ProductID     uuid.UUID `gorm:"column:product_id"`
+			SellableStock int       `gorm:"column:sellable_stock"`
+		}
+		if err := s.repo.db.WithContext(ctx).Table("medicine_batches").Select("product_id, COALESCE(SUM(quantity), 0) AS sellable_stock").Where("store_id = ? AND product_id IN ? AND stock_status = ? AND quantity > 0 AND expiry_date >= ?", storeID, productIDs(products), "available", today).Group("product_id").Scan(&summaries).Error; err != nil {
+			return nil, err
+		}
+		sellableByProduct := make(map[uuid.UUID]int, len(summaries))
+		for _, summary := range summaries {
+			sellableByProduct[summary.ProductID] = summary.SellableStock
+		}
+		for i, product := range products {
+			items[i]["sellable_stock"] = sellableByProduct[product.ID]
+			items[i]["low_stock"] = !product.IsService && sellableByProduct[product.ID] <= product.ReorderPoint
+		}
 	}
 	out = map[string]interface{}{
 		"items":     items,
@@ -298,6 +491,9 @@ func (s *Service) UpdateProduct(ctx context.Context, storeID, id uuid.UUID, in *
 		}
 		p.Name = name
 	}
+	if in.Unit != nil {
+		p.Unit = strings.TrimSpace(*in.Unit)
+	}
 	if in.SKU != nil {
 		p.SKU = optStr(*in.SKU)
 	}
@@ -309,6 +505,18 @@ func (s *Service) UpdateProduct(ctx context.Context, storeID, id uuid.UUID, in *
 	}
 	if in.SellingPrice != nil {
 		p.SellingPrice = *in.SellingPrice
+	}
+	if in.WholesalePrice != nil {
+		p.WholesalePrice = in.WholesalePrice
+		if *in.WholesalePrice <= 0 {
+			return nil, apierr.BadRequest("Wholesale price must be greater than zero")
+		}
+	}
+	if in.WholesaleMinimum != nil {
+		if *in.WholesaleMinimum <= 0 {
+			return nil, apierr.BadRequest("Wholesale minimum quantity must be positive")
+		}
+		p.WholesaleMinimum = *in.WholesaleMinimum
 	}
 	if in.ReorderPoint != nil {
 		p.ReorderPoint = *in.ReorderPoint
@@ -344,6 +552,7 @@ func (s *Service) UpdateProduct(ctx context.Context, storeID, id uuid.UUID, in *
 	}
 	return p, nil
 }
+
 // DeleteProduct archives a product (soft delete).
 func (s *Service) DeleteProduct(ctx context.Context, storeID, id uuid.UUID) error {
 	orgID, _ := s.repo.StoreOrgID(storeID)
@@ -387,6 +596,20 @@ func (s *Service) LowStock(ctx context.Context, storeID uuid.UUID) ([]map[string
 			return items, nil
 		}
 	}
+	var businessType string
+	if err := s.repo.db.WithContext(ctx).Table("stores").Select("organisations.business_type").Joins("JOIN organisations ON organisations.id = stores.organisation_id").Where("stores.id = ?", storeID).Scan(&businessType).Error; err != nil {
+		return nil, err
+	}
+	if businessType == "pharmacy" {
+		pharmacyItems, err := s.pharmacyLowStock(ctx, storeID)
+		if err != nil {
+			return nil, err
+		}
+		if s.cache != nil {
+			_ = s.cache.SetJSONTTL(ctx, key, pharmacyItems, time.Minute)
+		}
+		return pharmacyItems, nil
+	}
 	products, err := s.repo.LowStockProducts(storeID)
 	if err != nil {
 		return nil, err
@@ -401,15 +624,79 @@ func (s *Service) LowStock(ctx context.Context, storeID uuid.UUID) ([]map[string
 	return items, nil
 }
 
+type pharmacyStockSummary struct {
+	ProductID      uuid.UUID  `gorm:"column:product_id"`
+	TrackedStock   int64      `gorm:"column:tracked_stock"`
+	SellableStock  int64      `gorm:"column:sellable_stock"`
+	ExpiredStock   int64      `gorm:"column:expired_stock"`
+	NextExpiryDate *time.Time `gorm:"column:next_expiry_date"`
+}
+
+func (s *Service) pharmacyLowStock(ctx context.Context, storeID uuid.UUID) ([]map[string]interface{}, error) {
+	location, err := time.LoadLocation("Africa/Dar_es_Salaam")
+	if err != nil {
+		location = time.FixedZone("EAT", 3*60*60)
+	}
+	today := time.Now().In(location)
+	today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, location)
+	var products []Product
+	if err := s.repo.db.WithContext(ctx).Where("store_id = ? AND is_service = false AND is_active = true", storeID).Preload("Category").Find(&products).Error; err != nil {
+		return nil, err
+	}
+	if len(products) == 0 {
+		return []map[string]interface{}{}, nil
+	}
+	var summaries []pharmacyStockSummary
+	if err := s.repo.db.WithContext(ctx).Table("medicine_batches").Select(`
+		product_id,
+		COALESCE(SUM(quantity), 0) AS tracked_stock,
+		COALESCE(SUM(CASE WHEN expiry_date >= ? AND stock_status = 'available' THEN quantity ELSE 0 END), 0) AS sellable_stock,
+		COALESCE(SUM(CASE WHEN expiry_date < ? THEN quantity ELSE 0 END), 0) AS expired_stock,
+		MIN(CASE WHEN expiry_date >= ? AND quantity > 0 AND stock_status = 'available' THEN expiry_date END) AS next_expiry_date`, today.Format("2006-01-02"), today.Format("2006-01-02"), today.Format("2006-01-02")).
+		Where("store_id = ? AND product_id IN ?", storeID, productIDs(products)).Group("product_id").Scan(&summaries).Error; err != nil {
+		return nil, err
+	}
+	byProduct := make(map[uuid.UUID]pharmacyStockSummary, len(summaries))
+	for _, summary := range summaries {
+		byProduct[summary.ProductID] = summary
+	}
+	items := make([]map[string]interface{}, 0)
+	for i := range products {
+		product := &products[i]
+		summary := byProduct[product.ID]
+		if summary.SellableStock > int64(product.ReorderPoint) {
+			continue
+		}
+		item := productResponse(product)
+		item["sellable_stock"] = summary.SellableStock
+		item["expired_stock"] = summary.ExpiredStock
+		item["untracked_stock"] = max(int64(0), int64(product.Stock)-summary.TrackedStock)
+		item["low_stock"] = true
+		if summary.NextExpiryDate != nil {
+			item["next_expiry_date"] = summary.NextExpiryDate
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func productIDs(products []Product) []uuid.UUID {
+	ids := make([]uuid.UUID, len(products))
+	for i := range products {
+		ids[i] = products[i].ID
+	}
+	return ids
+}
+
 // AdjustStock applies a manual stock change and records the reason trail.
 func (s *Service) AdjustStock(ctx context.Context, storeID, productID, userID uuid.UUID, qtyChange int, reason, note string) (*Product, error) {
 	if qtyChange == 0 {
 		return nil, apierr.BadRequest("qty_change cannot be zero")
 	}
 	switch reason {
-	case ReasonRestock, ReasonDamage, ReasonCorrection, ReasonTheft:
+	case ReasonRestock, ReasonDamage, ReasonCorrection, ReasonTheft, ReasonDisposal:
 	default:
-		return nil, apierr.BadRequest("Invalid reason").WithField("reason", "must be restock, damage, correction or theft")
+		return nil, apierr.BadRequest("Invalid reason").WithField("reason", "must be restock, damage, correction, theft or disposal")
 	}
 
 	// sale/refund adjustments are recorded by the transactions app.
@@ -419,6 +706,17 @@ func (s *Service) AdjustStock(ctx context.Context, storeID, productID, userID uu
 	}
 	if p.IsService {
 		return nil, apierr.BadRequest("Service products do not hold stock")
+	}
+	orgID, err := s.repo.StoreOrgID(storeID)
+	if err != nil {
+		return nil, err
+	}
+	var businessType string
+	if err := s.repo.db.WithContext(ctx).Table("organisations").Select("business_type").Where("id = ?", orgID).Scan(&businessType).Error; err != nil {
+		return nil, err
+	}
+	if businessType == "pharmacy" && qtyChange > 0 {
+		return nil, apierr.Conflict("Receive positive pharmacy stock with its batch number and expiry date")
 	}
 
 	var result *Product
@@ -431,15 +729,45 @@ func (s *Service) AdjustStock(ctx context.Context, storeID, productID, userID uu
 		if newStock < 0 {
 			return apierr.Conflict("Insufficient stock").WithField("stock", fmt.Sprintf("only %d units available", locked.Stock))
 		}
-		if err := tx.Model(&Product{}).Where("id = ?", productID).Update("stock", newStock).Error; err != nil {
+		if businessType == "pharmacy" {
+			remaining := -qtyChange
+			var batches []MedicineBatch
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("store_id = ? AND product_id = ? AND quantity > 0", storeID, productID).Order("expiry_date asc, created_at asc").Find(&batches).Error; err != nil {
+				return err
+			}
+			for _, batch := range batches {
+				if remaining == 0 {
+					break
+				}
+				used := batch.Quantity
+				if used > remaining {
+					used = remaining
+				}
+				if err := tx.Create(&MedicineStockMovement{StoreID: storeID, ProductID: productID, BatchID: batch.ID, Quantity: -used, MovementType: reason, Reason: note, PerformedBy: userID}).Error; err != nil {
+					return err
+				}
+				batchID := batch.ID
+				if err := tx.Create(&StockAdjustment{ProductID: productID, MedicineBatchID: &batchID, QtyChange: -used, Reason: reason, Note: note, CreatedBy: userID}).Error; err != nil {
+					return err
+				}
+				remaining -= used
+			}
+			if remaining > 0 {
+				return apierr.Conflict("Not enough batch-tracked stock; assign the remaining stock to a batch first")
+			}
+			if err := ReconcilePharmacyStock(tx, storeID, productID, 0); err != nil {
+				return err
+			}
+		} else if err := tx.Model(&Product{}).Where("id = ?", productID).Update("stock", newStock).Error; err != nil {
 			return err
 		}
-		adj := &StockAdjustment{
-			ProductID: productID, QtyChange: qtyChange, Reason: reason,
-			Note: note, CreatedBy: userID,
-		}
-		if err := tx.Create(adj).Error; err != nil {
-			return err
+		if businessType == "pharmacy" {
+			locked.Stock = newStock
+		} else {
+			adj := &StockAdjustment{ProductID: productID, QtyChange: qtyChange, Reason: reason, Note: note, CreatedBy: userID}
+			if err := tx.Create(adj).Error; err != nil {
+				return err
+			}
 		}
 		locked.Stock = newStock
 		result = &locked
@@ -596,39 +924,47 @@ func parseMoney(s string) (int64, error) {
 
 // ProductInput is the create/update payload.
 type ProductInput struct {
-	Name         string    `json:"name" binding:"required"`
-	CategoryID   *uuid.UUID `json:"category_id"`
-	SKU          string    `json:"sku"`
-	Barcode      string    `json:"barcode"`
-	CostPrice    int64     `json:"cost_price"`
-	SellingPrice int64     `json:"selling_price" binding:"required"`
-	Stock        int       `json:"stock"`
-	ReorderPoint int       `json:"reorder_point"`
-	Image        string    `json:"image"`
-	TaxRate      float64   `json:"tax_rate"`
-	Description  string    `json:"description"`
-	IsService    bool      `json:"is_service"`
-	IsActive     *bool     `json:"is_active"`
-	CreatedBy    uuid.UUID `json:"-"`
+	Name               string     `json:"name" binding:"required"`
+	Unit               string     `json:"unit"`
+	CategoryID         *uuid.UUID `json:"category_id"`
+	SKU                string     `json:"sku"`
+	Barcode            string     `json:"barcode"`
+	CostPrice          int64      `json:"cost_price"`
+	SellingPrice       int64      `json:"selling_price" binding:"required"`
+	WholesalePrice     *int64     `json:"wholesale_price"`
+	WholesaleMinimum   int        `json:"wholesale_minimum"`
+	Stock              int        `json:"stock"`
+	ReorderPoint       int        `json:"reorder_point"`
+	Image              string     `json:"image"`
+	TaxRate            float64    `json:"tax_rate"`
+	Description        string     `json:"description"`
+	IsService          bool       `json:"is_service"`
+	IsActive           *bool      `json:"is_active"`
+	CreatedBy          uuid.UUID  `json:"-"`
+	InitialBatchNumber string     `json:"initial_batch_number"`
+	InitialExpiryDate  string     `json:"initial_expiry_date"`
 }
 
 // UpdateProductInput is used for PATCH /inventory/products/{id}. Every field is
 // optional (pointer) so callers can update a single field (e.g. image) without
 // resending the whole product.
 type UpdateProductInput struct {
-	Name         *string    `json:"name"`
-	CategoryID   *uuid.UUID `json:"category_id"`
-	SKU          *string    `json:"sku"`
-	Barcode      *string    `json:"barcode"`
-	CostPrice    *int64     `json:"cost_price"`
-	SellingPrice *int64     `json:"selling_price"`
-	Stock        *int       `json:"stock"`
-	ReorderPoint *int       `json:"reorder_point"`
-	Image        *string    `json:"image"`
-	TaxRate      *float64   `json:"tax_rate"`
-	Description  *string    `json:"description"`
-	IsService    *bool      `json:"is_service"`
-	IsActive     *bool      `json:"is_active"`
+	Name             *string    `json:"name"`
+	Unit             *string    `json:"unit"`
+	CategoryID       *uuid.UUID `json:"category_id"`
+	SKU              *string    `json:"sku"`
+	Barcode          *string    `json:"barcode"`
+	CostPrice        *int64     `json:"cost_price"`
+	SellingPrice     *int64     `json:"selling_price"`
+	WholesalePrice   *int64     `json:"wholesale_price"`
+	WholesaleMinimum *int       `json:"wholesale_minimum"`
+	Stock            *int       `json:"stock"`
+	ReorderPoint     *int       `json:"reorder_point"`
+	Image            *string    `json:"image"`
+	TaxRate          *float64   `json:"tax_rate"`
+	Description      *string    `json:"description"`
+	IsService        *bool      `json:"is_service"`
+	IsActive         *bool      `json:"is_active"`
 }
 
 func productResponse(p *Product) map[string]interface{} {
@@ -646,24 +982,27 @@ func productResponse(p *Product) map[string]interface{} {
 		barcode = *p.Barcode
 	}
 	return map[string]interface{}{
-		"id":            p.ID,
-		"store_id":      p.StoreID,
-		"category_id":   p.CategoryID,
-		"category":      cat,
-		"name":          p.Name,
-		"sku":           sku,
-		"barcode":       barcode,
-		"cost_price":    p.CostPrice,
-		"selling_price": p.SellingPrice,
-		"stock":         p.Stock,
-		"reorder_point": p.ReorderPoint,
-		"low_stock":     p.IsLowStock(),
-		"image":         p.Image,
-		"tax_rate":      p.TaxRate,
-		"description":   p.Description,
-		"is_active":     p.IsActive,
-		"is_service":    p.IsService,
-		"created_at":    p.CreatedAt,
+		"id":                p.ID,
+		"store_id":          p.StoreID,
+		"category_id":       p.CategoryID,
+		"category":          cat,
+		"name":              p.Name,
+		"unit":              p.Unit,
+		"sku":               sku,
+		"barcode":           barcode,
+		"cost_price":        p.CostPrice,
+		"selling_price":     p.SellingPrice,
+		"wholesale_price":   p.WholesalePrice,
+		"wholesale_minimum": p.WholesaleMinimum,
+		"stock":             p.Stock,
+		"reorder_point":     p.ReorderPoint,
+		"low_stock":         p.IsLowStock(),
+		"image":             p.Image,
+		"tax_rate":          p.TaxRate,
+		"description":       p.Description,
+		"is_active":         p.IsActive,
+		"is_service":        p.IsService,
+		"created_at":        p.CreatedAt,
 	}
 }
 

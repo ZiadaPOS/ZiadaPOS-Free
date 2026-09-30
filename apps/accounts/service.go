@@ -62,11 +62,11 @@ func NewAuthService(repo *Repo, cache *cache.Cache, mail *mailer.Mailer, sms *sm
 type ShopInput struct {
 	Name         string  `json:"name" binding:"required"`
 	BusinessType string  `json:"business_type" binding:"required"`
+	OutletType   string  `json:"outlet_type"`
 	Region       string  `json:"region" binding:"required"`
 	District     string  `json:"district"`
 	Ward         string  `json:"ward"`
 	Street       string  `json:"street"`
-	Address      string  `json:"address"`
 	Latitude     float64 `json:"latitude"`
 	Longitude    float64 `json:"longitude"`
 }
@@ -79,7 +79,6 @@ type RegisterRequest struct {
 	Email           string    `json:"email"`
 	Password        string    `json:"password" binding:"required,min=6"`
 	ConfirmPassword string    `json:"confirm_password" binding:"required"`
-	Occupation      string    `json:"occupation" binding:"required"` // the user's job
 	Shop            ShopInput `json:"shop" binding:"required"`
 }
 
@@ -126,11 +125,19 @@ func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*Regi
 	if err != nil {
 		return nil, apierr.BadRequest("Invalid Tanzanian phone number").WithField("phone", err.Error())
 	}
-	if !ValidOccupation(req.Occupation) {
-		return nil, apierr.BadRequest("Unknown occupation").WithField("occupation", "must be one of the provided occupations")
-	}
 	if !ValidBusinessType(req.Shop.BusinessType) {
 		return nil, apierr.BadRequest("Unknown business type").WithField("shop.business_type", "must be a supported shop type")
+	}
+	outletType := strings.TrimSpace(req.Shop.OutletType)
+	if req.Shop.BusinessType == "pharmacy" {
+		if outletType == "" {
+			outletType = "pharmacy"
+		}
+		if outletType != "pharmacy" && outletType != "addo" {
+			return nil, apierr.BadRequest("Unknown pharmacy outlet type").WithField("shop.outlet_type", "must be pharmacy or addo")
+		}
+	} else {
+		outletType = ""
 	}
 	if !ValidRegion(req.Shop.Region) {
 		return nil, apierr.BadRequest("Unknown region").WithField("shop.region", "must be one of the 31 Tanzania regions")
@@ -150,12 +157,11 @@ func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*Regi
 		Name:         strings.TrimSpace(req.Shop.Name),
 		Slug:         util.Slugify(req.Shop.Name) + "-" + shortID(),
 		BusinessType: req.Shop.BusinessType,
-		Occupation:   req.Occupation,
+		OutletType:   outletType,
 		Region:       req.Shop.Region,
 		District:     strings.TrimSpace(req.Shop.District),
 		Ward:         strings.TrimSpace(req.Shop.Ward),
 		Street:       strings.TrimSpace(req.Shop.Street),
-		Address:      strings.TrimSpace(req.Shop.Address),
 		Latitude:     req.Shop.Latitude,
 		Longitude:    req.Shop.Longitude,
 		Phone:        phone,
@@ -167,7 +173,6 @@ func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*Regi
 	store := &Store{
 		Name:        strings.TrimSpace(req.Shop.Name) + " — Main",
 		Area:        req.Shop.Ward,
-		Address:     req.Shop.Address,
 		Latitude:    req.Shop.Latitude,
 		Longitude:   req.Shop.Longitude,
 		IsMainStore: true,
@@ -180,7 +185,6 @@ func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*Regi
 		Email:            OptionalEmail(req.Email),
 		FirstName:        strings.TrimSpace(req.FirstName),
 		LastName:         strings.TrimSpace(req.LastName),
-		Occupation:       req.Occupation,
 		Role:             RoleOwner,
 		PasswordHash:     string(hash),
 		IsActive:         true,

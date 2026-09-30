@@ -126,6 +126,6 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 			}
 			response.OK(c, d)
 		})
-		meta.GET("/occupations", func(c *gin.Context) { response.OK(c, Occupations) })
+		meta.GET("/outlet-types", func(c *gin.Context) { response.OK(c, PharmacyOutletTypes) })
 	}
 }

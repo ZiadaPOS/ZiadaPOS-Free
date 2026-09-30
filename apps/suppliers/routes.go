@@ -10,7 +10,7 @@ import (
 
 // Migrate creates the suppliers schema.
 func Migrate(db *gorm.DB) error {
-	return db.AutoMigrate(&Supplier{}, &SupplierDelivery{}, &SupplierPayment{})
+	return db.AutoMigrate(&Supplier{}, &SupplierDelivery{}, &SupplierDeliveryLine{}, &SupplierPayment{}, &PurchaseOrder{}, &PurchaseOrderLine{})
 }
 
 // RegisterRoutes wires the suppliers router (all endpoints require auth).
@@ -23,6 +23,11 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 		sup.GET("", h.List)
 		sup.POST("", h.Create)
 		sup.GET("/stats", h.Stats)
+		sup.GET("/purchase-orders", h.PurchaseOrders)
+		sup.GET("/reorder-suggestions", h.ReorderSuggestions)
+		sup.POST("/purchase-orders/bulk", h.CreatePurchaseOrders)
+		sup.POST("/purchase-orders", h.CreatePurchaseOrder)
+		sup.POST("/purchase-orders/:id/receive", h.ReceivePurchaseOrder)
 		sup.GET("/deliveries", h.AllDeliveries)
 		sup.POST("/deliveries", h.CreateDeliveryGlobal)
 		sup.GET("/deliveries/:id", h.GetDelivery)

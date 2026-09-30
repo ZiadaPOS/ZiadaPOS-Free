@@ -52,3 +52,12 @@ type Expense struct {
 	ReceiptURL       string    `gorm:"size:500" json:"receipt_url"`
 	RecordedBy       uuid.UUID `gorm:"type:uuid;index" json:"recorded_by"`
 }
+
+// ExpenseCategory is a business-scoped category for operating costs.
+type ExpenseCategory struct {
+	models.BaseModel
+	OrganisationID uuid.UUID `gorm:"type:uuid;not null;index;uniqueIndex:idx_org_expense_category" json:"organisation_id"`
+	Name           string    `gorm:"size:100;not null;uniqueIndex:idx_org_expense_category" json:"name"`
+	IsDefault      bool      `gorm:"not null;default:false" json:"is_default"`
+	ExpenseCount   int64     `gorm:"-" json:"expense_count"`
+}

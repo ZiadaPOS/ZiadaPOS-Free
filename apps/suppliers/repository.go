@@ -140,7 +140,7 @@ func (r *Repo) CreateDelivery(d *SupplierDelivery) error { return r.db.Create(d)
 
 func (r *Repo) GetDelivery(storeID, id uuid.UUID) (*SupplierDelivery, error) {
 	var d SupplierDelivery
-	if err := r.db.Where("id = ? AND store_id = ?", id, storeID).First(&d).Error; err != nil {
+	if err := r.db.Preload("Lines").Where("id = ? AND store_id = ?", id, storeID).First(&d).Error; err != nil {
 		return nil, err
 	}
 	return &d, nil
@@ -178,7 +178,7 @@ func (r *Repo) ListDeliveries(f DeliveryFilter) ([]SupplierDelivery, int64, erro
 		q = q.Offset((f.Page - 1) * f.PageSize).Limit(f.PageSize)
 	}
 	var items []SupplierDelivery
-	if err := q.Find(&items).Error; err != nil {
+	if err := q.Preload("Lines").Find(&items).Error; err != nil {
 		return nil, 0, err
 	}
 	return items, total, nil

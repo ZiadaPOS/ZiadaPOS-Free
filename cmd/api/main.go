@@ -32,6 +32,7 @@ import (
 	"github.com/troubleman96/ziadapos/apps/inventory"
 	"github.com/troubleman96/ziadapos/apps/notebook"
 	"github.com/troubleman96/ziadapos/apps/notifications"
+	"github.com/troubleman96/ziadapos/apps/pharmacy"
 	"github.com/troubleman96/ziadapos/apps/reports"
 	"github.com/troubleman96/ziadapos/apps/reviews"
 	"github.com/troubleman96/ziadapos/apps/staff"
@@ -129,6 +130,11 @@ func registerApps(db *gorm.DB, deps *server.Deps, srv *server.Server) {
 		log.Fatalf("inventory migrate: %v", err)
 	}
 	inventory.RegisterRoutes(srv.Base, deps)
+
+	if err := pharmacy.Migrate(db); err != nil {
+		log.Fatalf("pharmacy migrate: %v", err)
+	}
+	pharmacy.RegisterRoutes(srv.Base, deps)
 
 	if err := transactions.Migrate(db); err != nil {
 		log.Fatalf("transactions migrate: %v", err)

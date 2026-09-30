@@ -183,7 +183,9 @@ type AccountHandler struct {
 }
 
 // NewAccountHandler builds an AccountHandler.
-func NewAccountHandler(svc *AccountService, sms *sms.Client) *AccountHandler { return &AccountHandler{svc: svc, sms: sms} }
+func NewAccountHandler(svc *AccountService, sms *sms.Client) *AccountHandler {
+	return &AccountHandler{svc: svc, sms: sms}
+}
 
 // Me godoc: GET /accounts/me
 func (h *AccountHandler) Me(c *gin.Context) {

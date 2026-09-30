@@ -6,6 +6,7 @@ import (
 	"html"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/troubleman96/ziadapos/apps/accounts"
 	"github.com/troubleman96/ziadapos/apps/inventory"
+	"github.com/troubleman96/ziadapos/apps/pharmacy"
 	"github.com/troubleman96/ziadapos/internal/apierr"
 	"github.com/troubleman96/ziadapos/internal/cache"
 	"github.com/troubleman96/ziadapos/internal/events"
@@ -22,6 +24,23 @@ import (
 const taxRatePct = 18
 
 var lockForUpdate = clause.Locking{Strength: "UPDATE"}
+
+func saleUnitPrice(product inventory.Product, quantity int, mode string) (int64, error) {
+	if mode != "wholesale" {
+		return product.SellingPrice, nil
+	}
+	if product.WholesalePrice == nil || *product.WholesalePrice <= 0 {
+		return 0, fmt.Errorf("wholesale price is not configured")
+	}
+	minimum := product.WholesaleMinimum
+	if minimum <= 0 {
+		minimum = 1
+	}
+	if quantity < minimum {
+		return 0, fmt.Errorf("wholesale minimum quantity is %d", minimum)
+	}
+	return *product.WholesalePrice, nil
+}
 
 // Service implements POS sale/refund flows with stock accounting.
 type Service struct {
@@ -54,18 +73,104 @@ func (s *Service) invalidateStoreCaches(storeID, orgID uuid.UUID, productIDs ...
 	}
 }
 
+func restoreMedicineBatches(tx *gorm.DB, lineID, storeID, productID, userID uuid.UUID, referenceID, movementType string, legacyPharmacy bool, fallbackQty int) error {
+	var allocations []inventory.MedicineBatchAllocation
+	if err := tx.Where("transaction_line_id = ?", lineID).Find(&allocations).Error; err != nil {
+		return err
+	}
+	for _, allocation := range allocations {
+		batchID := allocation.BatchID
+		if movementType == "sale_return" {
+			// Customer returns are physically separate from untouched supplier stock.
+			// Hold them in quarantine until an authorized person inspects and releases
+			// them; never silently make returned medicine available for resale.
+			var original inventory.MedicineBatch
+			if err := tx.Where("id = ? AND store_id = ? AND product_id = ?", allocation.BatchID, storeID, productID).First(&original).Error; err != nil {
+				return err
+			}
+			returned := inventory.MedicineBatch{
+				StoreID: storeID, ProductID: productID, SourceBatchID: &original.ID,
+				BatchNumber: original.BatchNumber, Quantity: 0, ExpiryDate: original.ExpiryDate,
+				CostPrice: original.CostPrice, SupplierName: original.SupplierName,
+				StockStatus: "quarantined",
+			}
+			if err := tx.Create(&returned).Error; err != nil {
+				return err
+			}
+			batchID = returned.ID
+		}
+		if err := tx.Create(&inventory.MedicineStockMovement{StoreID: storeID, ProductID: productID, BatchID: batchID, Quantity: allocation.Quantity, MovementType: movementType, ReferenceID: referenceID, Reason: "Sale reversal; source batch " + allocation.BatchID.String(), PerformedBy: userID}).Error; err != nil {
+			return err
+		}
+	}
+	if len(allocations) > 0 {
+		return inventory.ReconcilePharmacyStock(tx, storeID, productID, 0)
+	}
+	if legacyPharmacy {
+		// Transactions created before batch tracking have no allocations. Restore
+		// their quantity as untracked stock so refunds and voids remain usable.
+		return tx.Model(&inventory.Product{}).Where("id = ? AND store_id = ?", productID, storeID).Update("stock", gorm.Expr("stock + ?", fallbackQty)).Error
+	}
+	return nil
+}
+
+func (s *Service) isPharmacy(ctx context.Context, orgID uuid.UUID) (bool, error) {
+	var businessType string
+	err := s.accountsDB.WithContext(ctx).Table("organisations").Select("business_type").Where("id = ?", orgID).Scan(&businessType).Error
+	return businessType == "pharmacy", err
+}
+
 // ── Sale DTOs ────────────────────────────────────────────────────────────────
 
 // SaleLineInput is one item in a sale.
 type SaleLineInput struct {
-	ProductID uuid.UUID `json:"product_id" binding:"required"`
-	Qty       int       `json:"qty" binding:"required,gt=0"`
+	ProductID                     uuid.UUID `json:"product_id" binding:"required"`
+	Qty                           int       `json:"qty" binding:"required,gt=0"`
+	PrescriberName                string    `json:"prescriber_name"`
+	PrescriberAddress             string    `json:"prescriber_address"`
+	PrescriberRegistrationNumber  string    `json:"prescriber_registration_number"`
+	PrescriberAuthenticityChecked bool      `json:"prescriber_authenticity_confirmed"`
+	PrescribingFacilityName       string    `json:"prescribing_facility_name"`
+	PrescribingFacilityAddress    string    `json:"prescribing_facility_address"`
+	PrescriptionReference         string    `json:"prescription_reference"`
+	PatientName                   string    `json:"patient_name"`
+	PatientAddress                string    `json:"patient_address"`
+	MedicineStrength              string    `json:"medicine_strength"`
+	DosageForm                    string    `json:"dosage_form"`
+}
+
+func medicineRequiresPrescription(profile pharmacy.MedicineProfile) bool {
+	return profile.RequiresPrescription || profile.MedicineSchedule == "prescription_only"
+}
+
+func hasPrescriptionRegisterDetails(line SaleLineInput) bool {
+	fields := []struct {
+		value string
+		limit int
+	}{
+		{line.PrescriberName, 200}, {line.PrescriberAddress, 500},
+		{line.PrescriberRegistrationNumber, 100}, {line.PrescribingFacilityName, 200},
+		{line.PrescribingFacilityAddress, 500}, {line.PrescriptionReference, 200},
+		{line.PatientName, 200}, {line.PatientAddress, 500},
+		{line.MedicineStrength, 100}, {line.DosageForm, 100},
+	}
+	if !line.PrescriberAuthenticityChecked {
+		return false
+	}
+	for _, field := range fields {
+		value := strings.TrimSpace(field.value)
+		if value == "" || utf8.RuneCountInString(value) > field.limit {
+			return false
+		}
+	}
+	return true
 }
 
 // SaleInput is a complete sale payload.
 type SaleInput struct {
 	Lines            []SaleLineInput `json:"lines" binding:"required,min=1,dive"`
 	PaymentMethod    string          `json:"payment_method" binding:"required"`
+	PriceMode        string          `json:"price_mode"`
 	PaymentReference string          `json:"payment_reference"`
 	DiscountPct      float64         `json:"discount_pct"`
 	CustomerName     string          `json:"customer_name"`
@@ -84,11 +189,41 @@ func (s *Service) CompleteSale(ctx context.Context, orgID, storeID, cashierID uu
 	if in.DiscountPct < 0 || in.DiscountPct > 100 {
 		return nil, apierr.BadRequest("Discount must be between 0 and 100").WithField("discount_pct", "out of range")
 	}
+	var organisation struct {
+		BusinessType string
+		OutletType   string
+	}
+	if err := s.accountsDB.WithContext(ctx).Table("organisations").Select("business_type, outlet_type").Where("id = ?", orgID).Scan(&organisation).Error; err != nil {
+		return nil, err
+	}
+	businessType := organisation.BusinessType
+	isPharmacy := businessType == "pharmacy"
+	priceMode := strings.TrimSpace(in.PriceMode)
+	if priceMode == "" {
+		priceMode = "retail"
+	}
+	if priceMode != "retail" && priceMode != "wholesale" {
+		return nil, apierr.BadRequest("Invalid price mode").WithField("price_mode", "must be retail or wholesale")
+	}
+	if businessType == "wholesale" {
+		priceMode = "wholesale"
+	}
+	if businessType == "retail" || isPharmacy {
+		priceMode = "retail"
+	}
+	if businessType != "wholesale" && businessType != "retail_wholesale" && businessType != "retail" && !isPharmacy && priceMode == "wholesale" {
+		return nil, apierr.Conflict("Wholesale pricing is not available for this business type")
+	}
 
 	// Load product snapshots with row locks.
 	ids := make([]uuid.UUID, 0, len(in.Lines))
+	seenProducts := make(map[uuid.UUID]struct{}, len(in.Lines))
 	for _, l := range in.Lines {
+		if _, seen := seenProducts[l.ProductID]; seen {
+			return nil, apierr.BadRequest("Each product may appear only once per sale").WithField("lines", "combine quantities for duplicate products")
+		}
 		ids = append(ids, l.ProductID)
+		seenProducts[l.ProductID] = struct{}{}
 	}
 
 	var txn *Transaction
@@ -105,6 +240,16 @@ func (s *Service) CompleteSale(ctx context.Context, orgID, storeID, cashierID uu
 		if len(byID) != len(ids) {
 			return apierr.BadRequest("One or more products were not found in this store").WithField("lines", "check product ids")
 		}
+		medicineProfiles := make(map[uuid.UUID]pharmacy.MedicineProfile)
+		if isPharmacy {
+			var profiles []pharmacy.MedicineProfile
+			if err := tx.Where("store_id = ? AND product_id IN ?", storeID, ids).Find(&profiles).Error; err != nil {
+				return err
+			}
+			for _, profile := range profiles {
+				medicineProfiles[profile.ProductID] = profile
+			}
+		}
 
 		number, err := s.repo.NextTxnNumber(tx, storeID)
 		if err != nil {
@@ -112,6 +257,7 @@ func (s *Service) CompleteSale(ctx context.Context, orgID, storeID, cashierID uu
 		}
 
 		lines := make([]TransactionLine, 0, len(in.Lines))
+		allocations := make([][]inventory.MedicineBatchAllocation, 0, len(in.Lines))
 		var subtotal, costTotal int64
 		for _, l := range in.Lines {
 			p, ok := byID[l.ProductID]
@@ -121,13 +267,73 @@ func (s *Service) CompleteSale(ctx context.Context, orgID, storeID, cashierID uu
 			if !p.IsActive {
 				return apierr.Conflict("Product is inactive").WithField("product", p.Name)
 			}
-			if !p.IsService && p.Stock < l.Qty {
+			unitPrice, priceErr := saleUnitPrice(p, l.Qty, priceMode)
+			if priceErr != nil {
+				return apierr.Conflict(priceErr.Error()).WithField("product", p.Name)
+			}
+			if !isPharmacy && !p.IsService && p.Stock < l.Qty {
 				return apierr.Conflict("Insufficient stock").WithField("product", fmt.Sprintf("%s only has %d units", p.Name, p.Stock))
 			}
+			if isPharmacy && !p.IsService && p.Stock < l.Qty {
+				return apierr.Conflict("Product stock needs reconciliation before sale").WithField("product", p.Name)
+			}
+			if isPharmacy && !p.IsService {
+				if _, configured := medicineProfiles[p.ID]; !configured {
+					return apierr.Conflict("Medicine details must be configured before sale").WithField("product", p.Name+" needs a dispensing profile in inventory")
+				}
+			}
+			if profile, ok := medicineProfiles[p.ID]; isPharmacy && ok {
+				prescriptionOnly := medicineRequiresPrescription(profile)
+				if organisation.OutletType == "addo" && profile.MedicineSchedule == "prescription_only" {
+					return apierr.Conflict("This medicine is marked prescription-only and cannot be dispensed by an ADDO outlet").WithField("product", p.Name)
+				}
+				if prescriptionOnly && !hasPrescriptionRegisterDetails(l) {
+					return apierr.BadRequest("Prescription register details and prescriber authenticity confirmation are required").WithField("lines", p.Name+": complete the prescription details")
+				}
+			}
+			lineAllocations := []inventory.MedicineBatchAllocation{}
+			lineCost := p.CostPrice * int64(l.Qty)
 			if !p.IsService {
-				if err := tx.Model(&inventory.Product{}).Where("id = ?", p.ID).
-					Update("stock", gorm.Expr("stock - ?", l.Qty)).Error; err != nil {
-					return err
+				if isPharmacy {
+					lineCost = 0
+					var batches []inventory.MedicineBatch
+					location, err := time.LoadLocation("Africa/Dar_es_Salaam")
+					if err != nil {
+						location = time.FixedZone("EAT", 3*60*60)
+					}
+					today := time.Now().In(location)
+					today = time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, location)
+					if err := tx.Clauses(lockForUpdate).Where("store_id = ? AND product_id = ? AND stock_status = ? AND quantity > 0 AND expiry_date >= ?", storeID, p.ID, "available", today.Format("2006-01-02")).Order("expiry_date asc, created_at asc").Find(&batches).Error; err != nil {
+						return err
+					}
+					fefoAllocations, err := pharmacy.AllocateFEFO(batches, l.Qty, today)
+					if err != nil {
+						available := 0
+						for _, batch := range batches {
+							available += batch.Quantity
+						}
+						return apierr.Conflict("Insufficient unexpired stock").WithField("product", fmt.Sprintf("%s has only %d unexpired units", p.Name, available))
+					}
+					batchByID := make(map[uuid.UUID]inventory.MedicineBatch, len(batches))
+					for _, batch := range batches {
+						batchByID[batch.ID] = batch
+					}
+					for _, allocation := range fefoAllocations {
+						batch := batchByID[allocation.BatchID]
+						if err := tx.Create(&inventory.MedicineStockMovement{StoreID: storeID, ProductID: p.ID, BatchID: batch.ID, Quantity: -allocation.Quantity, MovementType: "sale", ReferenceID: fmt.Sprintf("TXN-%04d", number), PerformedBy: cashierID}).Error; err != nil {
+							return err
+						}
+						lineAllocations = append(lineAllocations, inventory.MedicineBatchAllocation{BatchID: batch.ID, Quantity: allocation.Quantity})
+						lineCost += allocation.UnitCost * int64(allocation.Quantity)
+					}
+					if err := inventory.ReconcilePharmacyStock(tx, storeID, p.ID, 0); err != nil {
+						return err
+					}
+				}
+				if !isPharmacy {
+					if err := tx.Model(&inventory.Product{}).Where("id = ?", p.ID).Update("stock", gorm.Expr("stock - ?", l.Qty)).Error; err != nil {
+						return err
+					}
 				}
 				adj := &inventory.StockAdjustment{
 					ProductID: p.ID, QtyChange: -l.Qty, Reason: inventory.ReasonSale,
@@ -145,12 +351,18 @@ func (s *Service) CompleteSale(ctx context.Context, orgID, storeID, cashierID uu
 				ProductID:   &p.ID,
 				ProductName: p.Name,
 				ProductSKU:  sku,
-				UnitPrice:   p.SellingPrice,
-				UnitCost:    p.CostPrice,
-				Qty:         l.Qty,
+				UnitPrice:   unitPrice,
+				UnitCost: func() int64 {
+					if isPharmacy && l.Qty > 0 {
+						return lineCost / int64(l.Qty)
+					}
+					return p.CostPrice
+				}(),
+				Qty: l.Qty,
 			})
-			subtotal += p.SellingPrice * int64(l.Qty)
-			costTotal += p.CostPrice * int64(l.Qty)
+			allocations = append(allocations, lineAllocations)
+			subtotal += unitPrice * int64(l.Qty)
+			costTotal += lineCost
 		}
 
 		discountAmount := int64(float64(subtotal) * in.DiscountPct / 100)
@@ -198,7 +410,41 @@ func (s *Service) CompleteSale(ctx context.Context, orgID, storeID, cashierID uu
 			Notes:            in.Notes,
 			Lines:            lines,
 		}
-		return s.repo.CreateSaleTx(tx, txn)
+		if err := s.repo.CreateSaleTx(tx, txn); err != nil {
+			return err
+		}
+		if isPharmacy {
+			rxSequence := 0
+			for i := range txn.Lines {
+				if profile, ok := medicineProfiles[*txn.Lines[i].ProductID]; ok && medicineRequiresPrescription(profile) {
+					rxSequence++
+					rx := &pharmacy.PrescriptionRecord{
+						StoreID: storeID, RegisterNumber: fmt.Sprintf("RX-%s-%02d", txn.TxnNumber, rxSequence), TransactionLineID: txn.Lines[i].ID,
+						PrescriberName:        strings.TrimSpace(in.Lines[i].PrescriberName),
+						PrescriberAddress:     strings.TrimSpace(in.Lines[i].PrescriberAddress),
+						PrescriberRegNumber:   strings.TrimSpace(in.Lines[i].PrescriberRegistrationNumber),
+						PrescriberVerified:    in.Lines[i].PrescriberAuthenticityChecked,
+						FacilityName:          strings.TrimSpace(in.Lines[i].PrescribingFacilityName),
+						FacilityAddress:       strings.TrimSpace(in.Lines[i].PrescribingFacilityAddress),
+						PrescriptionReference: strings.TrimSpace(in.Lines[i].PrescriptionReference),
+						PatientName:           strings.TrimSpace(in.Lines[i].PatientName),
+						PatientAddress:        strings.TrimSpace(in.Lines[i].PatientAddress),
+						MedicineStrength:      strings.TrimSpace(in.Lines[i].MedicineStrength),
+						DosageForm:            strings.TrimSpace(in.Lines[i].DosageForm), RecordedBy: cashierID,
+					}
+					if err := tx.Create(rx).Error; err != nil {
+						return err
+					}
+				}
+				for _, allocation := range allocations[i] {
+					allocation.TransactionLineID = txn.Lines[i].ID
+					if err := tx.Create(&allocation).Error; err != nil {
+						return err
+					}
+				}
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -282,6 +528,10 @@ func (s *Service) Refund(ctx context.Context, orgID, storeID, userID, id uuid.UU
 	if status != StatusPaid && status != StatusCredit {
 		return nil, apierr.Conflict("Only paid or credit transactions can be refunded")
 	}
+	isPharmacy, err := s.isPharmacy(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
 
 	txn, err := s.repo.GetTransaction(storeID, id)
 	if err != nil {
@@ -293,8 +543,12 @@ func (s *Service) Refund(ctx context.Context, orgID, storeID, userID, id uuid.UU
 			if l.ProductID == nil {
 				continue
 			}
-			if err := tx.Model(&inventory.Product{}).Where("id = ?", *l.ProductID).
-				Update("stock", gorm.Expr("stock + ?", l.Qty)).Error; err != nil {
+			if !isPharmacy {
+				if err := tx.Model(&inventory.Product{}).Where("id = ?", *l.ProductID).Update("stock", gorm.Expr("stock + ?", l.Qty)).Error; err != nil {
+					return err
+				}
+			}
+			if err := restoreMedicineBatches(tx, l.ID, storeID, *l.ProductID, userID, txn.TxnNumber, "sale_return", isPharmacy, l.Qty); err != nil {
 				return err
 			}
 			adj := &inventory.StockAdjustment{
@@ -336,6 +590,10 @@ func (s *Service) Void(ctx context.Context, orgID, storeID, id uuid.UUID, reason
 	if status == StatusRefunded || status == StatusVoid {
 		return nil, apierr.Conflict("Transaction already closed")
 	}
+	isPharmacy, err := s.isPharmacy(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
 	txn, err := s.repo.GetTransaction(storeID, id)
 	if err != nil {
 		return nil, apierr.NotFound("Transaction not found")
@@ -346,8 +604,12 @@ func (s *Service) Void(ctx context.Context, orgID, storeID, id uuid.UUID, reason
 			if l.ProductID == nil {
 				continue
 			}
-			if err := tx.Model(&inventory.Product{}).Where("id = ?", *l.ProductID).
-				Update("stock", gorm.Expr("stock + ?", l.Qty)).Error; err != nil {
+			if !isPharmacy {
+				if err := tx.Model(&inventory.Product{}).Where("id = ?", *l.ProductID).Update("stock", gorm.Expr("stock + ?", l.Qty)).Error; err != nil {
+					return err
+				}
+			}
+			if err := restoreMedicineBatches(tx, l.ID, storeID, *l.ProductID, uuid.Nil, txn.TxnNumber, "sale_void", isPharmacy, l.Qty); err != nil {
 				return err
 			}
 			adj := &inventory.StockAdjustment{

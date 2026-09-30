@@ -10,7 +10,7 @@ import (
 
 // Migrate creates the expenses schema.
 func Migrate(db *gorm.DB) error {
-	return db.AutoMigrate(&Expense{})
+	return db.AutoMigrate(&Expense{}, &ExpenseCategory{})
 }
 
 // RegisterRoutes wires the expenses router (all endpoints require auth).
@@ -20,6 +20,10 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 
 	exp := base.Group("/expenses", middleware.Auth(deps.Tokens))
 	{
+		exp.GET("/categories", h.Categories)
+		exp.POST("/categories", h.CreateCategory)
+		exp.PATCH("/categories/:id", h.UpdateCategory)
+		exp.DELETE("/categories/:id", h.DeleteCategory)
 		exp.GET("", h.List)
 		exp.POST("", h.Create)
 		exp.GET("/summary", h.Summary)

@@ -109,6 +109,86 @@ func (h *Handler) DeleteCategory(c *gin.Context) {
 	response.NoContent(c)
 }
 
+// CreateUnit godoc: POST /inventory/units
+func (h *Handler) CreateUnit(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	var req struct {
+		Name        string `json:"name" binding:"required"`
+		Description string `json:"description"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	unit, err := h.svc.CreateUnit(c.Request.Context(), orgID, req.Name, req.Description)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Created(c, unit, "Unit created")
+}
+func (h *Handler) ListUnits(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	units, err := h.svc.ListUnits(c.Request.Context(), orgID)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, units)
+}
+func (h *Handler) UpdateUnit(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid unit id", nil)
+		return
+	}
+	var req struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		IsActive    *bool  `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	unit, err := h.svc.UpdateUnit(c.Request.Context(), orgID, id, req.Name, req.Description, req.IsActive)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, unit)
+}
+func (h *Handler) DeleteUnit(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid unit id", nil)
+		return
+	}
+	if err := h.svc.DeleteUnit(c.Request.Context(), orgID, id); err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.NoContent(c)
+}
+
 // ── Products ────────────────────────────────────────────────────────────────
 
 // CreateProduct godoc: POST /inventory/products
@@ -294,6 +374,59 @@ func (h *Handler) Adjustments(c *gin.Context) {
 		return
 	}
 	response.OK(c, adj)
+}
+
+// ListBatches godoc: GET /inventory/batches?product_id={id}
+func (h *Handler) ListBatches(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	productID := uuid.Nil
+	if raw := c.Query("product_id"); raw != "" {
+		productID, err = uuid.Parse(raw)
+		if err != nil {
+			response.BadRequest(c, "Invalid product id", nil)
+			return
+		}
+	}
+	batches, err := h.svc.ListBatches(c.Request.Context(), storeID, productID)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, batches)
+}
+
+// ReceiveBatch godoc: POST /inventory/products/{id}/batches
+func (h *Handler) ReceiveBatch(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	productID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid product id", nil)
+		return
+	}
+	userID, err := uuid.Parse(middleware.UserID(c))
+	if err != nil {
+		response.Unauthorized(c, "Invalid user")
+		return
+	}
+	var req ReceiveBatchInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid batch details", nil)
+		return
+	}
+	batch, err := h.svc.ReceiveBatch(c.Request.Context(), storeID, productID, userID, req)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Created(c, batch, "Batch received")
 }
 
 // Import godoc: POST /inventory/import — bulk-create products from an uploaded CSV.

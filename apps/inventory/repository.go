@@ -64,7 +64,7 @@ func (r *Repo) ListCategories(orgID uuid.UUID) ([]Category, error) {
 	for i := range cats {
 		var n int64
 		if err := r.db.Model(&Product{}).
-			Where("category_id = ? AND is_active = true", cats[i].ID).
+			Where("category_id = ?", cats[i].ID).
 			Count(&n).Error; err == nil {
 			cats[i].ProductCount = n
 		}
@@ -76,6 +76,44 @@ func (r *Repo) UpdateCategory(c *Category) error { return r.db.Save(c).Error }
 
 func (r *Repo) DeleteCategory(orgID uuid.UUID, id uuid.UUID) error {
 	return r.db.Where("id = ? AND organisation_id = ?", id, orgID).Delete(&Category{}).Error
+}
+
+func (r *Repo) CreateUnit(unit *Unit) error { return r.db.Create(unit).Error }
+func (r *Repo) GetUnit(orgID, id uuid.UUID) (*Unit, error) {
+	var unit Unit
+	if err := r.db.Where("id = ? AND organisation_id = ?", id, orgID).First(&unit).Error; err != nil {
+		return nil, err
+	}
+	return &unit, nil
+}
+func (r *Repo) FindUnitByName(orgID uuid.UUID, name string) (*Unit, error) {
+	var unit Unit
+	err := r.db.Where("lower(name) = lower(?) AND organisation_id = ?", name, orgID).First(&unit).Error
+	return &unit, err
+}
+func (r *Repo) ListUnits(orgID uuid.UUID) ([]Unit, error) {
+	var units []Unit
+	err := r.db.Where("organisation_id = ?", orgID).Order("name asc").Find(&units).Error
+	if err != nil {
+		return nil, err
+	}
+	for i := range units {
+		const usageQuery = `SELECT COUNT(DISTINCT product_id) FROM (
+			SELECT p.id AS product_id FROM products p JOIN stores s ON s.id = p.store_id
+			WHERE s.organisation_id = ? AND lower(p.unit) = lower(?)
+			UNION
+			SELECT mp.product_id FROM medicine_profiles mp JOIN stores s ON s.id = mp.store_id
+			WHERE s.organisation_id = ? AND lower(mp.unit) = lower(?)
+		) AS unit_usage`
+		if err := r.db.Raw(usageQuery, orgID, units[i].Name, orgID, units[i].Name).Scan(&units[i].UsageCount).Error; err != nil {
+			return nil, err
+		}
+	}
+	return units, err
+}
+func (r *Repo) UpdateUnit(unit *Unit) error { return r.db.Save(unit).Error }
+func (r *Repo) DeleteUnit(orgID, id uuid.UUID) error {
+	return r.db.Where("id = ? AND organisation_id = ?", id, orgID).Delete(&Unit{}).Error
 }
 
 // ── Products ────────────────────────────────────────────────────────────────

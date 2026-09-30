@@ -27,7 +27,7 @@ Conventions:
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| POST | `/auth/register` | — | Register an owner: creates organisation + main store + owner user + **7-day trial** subscription. Payload: `first_name`, `last_name?`, `phone`, `password`, `organisation_name`, `business_type` (slug), `occupation` (slug), `region` (slug), `district` (slug), `latitude?`, `longitude?`. Returns user + token pair. |
+| POST | `/auth/register` | — | Register an owner: creates organisation + main store + owner user + **7-day trial** subscription. Payload: `first_name`, `last_name?`, `phone`, `email?`, `password`, `confirm_password`, `shop.name`, `shop.business_type`, `shop.region`, optional outlet and location details. Returns pending phone verification details. |
 | POST | `/auth/otp/send` | — | Send a 6-digit OTP by SMS (`phone`, `purpose`). |
 | POST | `/auth/otp/verify` | — | Verify an OTP (`phone`, `purpose`, `code`); marks phone verified. |
 | POST | `/auth/login` | — | Login with `identifier` (phone or email) + `password`; returns `{access_token, refresh_token, expires_in, token_type, user}`. 5 failures → 15-min lockout. |
@@ -47,7 +47,7 @@ Conventions:
 | GET | `/meta/business-types` | — | Onboarding list of business types (slugs). |
 | GET | `/meta/regions` | — | Tanzanian regions (slugs). |
 | GET | `/meta/regions/:slug/districts` | — | Districts for a region. |
-| GET | `/meta/occupations` | — | Owner job options (slugs). |
+| GET | `/meta/outlet-types` | — | Pharmacy outlet options (pharmacy, ADDO). |
 
 ---
 
@@ -68,6 +68,17 @@ Conventions:
 ---
 
 ## Inventory — `/inventory`
+
+Pharmacy accounts use `GET /inventory/batches?product_id={id}` to review lots and
+`POST /inventory/products/{id}/batches` to receive a lot. Set
+`reconcile_existing_stock: true` to assign already-counted product stock to a real
+batch without increasing the product stock a second time. Pharmacy checkout allocates
+unexpired stock by FEFO.
+
+Wholesale products support `wholesale_price` and `wholesale_minimum`. Sale requests
+accept `price_mode` (`retail|wholesale`); wholesale-only organisations always use
+wholesale pricing, while Retail + Wholesale organisations can choose per sale. A
+wholesale sale is rejected when a price is missing or the quantity is below minimum.
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
@@ -91,10 +102,10 @@ Conventions:
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| POST | `/pos/sale` | JWT | Complete a sale. Body: `lines` (`[{product_id, qty}]`), `payment_method` (`Cash|M-Pesa|Tigo Pesa|Bank|Credit`), `payment_reference?`, `discount_pct?`, `customer_name?`, `customer_phone?`, `customer_id?`, `till_number?`, `notes?`. Decrements stock; generates a per-store `txn_number`; `Credit` fires events that open a credit tab. |
+| POST | `/pos/sale` | JWT | Complete a sale. Body: `lines` (`[{product_id, qty}]`), `payment_method` (`Cash|M-Pesa|Tigo Pesa|Bank|Credit`), `payment_reference?`, `discount_pct?`, `customer_name?`, `customer_phone?`, `customer_id?`, `till_number?`, `notes?`. For pharmacy products marked prescription-only, each line must include patient name/address, medicine strength/form, prescription reference, prescriber name/address/registration, prescribing facility name/address, and `prescriber_authenticity_confirmed: true`. The field records the cashier's check; it is not electronic verification. Decrements stock; generates a per-store `txn_number`; `Credit` fires events that open a credit tab. |
 | GET | `/pos/transactions` | JWT | List: `status?` (`paid|credit|refunded|void`), `method?`, `search?`, `customer_id?`, `date_from?`, `date_to?`, `page`, `page_size`. |
 | GET | `/pos/transactions/:id` | JWT | One transaction with itemised lines. |
-| POST | `/pos/transactions/:id/refund` | JWT | Refund a paid sale → restore stock, mark `refunded`. |
+| POST | `/pos/transactions/:id/refund` | JWT with refund permission | Refund a paid sale and mark `refunded`; pharmacy-returned units are placed in quarantine and are excluded from sellable stock until inspected/released. |
 | POST | `/pos/transactions/:id/void` | JWT | Void a transaction → restore stock, mark `void`. |
 | GET | `/pos/summary` | JWT | Revenue / transactions / profit for `date_from?`–`date_to?` (default today). |
 | GET | `/pos/summary/hourly` | JWT | Hourly revenue breakdown for `date?`. |
@@ -135,13 +146,26 @@ Conventions:
 
 ## Suppliers & deliveries — `/suppliers`
 
+Pharmacy accounts can create purchase orders with `POST /suppliers/purchase-orders`
+using `supplier_id`, `notes?`, and `lines` (`product_id`, ordered `quantity`, `unit_cost`).
+For each product, assign a supplier so its configured `lead_time_days` is used by the
+deterministic reorder engine. `GET /suppliers/reorder-suggestions` reports 30-day sales,
+lead-time demand, safety stock, unexpired sellable quantity, suggested quantity, and the
+calculation reason. Unassigned products use a seven-day lead-time default.
+`GET /suppliers/purchase-orders` lists open and completed orders. Receive all or part of
+an order with `POST /suppliers/purchase-orders/:id/receive`; each line supplies its
+`line_id`, received `quantity`, `batch_number`, and `expiry_date`. Receipt atomically
+creates supplier delivery history, medicine batches, movements, and product stock.
+
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
 | GET | `/suppliers` | JWT | List: `search?`, `status?` (`active|inactive|on_hold`), paged. |
-| POST | `/suppliers` | JWT | Create (`name`, `category?`, `rep?`, `phone?`, `email?`, `address?`, `payment_terms?`, `notes?`). |
+| POST | `/suppliers` | JWT | Create (`name`, `category?`, `rep?`, `phone?`, `email?`, `address?`, `payment_terms?`, `lead_time_days?`, `notes?`). |
 | GET | `/suppliers/stats` | JWT | Counts + total outstanding. |
+| GET | `/suppliers/reorder-suggestions` | JWT | Pharmacy only: deterministic suggestions using the last 30 days of paid/credit sales, supplier lead time, product reorder point, and sellable unexpired stock. |
+| POST | `/suppliers/purchase-orders/bulk` | JWT | Pharmacy only: atomically create supplier-grouped orders (`groups`: `supplier_id`, `lines[]` with `product_id`, `quantity`, `unit_cost`). |
 | GET | `/suppliers/deliveries` | JWT | All deliveries: `supplier_id?`, `unpaid?`, paged. |
-| POST | `/suppliers/deliveries` | JWT | Record a delivery (`supplier_id`, `total_value`, `invoice_number?`, `delivery_date?`, `items_count?`, `status?`, `is_paid?`, `notes?`). |
+| POST | `/suppliers/deliveries` | JWT | Record a delivery (`supplier_id`, `total_value`, `invoice_number?`, `delivery_date?`, `items_count?`, `status?`, `is_paid?`, `notes?`, `lines?`). Pharmacy delivered lines require `product_id`, `quantity`, `unit_cost`, `batch_number`, and `expiry_date`; invoice, stock, lots and movements commit atomically. |
 | GET | `/suppliers/deliveries/:id` | JWT | One delivery. |
 | PATCH | `/suppliers/deliveries/:id` | JWT | Partial update. |
 | DELETE | `/suppliers/deliveries/:id` | JWT | Delete a delivery. |
@@ -151,9 +175,28 @@ Conventions:
 | PATCH | `/suppliers/:id` | JWT | Partial update. |
 | DELETE | `/suppliers/:id` | JWT | Soft-delete. |
 | GET | `/suppliers/:id/deliveries` | JWT | Deliveries for one supplier. |
-| POST | `/suppliers/:id/deliveries` | JWT | Add a delivery for one supplier. |
+| POST | `/suppliers/:id/deliveries` | JWT | Add a delivery for one supplier (same itemized pharmacy line rules as above). |
 | GET | `/suppliers/:id/payments` | JWT | Payments for one supplier. |
 | POST | `/suppliers/:id/pay` | Owner | `amount`, `payment_method` (`cash|bank|mobile`), `reference?`, `delivery_id?`, `notes?`. |
+
+## Pharmacy — `/pharmacy`
+
+All routes require a pharmacy organisation. Batch receiving and expiry listing are scoped to the
+active store. Disposal is limited to owners and admins and requires a positive quantity and an
+audit reason; it writes a negative batch movement and stock adjustment in one transaction.
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/pharmacy/batches` | JWT | List batches, including depleted/expired lots; optional `product_id`. |
+| GET | `/pharmacy/batches/:id/movements` | JWT | Paginated store-scoped append-only movement history for a batch (`page?`, `page_size?`). |
+| POST | `/pharmacy/products/:id/batches` | JWT | Receive a batch with batch number, quantity, expiry, cost and supplier; may assign existing untracked stock. |
+| POST | `/pharmacy/batches/:id/dispose` | Owner | Remove `quantity` from a lot with a required `reason`; records ledger movement and adjustment. |
+| POST | `/pharmacy/batches/:id/release` | Owner | Release a quarantined customer-return lot after recording an `inspection_note`; expired lots cannot be released. |
+| GET | `/pharmacy/expiry?days=60` | JWT | List positive-quantity batches expiring by the requested window, including expired lots. |
+| GET | `/pharmacy/prescriptions` | JWT + pharmacy management/pharmaceutical personnel | Paginated store-scoped prescription register: `search?`, `from?`, `to?`, `page?`, `page_size?`. Includes staff-entered patient/prescriber/facility details and allocated batch numbers; the authenticity field is a staff confirmation, not an electronic verification. |
+| GET | `/pharmacy/products` | JWT | List medicine profiles. |
+| GET | `/pharmacy/products/:id` | JWT | Read a product's medicine profile. |
+| PUT | `/pharmacy/products/:id` | JWT | Update generic/brand names, unit, pack size, shop-entered schedule, registration number and prescription flag. |
 
 ---
 

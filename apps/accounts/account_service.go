@@ -117,6 +117,7 @@ type OrgResponse struct {
 	Name          string          `json:"name"`
 	Slug          string          `json:"slug"`
 	BusinessType  string          `json:"business_type"`
+	OutletType    string          `json:"outlet_type,omitempty"`
 	Occupation    string          `json:"occupation"`
 	Region        string          `json:"region"`
 	District      string          `json:"district"`
@@ -231,6 +232,7 @@ func (s *AccountService) Me(ctx context.Context, userID uuid.UUID) (*ProfileCont
 			Name:          org.Name,
 			Slug:          org.Slug,
 			BusinessType:  org.BusinessType,
+			OutletType:    org.OutletType,
 			Occupation:    org.Occupation,
 			Region:        org.Region,
 			District:      org.District,
@@ -333,6 +335,7 @@ type UpdateOrganisationRequest struct {
 	LegalName     *string  `json:"legal_name"`
 	TIN           *string  `json:"tin"`
 	BusinessType  *string  `json:"business_type"`
+	OutletType    *string  `json:"outlet_type"`
 	Occupation    *string  `json:"occupation"`
 	Region        *string  `json:"region"`
 	District      *string  `json:"district"`
@@ -368,7 +371,16 @@ func (s *AccountService) UpdateOrganisation(ctx context.Context, orgID uuid.UUID
 		if !ValidBusinessType(*req.BusinessType) {
 			return nil, apierr.BadRequest("Unknown business type").WithField("business_type", "unsupported")
 		}
+		if org.BusinessType != *req.BusinessType {
+			return nil, apierr.Conflict("Business type cannot be changed after registration; contact support to migrate this organisation")
+		}
 		org.BusinessType = *req.BusinessType
+	}
+	if req.OutletType != nil {
+		if org.BusinessType != "pharmacy" || (*req.OutletType != "pharmacy" && *req.OutletType != "addo") {
+			return nil, apierr.BadRequest("Outlet type is only available to pharmacy accounts and must be pharmacy or addo").WithField("outlet_type", "unsupported")
+		}
+		org.OutletType = *req.OutletType
 	}
 	if req.Occupation != nil && *req.Occupation != "" {
 		if !ValidOccupation(*req.Occupation) {
@@ -609,7 +621,7 @@ func (s *AccountService) orgResponse(orgID uuid.UUID) (*OrgResponse, error) {
 	storeCount, _ := s.repo.CountStoresByOrg(orgID)
 	return &OrgResponse{
 		ID: org.ID, Name: org.Name, Slug: org.Slug,
-		BusinessType: org.BusinessType, Occupation: org.Occupation,
+		BusinessType: org.BusinessType, OutletType: org.OutletType, Occupation: org.Occupation,
 		Region: org.Region, District: org.District, Ward: org.Ward,
 		Street: org.Street, Address: org.Address,
 		Latitude: org.Latitude, Longitude: org.Longitude,

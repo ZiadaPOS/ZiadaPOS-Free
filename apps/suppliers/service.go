@@ -7,7 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
+	"github.com/troubleman96/ziadapos/apps/inventory"
 	"github.com/troubleman96/ziadapos/internal/apierr"
 	"github.com/troubleman96/ziadapos/internal/cache"
 	"github.com/troubleman96/ziadapos/internal/events"
@@ -36,19 +38,29 @@ type SupplierInput struct {
 	Email        string `json:"email"`
 	Address      string `json:"address"`
 	PaymentTerms int    `json:"payment_terms"`
+	LeadTimeDays int    `json:"lead_time_days"`
 	Status       string `json:"status"`
 	Notes        string `json:"notes"`
 }
 
 // DeliveryInput is the create/update delivery payload.
 type DeliveryInput struct {
-	InvoiceNumber string    `json:"invoice_number"`
-	DeliveryDate  time.Time `json:"delivery_date"`
-	ItemsCount    int       `json:"items_count"`
-	TotalValue    int64     `json:"total_value"`
-	Status        string    `json:"status"`
-	IsPaid        bool      `json:"is_paid"`
-	Notes         string    `json:"notes"`
+	InvoiceNumber string              `json:"invoice_number"`
+	DeliveryDate  time.Time           `json:"delivery_date"`
+	ItemsCount    int                 `json:"items_count"`
+	TotalValue    int64               `json:"total_value"`
+	Status        string              `json:"status"`
+	IsPaid        bool                `json:"is_paid"`
+	Notes         string              `json:"notes"`
+	Lines         []DeliveryLineInput `json:"lines,omitempty"`
+}
+
+type DeliveryLineInput struct {
+	ProductID   uuid.UUID `json:"product_id" binding:"required"`
+	Quantity    int       `json:"quantity" binding:"required,gt=0"`
+	UnitCost    int64     `json:"unit_cost" binding:"gte=0"`
+	BatchNumber string    `json:"batch_number"`
+	ExpiryDate  string    `json:"expiry_date"`
 }
 
 // PaymentInput is a payment against one supplier (optionally one delivery).
@@ -71,6 +83,13 @@ func (s *Service) Create(ctx context.Context, orgID, storeID uuid.UUID, in *Supp
 	if !containsInt(ValidTerms, terms) {
 		return nil, apierr.BadRequest("Invalid payment terms").WithField("payment_terms", "must be 30, 60 or 90")
 	}
+	leadTime := in.LeadTimeDays
+	if leadTime == 0 {
+		leadTime = 7
+	}
+	if leadTime < 0 || leadTime > 365 {
+		return nil, apierr.BadRequest("Invalid supplier lead time").WithField("lead_time_days", "must be between 1 and 365")
+	}
 	status := in.Status
 	if status == "" {
 		status = StatusActive
@@ -88,6 +107,7 @@ func (s *Service) Create(ctx context.Context, orgID, storeID uuid.UUID, in *Supp
 		Email:          strings.TrimSpace(in.Email),
 		Address:        strings.TrimSpace(in.Address),
 		PaymentTerms:   terms,
+		LeadTimeDays:   leadTime,
 		Status:         status,
 		Notes:          in.Notes,
 	}
@@ -124,6 +144,12 @@ func (s *Service) Update(ctx context.Context, storeID, id uuid.UUID, in *Supplie
 			return nil, apierr.BadRequest("Invalid payment terms").WithField("payment_terms", "must be 30, 60 or 90")
 		}
 		supplier.PaymentTerms = in.PaymentTerms
+	}
+	if in.LeadTimeDays > 0 {
+		if in.LeadTimeDays > 365 {
+			return nil, apierr.BadRequest("Invalid supplier lead time").WithField("lead_time_days", "must be between 1 and 365")
+		}
+		supplier.LeadTimeDays = in.LeadTimeDays
 	}
 	if in.Status != "" {
 		if !contains(ValidStatuses, in.Status) {
@@ -209,7 +235,8 @@ func (s *Service) Stats(ctx context.Context, storeID uuid.UUID) (map[string]inte
 
 // RecordDelivery logs an invoice received from a supplier.
 func (s *Service) RecordDelivery(ctx context.Context, orgID, storeID, supplierID, userID uuid.UUID, in *DeliveryInput) (*SupplierDelivery, error) {
-	if _, err := s.repo.Get(storeID, supplierID); err != nil {
+	supplier, err := s.repo.Get(storeID, supplierID)
+	if err != nil {
 		return nil, apierr.NotFound("Supplier not found")
 	}
 	if in.TotalValue <= 0 {
@@ -243,8 +270,75 @@ func (s *Service) RecordDelivery(ctx context.Context, orgID, storeID, supplierID
 		RecordedBy:     userID,
 		Notes:          in.Notes,
 	}
-	if err := s.repo.CreateDelivery(d); err != nil {
+	var businessType string
+	if err := s.repo.DB().WithContext(ctx).Table("organisations").Select("business_type").Where("id = ?", orgID).Scan(&businessType).Error; err != nil {
 		return nil, err
+	}
+	if businessType == "pharmacy" && status == DeliveryDelivered && len(in.Lines) == 0 {
+		return nil, apierr.BadRequest("Pharmacy deliveries require received product, lot and expiry details").WithField("lines", "add at least one received batch")
+	}
+	if len(in.Lines) > 0 && status != DeliveryDelivered {
+		return nil, apierr.BadRequest("Inventory lines can only be recorded for delivered invoices").WithField("status", "must be delivered")
+	}
+	db := s.repo.DB().WithContext(ctx)
+	lineRecords := make([]SupplierDeliveryLine, 0, len(in.Lines))
+	productIDs := make([]uuid.UUID, 0, len(in.Lines))
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(d).Error; err != nil {
+			return err
+		}
+		for _, line := range in.Lines {
+			if line.Quantity <= 0 || line.UnitCost < 0 {
+				return apierr.BadRequest("Delivery line quantity and cost are invalid")
+			}
+			var product inventory.Product
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND store_id = ? AND is_active = true", line.ProductID, storeID).First(&product).Error; err != nil {
+				return apierr.BadRequest("Delivery line product is not active in this store").WithField("lines", line.ProductID.String())
+			}
+			if product.IsService {
+				return apierr.BadRequest("Service items cannot be received as stock")
+			}
+			persisted := SupplierDeliveryLine{DeliveryID: d.ID, ProductID: line.ProductID, Quantity: line.Quantity, UnitCost: line.UnitCost}
+			if businessType == "pharmacy" {
+				expiry, parseErr := time.Parse("2006-01-02", line.ExpiryDate)
+				if strings.TrimSpace(line.BatchNumber) == "" || parseErr != nil {
+					return apierr.BadRequest("Each pharmacy delivery line needs a batch number and expiry date").WithField("lines", product.Name)
+				}
+				persisted.BatchNumber = strings.TrimSpace(line.BatchNumber)
+				persisted.ExpiryDate = &expiry
+				batch := inventory.MedicineBatch{StoreID: storeID, ProductID: product.ID, BatchNumber: persisted.BatchNumber, Quantity: 0, ExpiryDate: expiry, CostPrice: line.UnitCost, SupplierName: supplier.Name}
+				if err := tx.Create(&batch).Error; err != nil {
+					return err
+				}
+				persisted.MedicineBatchID = &batch.ID
+				if err := tx.Create(&inventory.MedicineStockMovement{StoreID: storeID, ProductID: product.ID, BatchID: batch.ID, Quantity: line.Quantity, MovementType: "purchase", ReferenceID: d.ID.String(), Reason: "Supplier delivery " + d.InvoiceNumber, PerformedBy: userID}).Error; err != nil {
+					return err
+				}
+				if err := inventory.ReconcilePharmacyStock(tx, storeID, product.ID, 0); err != nil {
+					return err
+				}
+			}
+			if err := tx.Create(&persisted).Error; err != nil {
+				return err
+			}
+			lineRecords = append(lineRecords, persisted)
+			productIDs = append(productIDs, product.ID)
+			if businessType != "pharmacy" {
+				if err := tx.Model(&inventory.Product{}).Where("id = ?", product.ID).Update("stock", gorm.Expr("stock + ?", line.Quantity)).Error; err != nil {
+					return err
+				}
+			}
+			if err := tx.Create(&inventory.StockAdjustment{ProductID: product.ID, MedicineBatchID: persisted.MedicineBatchID, QtyChange: line.Quantity, Reason: inventory.ReasonRestock, Note: "Supplier delivery " + d.InvoiceNumber, CreatedBy: userID}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	d.Lines = lineRecords
+	if len(productIDs) > 0 {
+		inventory.NewService(inventory.NewRepo(s.repo.DB()), s.cache, s.bus).InvalidateProductCache(&storeID, &orgID, productIDs...)
 	}
 	s.invalidateCache(storeID)
 	s.bus.Publish("supplier.delivery_recorded", map[string]interface{}{
@@ -295,6 +389,13 @@ func (s *Service) UpdateDelivery(ctx context.Context, storeID, id uuid.UUID, in 
 }
 
 func (s *Service) DeleteDelivery(ctx context.Context, storeID, id uuid.UUID) error {
+	delivery, err := s.repo.GetDelivery(storeID, id)
+	if err != nil {
+		return apierr.NotFound("Delivery not found")
+	}
+	if len(delivery.Lines) > 0 {
+		return apierr.Conflict("A delivery with received inventory cannot be deleted; record a stock return or adjustment instead")
+	}
 	if err := s.repo.DeleteDelivery(storeID, id); err != nil {
 		return apierr.NotFound("Delivery not found")
 	}
@@ -464,6 +565,7 @@ func supplierResponse(s *Supplier, balance int64) map[string]interface{} {
 		"email":               s.Email,
 		"address":             s.Address,
 		"payment_terms":       s.PaymentTerms,
+		"lead_time_days":      s.LeadTimeDays,
 		"status":              s.Status,
 		"is_active":           s.IsActive(),
 		"outstanding_balance": balance,

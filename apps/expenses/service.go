@@ -42,11 +42,8 @@ func (s *Service) Create(ctx context.Context, orgID, storeID, userID uuid.UUID, 
 	if in.Amount <= 0 {
 		return nil, apierr.BadRequest("Expense amount must be positive").WithField("amount", "greater than zero")
 	}
-	if in.Category == "" {
-		in.Category = CatOther
-	}
-	if !contains(ValidCategories, in.Category) {
-		return nil, apierr.BadRequest("Invalid category").WithField("category", "choose one of the known categories")
+	if err := s.validateCategory(ctx, orgID, in.Category); err != nil {
+		return nil, err
 	}
 	if in.PaymentMethod == "" {
 		in.PaymentMethod = MethodCash
@@ -85,7 +82,7 @@ func (s *Service) Get(ctx context.Context, storeID, id uuid.UUID) (*Expense, err
 	return e, nil
 }
 
-func (s *Service) Update(ctx context.Context, storeID, id uuid.UUID, in *Input) (*Expense, error) {
+func (s *Service) Update(ctx context.Context, orgID, storeID, id uuid.UUID, in *Input) (*Expense, error) {
 	e, err := s.repo.Get(storeID, id)
 	if err != nil {
 		return nil, apierr.NotFound("Expense not found")
@@ -94,8 +91,8 @@ func (s *Service) Update(ctx context.Context, storeID, id uuid.UUID, in *Input) 
 		e.Title = strings.TrimSpace(in.Title)
 	}
 	if in.Category != "" {
-		if !contains(ValidCategories, in.Category) {
-			return nil, apierr.BadRequest("Invalid category").WithField("category", "choose one of the known categories")
+		if err := s.validateCategory(ctx, orgID, in.Category); err != nil {
+			return nil, err
 		}
 		e.Category = in.Category
 	}

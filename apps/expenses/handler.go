@@ -59,6 +59,82 @@ func (h *Handler) List(c *gin.Context) {
 	response.OK(c, out)
 }
 
+// Categories lists the supported expense categories.
+func (h *Handler) Categories(c *gin.Context) {
+	orgID, _, ok := h.orgStore(c)
+	if !ok {
+		return
+	}
+	categories, err := h.svc.ListCategories(c.Request.Context(), orgID)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, categories)
+}
+
+func (h *Handler) CreateCategory(c *gin.Context) {
+	orgID, _, ok := h.orgStore(c)
+	if !ok {
+		return
+	}
+	var req struct {
+		Name string `json:"name" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Category name is required", nil)
+		return
+	}
+	category, err := h.svc.CreateCategory(c.Request.Context(), orgID, req.Name)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Created(c, category, "Category created")
+}
+
+func (h *Handler) UpdateCategory(c *gin.Context) {
+	orgID, _, ok := h.orgStore(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid category id", nil)
+		return
+	}
+	var req struct {
+		Name string `json:"name" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Category name is required", nil)
+		return
+	}
+	category, err := h.svc.UpdateCategory(c.Request.Context(), orgID, id, req.Name)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, category)
+}
+
+func (h *Handler) DeleteCategory(c *gin.Context) {
+	orgID, _, ok := h.orgStore(c)
+	if !ok {
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid category id", nil)
+		return
+	}
+	if err := h.svc.DeleteCategory(c.Request.Context(), orgID, id); err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Message(c, 200, "Category deleted")
+}
+
 // Create godoc: POST /expenses
 func (h *Handler) Create(c *gin.Context) {
 	orgID, storeID, ok := h.orgStore(c)
@@ -99,7 +175,7 @@ func (h *Handler) Get(c *gin.Context) {
 
 // Update godoc: PATCH /expenses/{id}
 func (h *Handler) Update(c *gin.Context) {
-	_, storeID, ok := h.orgStore(c)
+	orgID, storeID, ok := h.orgStore(c)
 	if !ok {
 		return
 	}
@@ -113,7 +189,7 @@ func (h *Handler) Update(c *gin.Context) {
 		response.BadRequest(c, "Invalid request", nil)
 		return
 	}
-	e, err := h.svc.Update(c.Request.Context(), storeID, id, &req)
+	e, err := h.svc.Update(c.Request.Context(), orgID, storeID, id, &req)
 	if err != nil {
 		writeErr(c, err)
 		return

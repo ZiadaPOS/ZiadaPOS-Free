@@ -65,15 +65,15 @@ func (r *Repo) GetTransaction(storeID, id uuid.UUID) (*Transaction, error) {
 
 // Filter constrains transaction list queries.
 type Filter struct {
-	StoreID       uuid.UUID
-	Status        string
-	Method        string
-	Search        string
-	DateFrom      time.Time
-	DateTo        time.Time
-	CustomerID    uuid.UUID
-	Page          int
-	PageSize      int
+	StoreID    uuid.UUID
+	Status     string
+	Method     string
+	Search     string
+	DateFrom   time.Time
+	DateTo     time.Time
+	CustomerID uuid.UUID
+	Page       int
+	PageSize   int
 }
 
 func (r *Repo) ListTransactions(f Filter) ([]Transaction, int64, error) {
@@ -205,8 +205,15 @@ func (r *Repo) HourlySales(storeID uuid.UUID, day time.Time) ([]map[string]inter
 
 // UpdateStatus changes a transaction status (for refund/void).
 func (r *Repo) UpdateStatus(tx *gorm.DB, id uuid.UUID, status, notes string) error {
-	return tx.Model(&Transaction{}).Where("id = ?", id).
-		Updates(map[string]interface{}{"status": status, "notes": notes}).Error
+	result := tx.Model(&Transaction{}).Where("id = ? AND status IN ?", id, []string{StatusPaid, StatusCredit}).
+		Updates(map[string]interface{}{"status": status, "notes": notes})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return apierr.Conflict("Transaction already closed")
+	}
+	return nil
 }
 
 // GetStatus returns the current status of a transaction.

@@ -62,6 +62,18 @@ Organisation (the business)
 - `stock_adjustments` — `product_id`, `qty_change`, `reason`
   (`restock|damage|correction|return`), `note`, `user_id`.
 
+For organisations registered with `business_type = pharmacy`, inventory also uses
+`medicine_batches` (`store_id`, `product_id`, `source_batch_id`, `batch_number`, `quantity`,
+`expiry_date`, `cost_price`, `supplier_name`, `stock_status`). `stock_status` is `available`
+or `quarantined`; customer-returned units are kept in a separate quarantined lot linked to the
+source lot until an owner/admin records an inspection and releases them. Each pharmacy sale
+allocates from unexpired, available batches in expiry-date order and stores the lot-to-sale link
+in `medicine_batch_allocations`.
+The product stock field remains a summary counter for compatibility with existing
+reports; the batch quantities determine what can be sold. Existing unassigned stock
+must be matched to its actual batch and expiry before it can be sold through pharmacy
+checkout.
+
 ## POS
 
 - `transactions` — `org_id`, `store_id`, `txn_number` (**sequential per store**; composite unique
@@ -70,6 +82,12 @@ Organisation (the business)
   `customer_id`, `till_number`, `status` (`paid|credit|refunded|void`), `notes`, `staff_user_id`.
 - `transaction_items` — `transaction_id`, `product_id`, `product_name`, `qty`, `unit_price`,
   `discount`, `total`.
+- Pharmacy `prescription_records` attach to transaction lines and keep a per-sale register number,
+  allocated batch number(s), and staff-entered patient,
+  medicine, prescriber, facility and prescription reference details. Register reads are restricted
+  to pharmacy management and recognized pharmaceutical personnel. The authenticity field is an
+  attributed staff confirmation, not an electronic validation; prescription validity, refill and
+  retained-document workflows are still outstanding.
 
 ## Customers & credits
 
@@ -89,6 +107,10 @@ Organisation (the business)
   `payment_terms`, `notes`, `status` (`active|inactive|on_hold`).
 - `supplier_deliveries` — `supplier_id`, `invoice_number`, `total_value`, `delivery_date`,
   `items_count`, `status`, `is_paid`, `notes`.
+- `supplier_delivery_lines` — received product quantities and unit costs; pharmacy lines
+  retain the linked medicine batch, batch number, and expiry date.
+- `purchase_orders` / `purchase_order_lines` — supplier orders, ordered and received
+  quantities, unit cost, and the remaining balance available for partial receipt.
 - `supplier_payments` — `supplier_id`, `delivery_id?`, `amount`, `payment_method`
   (`cash|bank|mobile`), `reference`, `notes`.
 

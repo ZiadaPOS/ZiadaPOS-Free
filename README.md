@@ -61,7 +61,7 @@ curl -s -X POST http://localhost:8080/api/v1/auth/register \
   -d '{
     "first_name":"Hamisi","phone":"0712345678","password":"secret-2026",
     "organisation_name":"Duka la Hamisi","business_type":"retail",
-    "occupation":"shop_owner","region":"dar-es-salaam","district":"ilala"
+    "region":"dar-es-salaam","district":"ilala"
   }'
 
 curl -s -X POST http://localhost:8080/api/v1/auth/login \

@@ -32,8 +32,12 @@ type Organisation struct {
 	TIN       string `gorm:"size:50" json:"tin"`
 
 	// Business classification
-	BusinessType string `gorm:"size:50;index" json:"business_type"`
-	Occupation   string `gorm:"size:50" json:"occupation"` // owner's job
+	BusinessType             string `gorm:"size:50;index" json:"business_type"`
+	OutletType               string `gorm:"size:20;default:''" json:"outlet_type,omitempty"`
+	InventoryDefaultsType    string `gorm:"size:50;not null;default:''" json:"-"`
+	InventoryDefaultsVersion int    `gorm:"not null;default:0" json:"-"`
+	ExpenseDefaultsType      string `gorm:"size:50;not null;default:''" json:"-"`
+	Occupation               string `gorm:"size:50" json:"occupation"` // owner's job
 
 	// Tanzania location
 	Region   string `gorm:"size:100;index" json:"region"`

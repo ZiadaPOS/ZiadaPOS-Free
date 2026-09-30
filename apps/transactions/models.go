@@ -8,11 +8,11 @@ import (
 
 // Payment methods supported at the counter.
 const (
-	MethodCash    = "Cash"
-	MethodMPesa   = "M-Pesa"
-	MethodTigo    = "Tigo Pesa"
-	MethodBank    = "Bank"
-	MethodCredit  = "Credit"
+	MethodCash   = "Cash"
+	MethodMPesa  = "M-Pesa"
+	MethodTigo   = "Tigo Pesa"
+	MethodBank   = "Bank"
+	MethodCredit = "Credit"
 )
 
 // Transaction statuses.
@@ -29,26 +29,26 @@ var ValidMethods = []string{MethodCash, MethodMPesa, MethodTigo, MethodBank, Met
 // Transaction is one completed sale ("ticket") at the point of sale.
 type Transaction struct {
 	models.BaseModel
-	OrganisationID   uuid.UUID `gorm:"type:uuid;not null;index" json:"organisation_id"`
-	StoreID          uuid.UUID `gorm:"type:uuid;not null;index;uniqueIndex:idx_txn_number_store,priority:1" json:"store_id"`
-	TxnNumber        string    `gorm:"size:30;not null;uniqueIndex:idx_txn_number_store,priority:2" json:"txn_number"`
-	PaymentMethod    string    `gorm:"size:20;not null;index" json:"payment_method"`
-	PaymentReference string    `gorm:"size:100" json:"payment_reference"`
-	Status           string    `gorm:"size:20;not null;default:paid;index" json:"status"`
-	Subtotal         int64     `gorm:"not null;default:0" json:"subtotal"`
-	DiscountPct      float64   `gorm:"not null;default:0" json:"discount_pct"`
-	DiscountAmount   int64     `gorm:"not null;default:0" json:"discount_amount"`
-	TaxAmount        int64     `gorm:"not null;default:0" json:"tax_amount"`
-	Total            int64     `gorm:"not null;default:0" json:"total"`
-	CostTotal        int64     `gorm:"not null;default:0" json:"cost_total"`
-	Profit           int64     `gorm:"not null;default:0" json:"profit"`
-	CashierID        uuid.UUID `gorm:"type:uuid;not null;index" json:"cashier_id"`
-	TillNumber       string    `gorm:"size:20;default:Till #1" json:"till_number"`
-	CustomerName     string    `gorm:"size:200;default:Walk-in;index" json:"customer_name"`
-	CustomerPhone    string    `gorm:"size:30" json:"customer_phone"`
+	OrganisationID   uuid.UUID  `gorm:"type:uuid;not null;index" json:"organisation_id"`
+	StoreID          uuid.UUID  `gorm:"type:uuid;not null;index;uniqueIndex:idx_txn_number_store,priority:1" json:"store_id"`
+	TxnNumber        string     `gorm:"size:30;not null;uniqueIndex:idx_txn_number_store,priority:2" json:"txn_number"`
+	PaymentMethod    string     `gorm:"size:20;not null;index" json:"payment_method"`
+	PaymentReference string     `gorm:"size:100" json:"payment_reference"`
+	Status           string     `gorm:"size:20;not null;default:paid;index" json:"status"`
+	Subtotal         int64      `gorm:"not null;default:0" json:"subtotal"`
+	DiscountPct      float64    `gorm:"not null;default:0" json:"discount_pct"`
+	DiscountAmount   int64      `gorm:"not null;default:0" json:"discount_amount"`
+	TaxAmount        int64      `gorm:"not null;default:0" json:"tax_amount"`
+	Total            int64      `gorm:"not null;default:0" json:"total"`
+	CostTotal        int64      `gorm:"not null;default:0" json:"cost_total"`
+	Profit           int64      `gorm:"not null;default:0" json:"profit"`
+	CashierID        uuid.UUID  `gorm:"type:uuid;not null;index" json:"cashier_id"`
+	TillNumber       string     `gorm:"size:20;default:Till #1" json:"till_number"`
+	CustomerName     string     `gorm:"size:200;default:Walk-in;index" json:"customer_name"`
+	CustomerPhone    string     `gorm:"size:30" json:"customer_phone"`
 	CustomerID       *uuid.UUID `gorm:"type:uuid;index" json:"customer_id,omitempty"`
-	Channel          string    `gorm:"size:20;default:counter" json:"channel"`
-	Notes            string    `gorm:"size:1000" json:"notes"`
+	Channel          string     `gorm:"size:20;default:counter" json:"channel"`
+	Notes            string     `gorm:"size:1000" json:"notes"`
 
 	Lines []TransactionLine `gorm:"foreignKey:TransactionID" json:"lines"`
 }
