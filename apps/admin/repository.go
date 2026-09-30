@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -113,28 +114,36 @@ func (r *Repo) Organisations(o Options) ([]orgRow, int64, error) {
 		         WHERE sub.organisation_id = org.id
 		         ORDER BY sub.created_at DESC LIMIT 1) AS subscription_status
 		FROM organisations org`
-	q := r.db.Table("organisations as org").Select(selectSQL)
+	// selectSQL is a complete SELECT statement, so execute it as raw SQL.
+	// Passing it to GORM's Select() prepends another SELECT and PostgreSQL
+	// rejects the resulting `SELECT SELECT ...` query.
+	where := make([]string, 0, 2)
+	args := make([]interface{}, 0, 6)
 	if o.Search != "" {
 		like := "%" + o.Search + "%"
-		q = q.Where("(lower(org.name) LIKE lower(?) OR lower(org.slug) LIKE lower(?) OR lower(org.phone) LIKE lower(?) OR lower(org.email) LIKE lower(?))",
-			like, like, like, like)
+		where = append(where, "(lower(org.name) LIKE lower(?) OR lower(org.slug) LIKE lower(?) OR lower(org.phone) LIKE lower(?) OR lower(org.email) LIKE lower(?))")
+		args = append(args, like, like, like, like)
 	}
 	if o.OrgID != "" {
-		q = q.Where("org.id = ?", orgUUID(o.OrgID))
+		where = append(where, "org.id = ?")
+		args = append(args, orgUUID(o.OrgID))
 	}
 	if o.Status == "active" {
-		q = q.Where("org.is_active = true")
+		where = append(where, "org.is_active = true")
 	} else if o.Status == "inactive" {
-		q = q.Where("org.is_active = false")
+		where = append(where, "org.is_active = false")
 	} else if o.Status == "trial" {
-		q = q.Where("org.plan = 'free' AND org.trial_ends_at > now()")
+		where = append(where, "org.plan = 'free' AND org.trial_ends_at > now()")
 	} else if o.Status != "" {
-		q = q.Where("org.plan = ?", o.Status)
+		where = append(where, "org.plan = ?")
+		args = append(args, o.Status)
 	}
+	if len(where) > 0 {
+		selectSQL += " WHERE " + strings.Join(where, " AND ")
+	}
+	args = append(args, o.PageSize, (o.Page-1)*o.PageSize)
 	var rows []orgRow
-	err := q.Order("org.created_at desc").
-		Offset((o.Page - 1) * o.PageSize).Limit(o.PageSize).
-		Scan(&rows).Error
+	err := r.db.Raw(selectSQL+" ORDER BY org.created_at DESC LIMIT ? OFFSET ?", args...).Scan(&rows).Error
 	return rows, total, err
 }
 
