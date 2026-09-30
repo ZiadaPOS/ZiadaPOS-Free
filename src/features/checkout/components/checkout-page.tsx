@@ -6,6 +6,9 @@ import {
   unwrapList,
   type PosCategory,
   type PosCustomer,
+  type PosMedicineBatch,
+  type PosMedicineProfile,
+  type PosPrescriptionDetails,
   type PosProduct,
   type PosTransaction
 } from '@/lib/pos-api';
@@ -19,10 +22,14 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [products, setProducts] = useState<PosProduct[]>([]);
+  const [isPharmacy, setIsPharmacy] = useState(false);
+  const [businessType, setBusinessType] = useState('retail');
+  const [priceMode, setPriceMode] = useState<'retail' | 'wholesale'>('retail');
   const [categories, setCategories] = useState<PosCategory[]>([]);
   const [customers, setCustomers] = useState<PosCustomer[]>([]);
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<Record<string, number>>({});
+  const [rxDetails, setRxDetails] = useState<Record<string, PosPrescriptionDetails>>({});
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [customerId, setCustomerId] = useState('');
   const [discountPct, setDiscountPct] = useState('0');
@@ -32,15 +39,75 @@ export default function CheckoutPage() {
   const [scanCode, setScanCode] = useState('');
   const [receiptTransaction, setReceiptTransaction] = useState<PosTransaction | null>(null);
   const cartRestored = useRef(false);
+  useEffect(() => {
+    setRxDetails((current) => {
+      const remaining = Object.fromEntries(
+        Object.entries(current).filter(([productId]) => (cart[productId] || 0) > 0)
+      );
+      return Object.keys(remaining).length === Object.keys(current).length ? current : remaining;
+    });
+  }, [cart]);
   const load = useCallback(async () => {
     setError('');
     try {
-      const [p, c, categoryResult] = await Promise.all([
+      const [p, c, categoryResult, profile] = await Promise.all([
         posApi<unknown>('/inventory/products?status=active&page=1&page_size=100'),
         posApi<unknown>('/customers?page=1&page_size=100'),
-        posApi<unknown>('/inventory/categories')
+        posApi<unknown>('/inventory/categories'),
+        posApi<{ organisation?: { business_type?: string } }>('/accounts/me')
       ]);
-      setProducts(unwrapList<PosProduct>(p.data));
+      const type = profile.data.organisation?.business_type || 'retail';
+      setBusinessType(type);
+      setPriceMode(type === 'wholesale' ? 'wholesale' : 'retail');
+      const pharmacy = type === 'pharmacy';
+      setIsPharmacy(pharmacy);
+      let productList = unwrapList<PosProduct>(p.data);
+      if (pharmacy) {
+        const [batchResult, profileResult] = await Promise.all([
+          posApi<unknown>('/pharmacy/batches'),
+          posApi<unknown>('/pharmacy/products')
+        ]);
+        const profiles = new Map(
+          unwrapList<PosMedicineProfile>(profileResult.data).map((profile) => [
+            profile.product_id,
+            profile
+          ])
+        );
+        const today = new Date();
+        const batches = unwrapList<PosMedicineBatch>(batchResult.data).filter((batch) => {
+          const expiry = new Date(`${batch.expiry_date.slice(0, 10)}T00:00:00`);
+          return (
+            batch.quantity > 0 &&
+            expiry >= new Date(today.getFullYear(), today.getMonth(), today.getDate())
+          );
+        });
+        const stockByProduct = new Map<string, { quantity: number; earliest: string }>();
+        for (const batch of batches) {
+          const current = stockByProduct.get(batch.product_id);
+          stockByProduct.set(batch.product_id, {
+            quantity: (current?.quantity || 0) + batch.quantity,
+            earliest:
+              !current || batch.expiry_date < current.earliest
+                ? batch.expiry_date
+                : current.earliest
+          });
+        }
+        productList = productList.map((product) => {
+          const stock = stockByProduct.get(product.id);
+          const profile = profiles.get(product.id);
+          return {
+            ...product,
+            stock: stock?.quantity || 0,
+            next_expiry_date: stock?.earliest,
+            medicine_profile_configured: Boolean(profile),
+            ...profile,
+            requires_prescription: Boolean(
+              profile?.requires_prescription || profile?.medicine_schedule === 'prescription_only'
+            )
+          };
+        });
+      }
+      setProducts(productList);
       setCustomers(unwrapList<PosCustomer>(c.data));
       setCategories(unwrapList<PosCategory>(categoryResult.data));
     } catch (reason) {
@@ -106,7 +173,11 @@ export default function CheckoutPage() {
       ),
     [products, search]
   );
-  const subtotal = products.reduce((sum, p) => sum + (cart[p.id] || 0) * p.selling_price, 0);
+  const unitPrice = (product: PosProduct) =>
+    priceMode === 'wholesale' && product.wholesale_price
+      ? product.wholesale_price
+      : product.selling_price;
+  const subtotal = products.reduce((sum, p) => sum + (cart[p.id] || 0) * unitPrice(p), 0);
   const discountAmount = Math.floor((subtotal * Number(discountPct || 0)) / 100);
   const checkoutTax = Math.floor((subtotal - discountAmount) * 0.18);
 
@@ -138,7 +209,7 @@ export default function CheckoutPage() {
     try {
       const lines = Object.entries(cart)
         .filter(([, qty]) => qty > 0)
-        .map(([product_id, qty]) => ({ product_id, qty }));
+        .map(([product_id, qty]) => ({ product_id, qty, ...(rxDetails[product_id] || {}) }));
       if (!lines.length)
         throw new Error(
           text('Add at least one product to the sale.', 'Ongeza bidhaa angalau moja kwenye mauzo.')
@@ -153,6 +224,10 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           lines,
           payment_method: paymentMethod,
+          price_mode:
+            businessType === 'wholesale' || businessType === 'retail_wholesale'
+              ? priceMode
+              : 'retail',
           customer_id: customerId || undefined,
           customer_name: customer?.name || undefined,
           customer_phone: customer?.phone || undefined,
@@ -161,6 +236,7 @@ export default function CheckoutPage() {
         })
       });
       setCart({});
+      setRxDetails({});
       window.localStorage.removeItem('ziada-checkout-cart');
       window.localStorage.removeItem('ziada-checkout-step');
       setCustomerId('');
@@ -192,6 +268,13 @@ export default function CheckoutPage() {
         )}
         <CheckoutWorkspace
           products={products}
+          isPharmacy={isPharmacy}
+          priceMode={priceMode}
+          setPriceMode={setPriceMode}
+          canChooseWholesale={businessType === 'retail_wholesale'}
+          unitPrice={unitPrice}
+          rxDetails={rxDetails}
+          setRxDetails={setRxDetails}
           filteredProducts={filteredProducts}
           categories={categories}
           customers={customers}

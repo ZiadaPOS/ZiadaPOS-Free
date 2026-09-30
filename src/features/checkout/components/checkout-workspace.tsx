@@ -1,15 +1,69 @@
 'use client';
 
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { money, type PosCategory, type PosCustomer, type PosProduct } from '@/lib/pos-api';
+import {
+  money,
+  type PosCategory,
+  type PosCustomer,
+  type PosPrescriptionDetails,
+  type PosProduct
+} from '@/lib/pos-api';
 import { Icons } from '@/components/icons';
 import { Dispatch, FormEvent, SetStateAction, useEffect, useState } from 'react';
 import { useText } from '@/lib/i18n';
 
+const prescriptionFields: {
+  key: Exclude<keyof PosPrescriptionDetails, 'prescriber_authenticity_confirmed'>;
+  label: string;
+  maxLength: number;
+}[] = [
+  { key: 'patient_name', label: 'Patient name', maxLength: 200 },
+  { key: 'patient_address', label: 'Patient address', maxLength: 500 },
+  { key: 'prescription_reference', label: 'Prescription serial / reference', maxLength: 200 },
+  { key: 'prescriber_name', label: 'Prescriber name', maxLength: 200 },
+  { key: 'prescriber_address', label: 'Prescriber address', maxLength: 500 },
+  {
+    key: 'prescriber_registration_number',
+    label: 'Prescriber registration number',
+    maxLength: 100
+  },
+  { key: 'prescribing_facility_name', label: 'Prescribing facility', maxLength: 200 },
+  { key: 'prescribing_facility_address', label: 'Facility address', maxLength: 500 },
+  { key: 'medicine_strength', label: 'Medicine strength', maxLength: 100 },
+  { key: 'dosage_form', label: 'Dosage form', maxLength: 100 }
+];
+
+function ProductImage({ image, name }: { image?: string | null; name: string }) {
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div className='pos-product-image'>
+      {image && !failed ? (
+        <img
+          src={image}
+          alt=''
+          className='h-full w-full object-cover'
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span>{name.slice(0, 1).toUpperCase()}</span>
+      )}
+    </div>
+  );
+}
+
 export function CheckoutWorkspace({
   products,
+  isPharmacy,
+  priceMode,
+  setPriceMode,
+  canChooseWholesale,
+  unitPrice,
+  rxDetails,
+  setRxDetails,
   filteredProducts,
   categories,
   customers,
@@ -39,6 +93,13 @@ export function CheckoutWorkspace({
   setMobileCartOpen
 }: {
   products: PosProduct[];
+  isPharmacy: boolean;
+  priceMode: 'retail' | 'wholesale';
+  setPriceMode: Dispatch<SetStateAction<'retail' | 'wholesale'>>;
+  canChooseWholesale: boolean;
+  unitPrice: (product: PosProduct) => number;
+  rxDetails: Record<string, PosPrescriptionDetails>;
+  setRxDetails: Dispatch<SetStateAction<Record<string, PosPrescriptionDetails>>>;
   filteredProducts: PosProduct[];
   categories: PosCategory[];
   customers: PosCustomer[];
@@ -85,64 +146,150 @@ export function CheckoutWorkspace({
       )
     : filteredProducts;
   const itemCount = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
+  function updatePrescriptionField(
+    productId: string,
+    key: Exclude<keyof PosPrescriptionDetails, 'prescriber_authenticity_confirmed'>,
+    value: string
+  ) {
+    setRxDetails((current) => {
+      const previous = current[productId] || {
+        prescriber_name: '',
+        prescriber_address: '',
+        prescriber_registration_number: '',
+        prescriber_authenticity_confirmed: false,
+        prescribing_facility_name: '',
+        prescribing_facility_address: '',
+        prescription_reference: '',
+        patient_name: '',
+        patient_address: '',
+        medicine_strength: '',
+        dosage_form: ''
+      };
+      return { ...current, [productId]: { ...previous, [key]: value } };
+    });
+  }
   const saleForm = (
     <form onSubmit={checkout} className='space-y-4'>
+      {canChooseWholesale && (
+        <label className='text-sm'>
+          Sell at
+          <select
+            value={priceMode}
+            onChange={(event) => setPriceMode(event.target.value as 'retail' | 'wholesale')}
+            className='bg-background ml-2 h-9 rounded-md border px-3'
+          >
+            <option value='retail'>Retail price</option>
+            <option value='wholesale'>Wholesale price</option>
+          </select>
+        </label>
+      )}
       {!showCheckoutDetails && (
         <div className='space-y-3 border-b pb-4'>
           {products
             .filter((product) => cart[product.id])
             .map((product) => (
-              <div
-                key={product.id}
-                className='grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 text-sm'
-              >
-                <span className='min-w-0 break-words'>
-                  {cart[product.id]} × {product.name}
-                </span>
-                <span>{money(cart[product.id] * product.selling_price)}</span>
-                <Button
-                  type='button'
-                  size='icon-sm'
-                  variant='outline'
-                  aria-label={`Decrease ${product.name}`}
-                  onClick={() =>
-                    setCart((current) => ({
-                      ...current,
-                      [product.id]: Math.max(0, (current[product.id] || 0) - 1)
-                    }))
-                  }
+              <div key={product.id} className='space-y-2'>
+                {isPharmacy && product.requires_prescription && (
+                  <div className='grid gap-2 rounded-md border p-3 sm:grid-cols-2'>
+                    <p className='text-sm font-medium sm:col-span-2'>
+                      Prescription register · {product.name}
+                    </p>
+                    {prescriptionFields.map((field) => (
+                      <Input
+                        key={field.key}
+                        aria-label={field.label}
+                        placeholder={field.label}
+                        maxLength={field.maxLength}
+                        required
+                        value={rxDetails[product.id]?.[field.key] || ''}
+                        onChange={(event) =>
+                          updatePrescriptionField(product.id, field.key, event.target.value)
+                        }
+                      />
+                    ))}
+                    <label className='flex items-start gap-2 text-sm sm:col-span-2'>
+                      <input
+                        type='checkbox'
+                        required
+                        checked={rxDetails[product.id]?.prescriber_authenticity_confirmed || false}
+                        onChange={(event) =>
+                          setRxDetails((current) => ({
+                            ...current,
+                            [product.id]: {
+                              ...(current[product.id] || {
+                                prescriber_name: '',
+                                prescriber_address: '',
+                                prescriber_registration_number: '',
+                                prescribing_facility_name: '',
+                                prescribing_facility_address: '',
+                                prescription_reference: '',
+                                patient_name: '',
+                                patient_address: '',
+                                medicine_strength: '',
+                                dosage_form: ''
+                              }),
+                              prescriber_authenticity_confirmed: event.target.checked
+                            }
+                          }))
+                        }
+                      />
+                      I checked the prescriber’s identity/registration and prescription
+                      authenticity.
+                    </label>
+                  </div>
+                )}
+                <div
+                  key={product.id}
+                  className='grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 text-sm'
                 >
-                  −
-                </Button>
-                <Button
-                  type='button'
-                  size='icon-sm'
-                  variant='outline'
-                  aria-label={`Increase ${product.name}`}
-                  onClick={() =>
-                    setCart((current) => ({
-                      ...current,
-                      [product.id]: (current[product.id] || 0) + 1
-                    }))
-                  }
-                >
-                  <Icons.add className='size-3.5' />
-                </Button>
-                <Button
-                  type='button'
-                  size='icon-sm'
-                  variant='ghost'
-                  aria-label={`Remove ${product.name}`}
-                  onClick={() =>
-                    setCart((current) => {
-                      const next = { ...current };
-                      delete next[product.id];
-                      return next;
-                    })
-                  }
-                >
-                  <Icons.trash className='size-3.5' />
-                </Button>
+                  <span className='min-w-0 break-words'>
+                    {cart[product.id]} × {product.name}
+                  </span>
+                  <span>{money(cart[product.id] * unitPrice(product))}</span>
+                  <Button
+                    type='button'
+                    size='icon-sm'
+                    variant='outline'
+                    aria-label={`Decrease ${product.name}`}
+                    onClick={() =>
+                      setCart((current) => ({
+                        ...current,
+                        [product.id]: Math.max(0, (current[product.id] || 0) - 1)
+                      }))
+                    }
+                  >
+                    −
+                  </Button>
+                  <Button
+                    type='button'
+                    size='icon-sm'
+                    variant='outline'
+                    aria-label={`Increase ${product.name}`}
+                    onClick={() =>
+                      setCart((current) => ({
+                        ...current,
+                        [product.id]: (current[product.id] || 0) + 1
+                      }))
+                    }
+                  >
+                    <Icons.add className='size-3.5' />
+                  </Button>
+                  <Button
+                    type='button'
+                    size='icon-sm'
+                    variant='ghost'
+                    aria-label={`Remove ${product.name}`}
+                    onClick={() =>
+                      setCart((current) => {
+                        const next = { ...current };
+                        delete next[product.id];
+                        return next;
+                      })
+                    }
+                  >
+                    <Icons.trash className='size-3.5' />
+                  </Button>
+                </div>
               </div>
             ))}
         </div>
@@ -328,36 +475,74 @@ export function CheckoutWorkspace({
               ))}
             </div>
           </CardHeader>
-          <CardContent className='pos-product-catalog grid max-h-[calc(100svh-18rem)] gap-3 overflow-y-auto'>
+          <CardContent
+            data-catalog-view={catalogView}
+            className='pos-product-catalog grid max-h-[calc(100svh-18rem)] gap-3 overflow-y-auto'
+          >
             {visibleProducts.length ? (
-              visibleProducts.map((product) => (
-                <button
-                  key={product.id}
-                  disabled={!product.is_service && product.stock <= 0}
-                  onClick={() =>
-                    setCart((current) => ({
-                      ...current,
-                      [product.id]: Math.min(current[product.id] || 0, product.stock - 1) + 1
-                    }))
-                  }
-                  className='hover:bg-muted/50 rounded-lg border p-3 text-left transition-colors disabled:opacity-50'
-                >
-                  <div className='pos-product-image'>
-                    {product.image ? (
-                      <img src={product.image} alt='' className='h-full w-full object-cover' />
+              visibleProducts.map((product) => {
+                const canAddToSale =
+                  (!isPharmacy || product.is_service || product.medicine_profile_configured) &&
+                  (product.is_service || product.stock > 0);
+                const addToSale = () =>
+                  setCart((current) => ({
+                    ...current,
+                    [product.id]: product.is_service
+                      ? (current[product.id] || 0) + 1
+                      : Math.min(current[product.id] || 0, product.stock - 1) + 1
+                  }));
+
+                return (
+                  <div key={product.id} className='pos-product-card'>
+                    {canAddToSale ? (
+                      <button
+                        type='button'
+                        className='pos-product-card-button'
+                        aria-label={`${text('Add', 'Ongeza')} ${product.name} ${text('to sale', 'kwenye mauzo')}`}
+                        onClick={addToSale}
+                      >
+                        <ProductImage image={product.image} name={product.name} />
+                        <div className='pos-product-info'>
+                          <span className='pos-product-name font-medium'>{product.name}</span>
+                          <span className='pos-product-meta text-muted-foreground'>
+                            {product.sku || product.barcode || text('No SKU', 'Hakuna SKU')} ·{' '}
+                            {text('stock', 'stoo')}{' '}
+                            {product.is_service ? text('service', 'huduma') : product.stock}
+                          </span>
+                          <span className='pos-product-price font-semibold'>
+                            {money(unitPrice(product))}
+                          </span>
+                        </div>
+                      </button>
                     ) : (
-                      <span>{product.name.slice(0, 1).toUpperCase()}</span>
+                      <div className='pos-product-card-unavailable'>
+                        <ProductImage image={product.image} name={product.name} />
+                        <div className='pos-product-info'>
+                          <span className='pos-product-name font-medium'>{product.name}</span>
+                          <span className='pos-product-meta text-muted-foreground'>
+                            {product.sku || product.barcode || text('No SKU', 'Hakuna SKU')} ·{' '}
+                            {text('stock', 'stoo')}{' '}
+                            {product.is_service ? text('service', 'huduma') : product.stock}
+                          </span>
+                          <span className='pos-product-price font-semibold'>
+                            {money(unitPrice(product))}
+                          </span>
+                        </div>
+                        {isPharmacy &&
+                          !product.is_service &&
+                          !product.medicine_profile_configured && (
+                            <Link
+                              className='text-primary text-xs underline underline-offset-4'
+                              href={`/dashboard/inventory/${product.id}`}
+                            >
+                              Configure medicine details
+                            </Link>
+                          )}
+                      </div>
                     )}
                   </div>
-                  <p className='font-medium'>{product.name}</p>
-                  <p className='text-muted-foreground mt-1 text-xs'>
-                    {product.sku || product.barcode || text('No SKU', 'Hakuna SKU')} ·{' '}
-                    {text('stock', 'stoo')}{' '}
-                    {product.is_service ? text('service', 'huduma') : product.stock}
-                  </p>
-                  <p className='mt-3 font-semibold'>{money(product.selling_price)}</p>
-                </button>
-              ))
+                );
+              })
             ) : (
               <div className='text-muted-foreground flex min-h-40 items-center justify-center text-center text-sm'>
                 {products.length

@@ -42,9 +42,12 @@ export type PosUser = {
 export type PosProduct = {
   id: string;
   name: string;
+  unit?: string;
   sku: string;
   barcode: string;
   selling_price: number;
+  wholesale_price?: number | null;
+  wholesale_minimum?: number;
   cost_price: number;
   stock: number;
   reorder_point: number;
@@ -56,6 +59,59 @@ export type PosProduct = {
   is_service: boolean;
   is_active: boolean;
   tax_rate: number;
+  next_expiry_date?: string;
+  sellable_stock?: number;
+  expired_stock?: number;
+  untracked_stock?: number;
+  requires_prescription?: boolean;
+  medicine_profile_configured?: boolean;
+  medicine_schedule?: string;
+  generic_name?: string;
+  brand_name?: string;
+};
+export type PosMedicineBatch = {
+  id: string;
+  product_id: string;
+  source_batch_id?: string;
+  product_name?: string;
+  batch_number: string;
+  quantity: number;
+  expiry_date: string;
+  cost_price: number;
+  supplier_name?: string;
+  stock_status: 'available' | 'quarantined' | string;
+};
+export type PosMedicineStockMovement = {
+  id: string;
+  movement_type: string;
+  quantity: number;
+  reference_id?: string;
+  reason?: string;
+  performed_by: string;
+  created_at: string;
+};
+export type PosMedicineProfile = {
+  product_id: string;
+  generic_name: string;
+  brand_name: string;
+  unit: string;
+  pack_size: string;
+  requires_prescription: boolean;
+  medicine_schedule: string;
+  registration_number: string;
+};
+export type PosPrescriptionDetails = {
+  prescriber_name: string;
+  prescriber_address: string;
+  prescriber_registration_number: string;
+  prescriber_authenticity_confirmed: boolean;
+  prescribing_facility_name: string;
+  prescribing_facility_address: string;
+  prescription_reference: string;
+  patient_name: string;
+  patient_address: string;
+  medicine_strength: string;
+  dosage_form: string;
 };
 export type PosCustomer = {
   id: string;
@@ -97,6 +153,21 @@ export type PosCategory = {
   description?: string;
   sort_order?: number;
   product_count?: number;
+  is_default?: boolean;
+};
+export type PosUnit = {
+  id: string;
+  name: string;
+  description?: string;
+  is_active?: boolean;
+  is_default?: boolean;
+  usage_count?: number;
+};
+export type PosExpenseCategory = {
+  id: string;
+  name: string;
+  is_default?: boolean;
+  expense_count?: number;
 };
 export type PosCreditTab = {
   id: string;
@@ -120,6 +191,7 @@ export function unwrapList<T>(data: unknown): T[] {
       'customers',
       'transactions',
       'categories',
+      'units',
       'suppliers',
       'expenses',
       'staff',
