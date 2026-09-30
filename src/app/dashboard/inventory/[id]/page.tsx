@@ -7,6 +7,8 @@ import { money, posApi, unwrapList, type PosProduct, type PosTransaction } from 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useText } from '@/lib/i18n';
+import { MedicineProfileEditor } from '@/features/pharmacy/components/medicine-profile-editor';
+import { WholesalePricingEditor } from '@/features/inventory/components/wholesale-pricing-editor';
 
 type Adjustment = {
   id: string;
@@ -24,14 +26,20 @@ export default function InventoryProductDetailPage() {
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [transactions, setTransactions] = useState<PosTransaction[]>([]);
   const [error, setError] = useState('');
+  const [isPharmacy, setIsPharmacy] = useState(false);
+  const [businessType, setBusinessType] = useState('retail');
   useEffect(() => {
     void Promise.all([
       posApi<PosProduct>(`/inventory/products/${params.id}`),
       posApi<unknown>(`/inventory/products/${params.id}/adjustments?limit=20`),
-      posApi<unknown>('/pos/transactions?page=1&page_size=100')
+      posApi<unknown>('/pos/transactions?page=1&page_size=100'),
+      posApi<{ organisation?: { business_type?: string } }>('/accounts/me')
     ])
-      .then(([productResult, adjustmentResult, transactionResult]) => {
+      .then(([productResult, adjustmentResult, transactionResult, profile]) => {
         setProduct(productResult.data);
+        const type = profile.data.organisation?.business_type || 'retail';
+        setBusinessType(type);
+        setIsPharmacy(type === 'pharmacy');
         setAdjustments(unwrapList<Adjustment>(adjustmentResult.data));
         setTransactions(unwrapList<PosTransaction>(transactionResult.data));
       })
@@ -113,6 +121,10 @@ export default function InventoryProductDetailPage() {
           </Card>
         ))}
       </div>
+      {isPharmacy && <MedicineProfileEditor productId={product.id} />}
+      {(businessType === 'wholesale' || businessType === 'retail_wholesale') && (
+        <WholesalePricingEditor product={product} onSaved={setProduct} />
+      )}
       <div className='grid w-full gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,480px)]'>
         <Card className='w-full'>
           <CardHeader>

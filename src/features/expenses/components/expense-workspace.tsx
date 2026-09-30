@@ -3,21 +3,29 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { FormDialog } from '@/components/ui/form-dialog';
 import { posApi, money, unwrapList } from '@/lib/pos-api';
-import { Icons } from '@/components/icons';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useText } from '@/lib/i18n';
 
 interface ExpenseWorkspaceProps {
   showForm: boolean;
   onShowFormChange: (show: boolean) => void;
+  categories: string[];
+  category: string;
+  onCategoryChange: (category: string) => void;
 }
 
-export function ExpenseWorkspace({ showForm, onShowFormChange }: ExpenseWorkspaceProps) {
+export function ExpenseWorkspace({
+  showForm,
+  onShowFormChange,
+  categories,
+  category,
+  onCategoryChange
+}: ExpenseWorkspaceProps) {
   const text = useText();
   const [records, setRecords] = useState<Record<string, unknown>[]>([]);
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('all');
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
   const load = useCallback(() => {
@@ -31,9 +39,6 @@ export function ExpenseWorkspace({ showForm, onShowFormChange }: ExpenseWorkspac
     load();
   }, [load]);
   const amount = (record: Record<string, unknown>) => Number(record.amount || 0);
-  const categories = [
-    ...new Set(records.map((record) => String(record.category || 'Other')))
-  ].sort();
   const filtered = records.filter(
     (record) =>
       `${record.title || record.name || ''} ${record.category || ''} ${record.notes || record.note || ''}`
@@ -44,6 +49,7 @@ export function ExpenseWorkspace({ showForm, onShowFormChange }: ExpenseWorkspac
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
+    setMessage('');
     const values = Object.fromEntries(new FormData(event.currentTarget));
     try {
       await posApi<unknown>('/expenses', {
@@ -92,7 +98,7 @@ export function ExpenseWorkspace({ showForm, onShowFormChange }: ExpenseWorkspac
             <select
               className='bg-background h-9 rounded-md border px-3 text-sm'
               value={category}
-              onChange={(event) => setCategory(event.target.value)}
+              onChange={(event) => onCategoryChange(event.target.value)}
             >
               <option value='all'>{text('All categories', 'Makundi yote')}</option>
               {categories.map((item) => (
@@ -140,65 +146,75 @@ export function ExpenseWorkspace({ showForm, onShowFormChange }: ExpenseWorkspac
               </tbody>
             </table>
           </div>
-          {message && (
+          {message && !showForm && (
             <p role='alert' className='text-destructive pt-3 text-sm'>
               {message}
             </p>
           )}
         </CardContent>
       </Card>
-      {showForm && (
-        <div
-          className='fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4'
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) onShowFormChange(false);
-          }}
-        >
-          <Card
-            className='my-4 w-full max-w-2xl shadow-2xl'
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-              <div>
-                <CardTitle>{text('New expense', 'Gharama mpya')}</CardTitle>
-                <CardDescription>Record an operating expense for this store.</CardDescription>
-              </div>
-              <Button
-                variant='ghost'
-                size='icon'
-                aria-label='Close new expense'
-                onClick={() => onShowFormChange(false)}
-              >
-                <Icons.close className='h-5 w-5' />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={create} className='grid gap-3 sm:grid-cols-2'>
-                {[
-                  ['title', 'Expense title'],
-                  ['amount', 'Amount (TZS)'],
-                  ['category', 'Category'],
-                  ['payment_method', 'Payment method'],
-                  ['payment_reference', 'Payment reference'],
-                  ['notes', 'Notes']
-                ].map(([name, label]) => (
-                  <label key={name} className='text-sm'>
-                    {label}
-                    <Input
-                      name={name}
-                      type={name === 'amount' ? 'number' : 'text'}
-                      required={name === 'title' || name === 'amount'}
-                    />
-                  </label>
-                ))}
-                <div className='sm:col-span-2'>
-                  <Button isLoading={pending}>{text('Save expense', 'Hifadhi gharama')}</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <FormDialog
+        open={showForm}
+        onOpenChange={(open) => {
+          onShowFormChange(open);
+          if (!open) setMessage('');
+        }}
+        title={text('New expense', 'Gharama mpya')}
+        description='Record an operating expense for this store.'
+        size='wide'
+      >
+        <form onSubmit={create} className='mt-5 grid gap-4 sm:grid-cols-2'>
+          {[
+            ['title', 'Expense title'],
+            ['amount', 'Amount (TZS)'],
+            ['category', 'Category'],
+            ['payment_method', 'Payment method'],
+            ['payment_reference', 'Payment reference'],
+            ['notes', 'Notes']
+          ].map(([name, label]) =>
+            name === 'category' ? (
+              <label key={name} className='grid gap-2 text-sm font-semibold'>
+                {label}
+                <select
+                  name={name}
+                  defaultValue=''
+                  className='bg-background h-11 w-full rounded-lg border border-input px-3 font-normal'
+                  required
+                >
+                  <option value='' disabled>
+                    Select category
+                  </option>
+                  {categories.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <label key={name} className='grid gap-2 text-sm font-semibold'>
+                {label}
+                <Input
+                  name={name}
+                  type={name === 'amount' ? 'number' : 'text'}
+                  required={name === 'title' || name === 'amount'}
+                />
+              </label>
+            )
+          )}
+          {message && (
+            <p
+              role='alert'
+              className='rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive sm:col-span-2'
+            >
+              {message}
+            </p>
+          )}
+          <Button isLoading={pending} className='h-12 w-full sm:col-span-2'>
+            {text('Save expense', 'Hifadhi gharama')}
+          </Button>
+        </form>
+      </FormDialog>
     </div>
   );
 }

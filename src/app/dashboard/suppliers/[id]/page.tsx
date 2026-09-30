@@ -18,6 +18,7 @@ export default function SupplierDetailPage() {
   const [supplier, setSupplier] = useState<SupplierRecord | null>(null);
   const [deliveries, setDeliveries] = useState<SupplierRecord[]>([]);
   const [amount, setAmount] = useState('');
+  const [leadTimeDays, setLeadTimeDays] = useState('7');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   async function load() {
@@ -27,6 +28,7 @@ export default function SupplierDetailPage() {
         posApi<unknown>(`/suppliers/${params.id}/deliveries?page=1&page_size=100`)
       ]);
       setSupplier(supplierResult.data);
+      setLeadTimeDays(String(supplierResult.data.lead_time_days || 7));
       setDeliveries(unwrapList<SupplierRecord>(deliveryResult.data));
     } catch (reason) {
       setError(
@@ -55,6 +57,34 @@ export default function SupplierDetailPage() {
       await load();
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : 'Payment could not be recorded.');
+    }
+  }
+  async function saveLeadTime() {
+    const value = Number(leadTimeDays);
+    if (!Number.isInteger(value) || value < 1 || value > 365) {
+      setMessage('Lead time must be between 1 and 365 days.');
+      return;
+    }
+    try {
+      await posApi(`/suppliers/${params.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: supplier?.name,
+          category: supplier?.category,
+          rep: supplier?.rep,
+          phone: supplier?.phone,
+          email: supplier?.email,
+          address: supplier?.address,
+          payment_terms: supplier?.payment_terms,
+          status: supplier?.status,
+          notes: supplier?.notes,
+          lead_time_days: value
+        })
+      });
+      setMessage('Lead time updated.');
+      await load();
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : 'Could not update lead time.');
     }
   }
   if (error)
@@ -106,6 +136,25 @@ export default function SupplierDetailPage() {
         ))}
       </div>
       <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]'>
+        <Card>
+          <CardHeader>
+            <CardTitle>Delivery lead time</CardTitle>
+            <CardDescription>
+              Used when calculating reorder suggestions for medicines assigned to this supplier.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className='flex gap-2'>
+            <Input
+              type='number'
+              min='1'
+              max='365'
+              value={leadTimeDays}
+              onChange={(event) => setLeadTimeDays(event.target.value)}
+              aria-label='Delivery lead time in days'
+            />
+            <Button onClick={() => void saveLeadTime()}>Save</Button>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Delivery history</CardTitle>

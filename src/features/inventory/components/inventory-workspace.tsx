@@ -13,9 +13,11 @@ import { BusinessKpiCard } from '@/components/business/business-kpi-card';
 
 export function InventoryWorkspace({
   products,
+  isPharmacy,
   onUpdated
 }: {
   products: PosProduct[];
+  isPharmacy: boolean;
   onUpdated: () => void;
 }) {
   const text = useText();
@@ -43,13 +45,19 @@ export function InventoryWorkspace({
       (status === 'active'
         ? product.is_active && !product.low_stock
         : status === 'low'
-          ? product.low_stock && product.stock > 0
-          : product.stock === 0);
+          ? product.low_stock &&
+            (isPharmacy ? (product.sellable_stock || 0) > 0 : product.stock > 0)
+          : (isPharmacy ? product.sellable_stock || 0 : product.stock) === 0);
     return matchesQuery && matchesCategory && matchesStatus;
   });
   const totalValue = products.reduce((sum, product) => sum + product.stock * product.cost_price, 0);
-  const lowStock = products.filter((product) => product.low_stock && product.stock > 0).length;
-  const outOfStock = products.filter((product) => product.stock === 0).length;
+  const lowStock = products.filter(
+    (product) =>
+      product.low_stock && (isPharmacy ? (product.sellable_stock || 0) > 0 : product.stock > 0)
+  ).length;
+  const outOfStock = products.filter(
+    (product) => (isPharmacy ? product.sellable_stock || 0 : product.stock) === 0
+  ).length;
   return (
     <div className='space-y-4'>
       <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
@@ -150,7 +158,7 @@ export function InventoryWorkspace({
         </CardHeader>
         <CardContent>
           {view === 'table' ? (
-            <InventoryTable products={filtered} onUpdated={onUpdated} />
+            <InventoryTable products={filtered} isPharmacy={isPharmacy} onUpdated={onUpdated} />
           ) : (
             <div className='grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4'>
               {filtered.map((product) => (
@@ -174,17 +182,24 @@ export function InventoryWorkspace({
                     <div className='flex items-center justify-between text-sm'>
                       <span className='font-semibold'>{money(product.selling_price)}</span>
                       <span
-                        className={
-                          product.stock === 0
-                            ? 'text-destructive'
-                            : product.low_stock
-                              ? 'text-amber-500'
-                              : 'text-muted-foreground'
-                        }
+                        className={product.low_stock ? 'text-amber-500' : 'text-muted-foreground'}
                       >
-                        {product.stock} in stock
+                        {isPharmacy
+                          ? `${product.sellable_stock || 0} sellable`
+                          : `${product.stock} in stock`}
                       </span>
                     </div>
+                    {isPharmacy && !!product.expired_stock && (
+                      <p className='text-destructive text-xs'>{product.expired_stock} expired</p>
+                    )}
+                    {isPharmacy && product.next_expiry_date && (
+                      <p className='text-muted-foreground text-xs'>
+                        Next expiry{' '}
+                        {new Date(
+                          `${product.next_expiry_date.slice(0, 10)}T00:00:00`
+                        ).toLocaleDateString()}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               ))}

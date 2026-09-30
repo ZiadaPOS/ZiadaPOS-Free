@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/icons';
 import { posApi, unwrapList } from '@/lib/pos-api';
+import { FormDialog } from '@/components/ui/form-dialog';
 
 type Note = { id: string; title: string; content?: string; tags?: string[]; date_label?: string };
 
@@ -124,33 +125,26 @@ export default function NotebookPage() {
             </div>
           </CardContent>
         </Card>
-        {open && (
-          <div
-            className='fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4'
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setOpen(false);
-            }}
-          >
-            <Card className='min-h-[50svh] w-full rounded-b-none sm:min-h-0 sm:max-w-lg sm:rounded-xl'>
-              <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-                <CardTitle>New note</CardTitle>
-                <Button variant='ghost' size='icon' onClick={() => setOpen(false)}>
-                  <Icons.close className='size-4' />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={create} className='space-y-4'>
-                  <Input name='title' placeholder='Note title' required />
-                  <Textarea name='content' placeholder='Write a note…' rows={5} />
-                  <Input name='tags' placeholder='Tags, separated by commas' />
-                  <Button className='h-11 w-full' isLoading={pending}>
-                    Save note
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+        <FormDialog
+          open={open}
+          onOpenChange={setOpen}
+          title='New note'
+          description='Write a shared note or reminder for your store team.'
+        >
+          <form onSubmit={create} className='mt-5 space-y-4'>
+            {error && (
+              <p role='alert' className='text-destructive text-sm'>
+                {error}
+              </p>
+            )}
+            <Input name='title' placeholder='Note title' required />
+            <Textarea name='content' placeholder='Write a note…' rows={5} />
+            <Input name='tags' placeholder='Tags, separated by commas' />
+            <Button className='h-11 w-full' isLoading={pending}>
+              Save note
+            </Button>
+          </form>
+        </FormDialog>
       </div>
     </PageContainer>
   );

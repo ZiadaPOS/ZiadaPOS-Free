@@ -8,10 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
+import { tanzaniaPhoneLocalNumber, tanzaniaPhoneNationalDigits } from '@/lib/tanzania-phone';
 
 export default function SignInPage() {
   const router = useRouter();
-  const [identifier, setIdentifier] = useState('');
+  const [phoneDigits, setPhoneDigits] = useState('');
   const [remember, setRemember] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
@@ -20,8 +21,13 @@ export default function SignInPage() {
   useEffect(() => {
     const saved = localStorage.getItem('pos_login_identifier');
     if (saved) {
-      setIdentifier(saved);
-      setRemember(true);
+      const digits = tanzaniaPhoneNationalDigits(saved);
+      if (digits.length === 9) {
+        setPhoneDigits(digits);
+        setRemember(true);
+      } else {
+        localStorage.removeItem('pos_login_identifier');
+      }
     }
   }, []);
 
@@ -30,18 +36,28 @@ export default function SignInPage() {
     setPending(true);
     setError('');
     const form = new FormData(event.currentTarget);
+    const phone = tanzaniaPhoneLocalNumber(phoneDigits);
     try {
       const response = await fetch('/api/pos-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: form.get('identifier'), password: form.get('password') })
+        body: JSON.stringify({ identifier: phone, password: form.get('password') })
       });
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.message || 'Could not sign in.');
-      if (remember) localStorage.setItem('pos_login_identifier', identifier);
+      if (remember) localStorage.setItem('pos_login_identifier', phone);
       else localStorage.removeItem('pos_login_identifier');
       localStorage.setItem('pos_user', JSON.stringify(result.data.user));
-      router.replace('/dashboard/overview');
+      if (result.data.business_type)
+        localStorage.setItem('pos_business_type', result.data.business_type);
+      if (result.data.outlet_type) localStorage.setItem('pos_outlet_type', result.data.outlet_type);
+      const destinations: Record<string, string> = {
+        pharmacy: '/dashboard/pharmacy/expiry',
+        retail: '/dashboard/overview',
+        wholesale: '/dashboard/overview',
+        retail_wholesale: '/dashboard/overview'
+      };
+      router.replace(destinations[result.data.business_type] || '/dashboard/overview');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not sign in.');
     } finally {
@@ -54,30 +70,41 @@ export default function SignInPage() {
       <Card className='w-full max-w-md'>
         <CardHeader className='space-y-4'>
           <div className='flex items-center justify-center gap-3'>
-            <img src='/ziada-final.jpeg' alt='' className='size-10 rounded-xl object-cover' />
+            <img src='/ziada-final.jpeg' alt='' className='size-10 rounded-full object-cover' />
             <span className='text-primary font-bold tracking-wide'>ZIADA POS</span>
           </div>
           <div className='space-y-2 text-center'>
             <CardTitle className='text-2xl'>Sign in to your business</CardTitle>
             <CardDescription>
-              Use your phone number or email and password to continue.
+              Use your Tanzanian phone number and password to continue.
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className='space-y-5'>
             <div className='space-y-2'>
-              <Label htmlFor='identifier'>Phone or email</Label>
-              <Input
-                id='identifier'
-                name='identifier'
-                className='h-11'
-                value={identifier}
-                onChange={(event) => setIdentifier(event.target.value)}
-                autoComplete='username'
-                required
-                placeholder='0712 345 678'
-              />
+              <Label htmlFor='phone'>Phone number</Label>
+              <div className='relative'>
+                <Input
+                  id='phone'
+                  name='phone'
+                  className='h-11 pl-16'
+                  type='tel'
+                  inputMode='tel'
+                  autoComplete='username'
+                  value={phoneDigits}
+                  onChange={(event) =>
+                    setPhoneDigits(tanzaniaPhoneNationalDigits(event.target.value))
+                  }
+                  maxLength={9}
+                  pattern='[0-9]{9}'
+                  required
+                  placeholder='712345678'
+                />
+                <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 flex h-5 -translate-y-1/2 items-center border-r border-border pr-2 text-sm'>
+                  +255
+                </span>
+              </div>
             </div>
             <div className='space-y-2'>
               <Label htmlFor='password'>Password</Label>

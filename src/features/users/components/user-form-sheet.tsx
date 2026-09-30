@@ -6,13 +6,12 @@ import { FieldGroup } from '@/components/ui/field';
 import { useAppForm } from '@/lib/form';
 import { LoadingButton } from '@/components/ui/loading-button';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { Icons } from '@/components/icons';
 import { useMutation } from '@tanstack/react-query';
 import { createUserMutation, updateUserMutation } from '../api/mutations';
@@ -79,21 +78,21 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className='flex flex-col'>
-        <SheetHeader>
-          <SheetTitle>{isEdit ? 'Edit User' : 'New User'}</SheetTitle>
-          <SheetDescription>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className='flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-lg'>
+        <DialogHeader className='shrink-0 border-b px-6 py-5'>
+          <DialogTitle>{isEdit ? 'Edit User' : 'New User'}</DialogTitle>
+          <DialogDescription>
             {isEdit
               ? 'Update the user details below.'
               : 'Fill in the details to create a new user.'}
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
 
         <div className='flex-1 overflow-auto'>
           <form
             id='user-form-sheet'
-            className='space-y-4 p-4 md:p-4'
+            className='space-y-4 p-6'
             onSubmit={(e) => {
               e.preventDefault();
               form.handleSubmit();
@@ -161,16 +160,16 @@ export function UserFormSheet({ user, open, onOpenChange }: UserFormSheetProps) 
           </form>
         </div>
 
-        <SheetFooter>
+        <div className='flex shrink-0 justify-end gap-2 border-t bg-muted/30 px-6 py-4'>
           <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <LoadingButton loading={isPending} type='submit' form='user-form-sheet'>
             {isEdit ? 'Update User' : 'Create User'}
           </LoadingButton>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

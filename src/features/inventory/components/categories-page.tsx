@@ -6,11 +6,18 @@ import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { posApi, unwrapList, type PosCategory } from '@/lib/pos-api';
+import { posApi, unwrapList, type PosCategory, type PosExpenseCategory } from '@/lib/pos-api';
+import { InventoryNameDialog } from '@/features/inventory/components/inventory-name-dialog';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<PosCategory[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<PosExpenseCategory[]>([]);
+  const [categoryType, setCategoryType] = useState<'inventory' | 'expenses'>('inventory');
+  const [editingCategory, setEditingCategory] = useState<PosCategory | PosExpenseCategory | null>(
+    null
+  );
+  const [createType, setCreateType] = useState('');
   const [name, setName] = useState('');
   const [query, setQuery] = useState('');
   const [error, setError] = useState('');
@@ -18,12 +25,30 @@ export default function CategoriesPage() {
   const [showCreate, setShowCreate] = useState(false);
 
   const load = useCallback(async () => {
-    try {
-      setError('');
-      const result = await posApi<unknown>('/inventory/categories');
-      setCategories(unwrapList<PosCategory>(result.data));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not load categories.');
+    setError('');
+    const [inventoryResult, expenseResult] = await Promise.allSettled([
+      posApi<unknown>('/inventory/categories'),
+      posApi<unknown>('/expenses/categories')
+    ]);
+    if (inventoryResult.status === 'fulfilled') {
+      setCategories(unwrapList<PosCategory>(inventoryResult.value.data));
+    } else {
+      setError(
+        inventoryResult.reason instanceof Error
+          ? inventoryResult.reason.message
+          : 'Could not load inventory categories.'
+      );
+    }
+    if (expenseResult.status === 'fulfilled') {
+      setExpenseCategories(unwrapList<PosExpenseCategory>(expenseResult.value.data));
+    } else {
+      setError(
+        (current) =>
+          current ||
+          (expenseResult.reason instanceof Error
+            ? expenseResult.reason.message
+            : 'Could not load expense categories.')
+      );
     }
   }, []);
 
@@ -33,14 +58,26 @@ export default function CategoriesPage() {
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!name.trim()) return;
+    const targetType = editingCategory ? categoryType : createType;
+    if (!name.trim() || !targetType) return;
     setBusy(true);
     try {
-      await posApi('/inventory/categories', {
-        method: 'POST',
-        body: JSON.stringify({ name: name.trim() })
+      const path = targetType === 'inventory' ? '/inventory/categories' : '/expenses/categories';
+      const body =
+        editingCategory && targetType === 'inventory'
+          ? {
+              name: name.trim(),
+              description: (editingCategory as PosCategory).description ?? '',
+              sort_order: (editingCategory as PosCategory).sort_order ?? 0
+            }
+          : { name: name.trim() };
+      await posApi(editingCategory ? `${path}/${editingCategory.id}` : path, {
+        method: editingCategory ? 'PATCH' : 'POST',
+        body: JSON.stringify(body)
       });
       setName('');
+      setCreateType('');
+      setEditingCategory(null);
       await load();
       setShowCreate(false);
     } catch (reason) {
@@ -50,34 +87,69 @@ export default function CategoriesPage() {
     }
   }
 
-  async function remove(category: PosCategory) {
+  async function remove(category: PosCategory | PosExpenseCategory) {
     if (!window.confirm(`Delete “${category.name}”?`)) return;
     try {
       setError('');
-      await posApi(`/inventory/categories/${category.id}`, { method: 'DELETE' });
+      await posApi(
+        `${categoryType === 'inventory' ? '/inventory/categories' : '/expenses/categories'}/${category.id}`,
+        { method: 'DELETE' }
+      );
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not delete category.');
     }
   }
 
+  function setCreateDialogOpen(open: boolean) {
+    setShowCreate(open);
+    setError('');
+    if (open) {
+      setEditingCategory(null);
+      setName('');
+      setCreateType('');
+    } else {
+      setName('');
+      setCreateType('');
+      setEditingCategory(null);
+    }
+  }
+
+  function startEditing(category: PosCategory | PosExpenseCategory) {
+    setError('');
+    setName(category.name);
+    setEditingCategory(category);
+    setShowCreate(true);
+  }
+
+  const visibleCategories = categoryType === 'inventory' ? categories : expenseCategories;
+  const usageCount = (category: PosCategory | PosExpenseCategory) =>
+    categoryType === 'inventory'
+      ? ((category as PosCategory).product_count ?? 0)
+      : ((category as PosExpenseCategory).expense_count ?? 0);
   const filtered = useMemo(
     () =>
-      categories.filter((category) => category.name.toLowerCase().includes(query.toLowerCase())),
-    [categories, query]
+      visibleCategories.filter((category) =>
+        category.name.toLowerCase().includes(query.toLowerCase())
+      ),
+    [visibleCategories, query]
   );
-  const assignedProducts = categories.reduce(
-    (sum, category) => sum + (category.product_count ?? 0),
+  const assignedProducts = visibleCategories.reduce(
+    (sum, category) => sum + usageCount(category),
     0
   );
-  const emptyCategories = categories.filter((category) => !category.product_count).length;
+  const emptyCategories = visibleCategories.filter((category) => !usageCount(category)).length;
 
   return (
     <PageContainer
       pageTitle='Categories'
-      pageDescription='Organize products into clear, manageable groups.'
+      pageDescription={
+        categoryType === 'inventory'
+          ? 'Organize products into clear, manageable groups.'
+          : 'Organize business expenses into clear, manageable groups.'
+      }
       pageHeaderAction={
-        <Button className='w-full sm:w-auto' onClick={() => setShowCreate(true)}>
+        <Button className='w-full sm:w-auto' onClick={() => setCreateDialogOpen(true)}>
           Add category
         </Button>
       }
@@ -85,21 +157,23 @@ export default function CategoriesPage() {
       <div className='space-y-5'>
         <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
           <BusinessKpiCard
-            label='Total categories'
-            value={String(categories.length)}
-            helper='Product groups'
+            label={categoryType === 'inventory' ? 'Inventory categories' : 'Expense categories'}
+            value={String(visibleCategories.length)}
+            helper={categoryType === 'inventory' ? 'Product groups' : 'Expense groups'}
             icon={Icons.folder}
           />
           <BusinessKpiCard
-            label='Assigned products'
+            label={categoryType === 'inventory' ? 'Assigned products' : 'Categorized expenses'}
             value={String(assignedProducts)}
-            helper='Products in categories'
+            helper={
+              categoryType === 'inventory' ? 'Products in categories' : 'Expenses by category'
+            }
             icon={Icons.product}
           />
           <BusinessKpiCard
-            label='Empty categories'
+            label={categoryType === 'inventory' ? 'Empty categories' : 'Unused categories'}
             value={String(emptyCategories)}
-            helper='Ready for products'
+            helper={categoryType === 'inventory' ? 'Ready for products' : 'Ready for expenses'}
             icon={Icons.info}
           />
           <BusinessKpiCard
@@ -110,16 +184,42 @@ export default function CategoriesPage() {
           />
         </div>
 
-        {error && (
+        {error && !showCreate && (
           <p role='alert' className='text-destructive text-sm'>
             {error}
           </p>
         )}
 
         <Card>
-          <CardHeader>
-            <CardTitle>Manage categories</CardTitle>
-            <CardDescription>Create, find, and remove product categories.</CardDescription>
+          <CardHeader className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='space-y-1'>
+              <CardTitle>Manage categories</CardTitle>
+              <CardDescription>
+                {categoryType === 'inventory'
+                  ? 'Create, find, and remove product categories.'
+                  : 'Create, find, and remove expense categories.'}
+              </CardDescription>
+            </div>
+            <div
+              className='grid w-full grid-cols-2 rounded-lg border p-1 sm:flex sm:w-auto'
+              role='tablist'
+              aria-label='Category type'
+            >
+              {(['inventory', 'expenses'] as const).map((type) => (
+                <Button
+                  key={type}
+                  type='button'
+                  size='sm'
+                  className='w-full sm:w-auto'
+                  variant={categoryType === type ? 'default' : 'ghost'}
+                  role='tab'
+                  aria-selected={categoryType === type}
+                  onClick={() => setCategoryType(type)}
+                >
+                  {type === 'inventory' ? 'Inventory' : 'Expenses'}
+                </Button>
+              ))}
+            </div>
           </CardHeader>
           <CardContent className='space-y-4'>
             <Input
@@ -134,18 +234,31 @@ export default function CategoriesPage() {
                   <div className='min-w-0'>
                     <p className='truncate font-medium'>{category.name}</p>
                     <p className='text-muted-foreground text-xs'>
-                      {category.product_count ?? 0} products
+                      {'is_default' in category && category.is_default ? 'Default · ' : ''}
+                      {usageCount(category)}{' '}
+                      {categoryType === 'inventory' ? 'products' : 'expenses'}
                     </p>
                   </div>
-                  <Button
-                    type='button'
-                    variant='ghost'
-                    size='icon'
-                    aria-label={`Delete ${category.name}`}
-                    onClick={() => void remove(category)}
-                  >
-                    <Icons.trash className='text-destructive size-4' />
-                  </Button>
+                  <div className='flex shrink-0 items-center gap-1'>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      aria-label={`Edit ${category.name}`}
+                      onClick={() => startEditing(category)}
+                    >
+                      <Icons.edit className='size-4' />
+                    </Button>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      aria-label={`Delete ${category.name}`}
+                      onClick={() => void remove(category)}
+                    >
+                      <Icons.trash className='text-destructive size-4' />
+                    </Button>
+                  </div>
                 </div>
               ))}
               {!filtered.length && (
@@ -157,49 +270,34 @@ export default function CategoriesPage() {
           </CardContent>
         </Card>
       </div>
-      {showCreate && (
-        <div
-          className='fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4'
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setShowCreate(false);
-          }}
-        >
-          <Card
-            className='min-h-[50svh] w-full rounded-b-none shadow-2xl sm:min-h-0 sm:max-w-md sm:rounded-xl'
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-              <div>
-                <CardTitle>Add category</CardTitle>
-                <CardDescription>Create a new product group.</CardDescription>
-              </div>
-              <Button
-                type='button'
-                variant='ghost'
-                size='icon'
-                aria-label='Close add category dialog'
-                onClick={() => setShowCreate(false)}
-              >
-                <Icons.close className='size-4' />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={create} className='space-y-3'>
-                <Input
-                  autoFocus
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder='Category name'
-                  required
-                />
-                <Button type='submit' disabled={busy} className='w-full'>
-                  {busy ? 'Adding…' : 'Add category'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <InventoryNameDialog
+        open={showCreate}
+        onOpenChange={setCreateDialogOpen}
+        title={editingCategory ? 'Edit category' : 'Add category'}
+        description={
+          editingCategory
+            ? 'Update this category name. Existing items will keep their category.'
+            : 'Choose where this category will be used, then give it a name.'
+        }
+        fieldLabel='Category name'
+        placeholder='e.g. Personal care'
+        submitLabel={editingCategory ? 'Save changes' : 'Add category'}
+        name={name}
+        onNameChange={setName}
+        onSubmit={create}
+        busy={busy}
+        error={showCreate ? error : undefined}
+        typeOptions={
+          editingCategory
+            ? undefined
+            : [
+                { value: 'inventory', label: 'Inventory' },
+                { value: 'expenses', label: 'Expenses' }
+              ]
+        }
+        selectedType={editingCategory ? categoryType : createType}
+        onTypeChange={setCreateType}
+      />
     </PageContainer>
   );
 }

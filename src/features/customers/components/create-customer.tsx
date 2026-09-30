@@ -1,10 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { FormDialog } from '@/components/ui/form-dialog';
 import { posApi, type PosCustomer } from '@/lib/pos-api';
-import { Icons } from '@/components/icons';
 import { FormEvent, useState } from 'react';
 import { useText } from '@/lib/i18n';
 
@@ -41,75 +40,58 @@ export function CreateCustomer({ onCreated }: { onCreated: () => void }) {
     }
   }
   return (
-    <div
-      className='fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4'
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onCreated();
-      }}
+    <FormDialog
+      open
+      onOpenChange={(open) => !open && onCreated()}
+      title={text('New customer', 'Mteja mpya')}
+      description='Add a profile for repeat sales and credit tracking.'
+      size='wide'
     >
-      <Card
-        className='my-4 w-full max-w-2xl shadow-2xl'
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-          <div>
-            <CardTitle>{text('New customer', 'Mteja mpya')}</CardTitle>
-            <CardDescription>Add a profile for repeat sales and credit tracking.</CardDescription>
-          </div>
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon'
-            aria-label='Close new customer'
-            onClick={onCreated}
+      <form onSubmit={submit} className='mt-5 grid gap-4 sm:grid-cols-2'>
+        <label className='grid gap-2 text-sm font-semibold'>
+          {text('Full name', 'Jina kamili')}
+          <Input name='name' required />
+        </label>
+        <label className='grid gap-2 text-sm font-semibold'>
+          {text('Phone', 'Simu')}
+          <Input name='phone' />
+        </label>
+        <label className='grid gap-2 text-sm font-semibold'>
+          {text('Email', 'Barua pepe')}
+          <Input type='email' name='email' />
+        </label>
+        <label className='grid gap-2 text-sm font-semibold'>
+          Segment
+          <select
+            name='segment'
+            className='bg-background h-11 w-full rounded-lg border border-foreground/20 px-3 text-sm font-normal'
           >
-            <Icons.close className='h-5 w-5' />
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={submit} className='grid gap-3 sm:grid-cols-2'>
-            <label className='text-sm'>
-              {text('Full name', 'Jina kamili')}
-              <Input name='name' required />
-            </label>
-            <label className='text-sm'>
-              {text('Phone', 'Simu')}
-              <Input name='phone' />
-            </label>
-            <label className='text-sm'>
-              {text('Email', 'Barua pepe')}
-              <Input type='email' name='email' />
-            </label>
-            <label className='text-sm'>
-              Segment
-              <select
-                name='segment'
-                className='bg-background mt-1 h-9 w-full rounded-md border px-3'
-              >
-                <option>New</option>
-                <option>Regular</option>
-                <option>VIP</option>
-                <option>Occasional</option>
-              </select>
-            </label>
-            <label className='text-sm'>
-              {text(
-                'Credit limit (TZS, -1 for unlimited)',
-                'Kikomo cha mkopo (TZS, -1 bila kikomo)'
-              )}
-              <Input type='number' name='credit_limit' defaultValue='0' />
-            </label>
-            <label className='text-sm'>
-              {text('Notes', 'Maelezo')}
-              <Input name='notes' />
-            </label>
-            {error && <p className='text-destructive sm:col-span-2'>{error}</p>}
-            <div className='sm:col-span-2'>
-              <Button isLoading={pending}>Save customer</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+            <option>New</option>
+            <option>Regular</option>
+            <option>VIP</option>
+            <option>Occasional</option>
+          </select>
+        </label>
+        <label className='grid gap-2 text-sm font-semibold'>
+          {text('Credit limit (TZS, -1 for unlimited)', 'Kikomo cha mkopo (TZS, -1 bila kikomo)')}
+          <Input type='number' name='credit_limit' defaultValue='0' />
+        </label>
+        <label className='grid gap-2 text-sm font-semibold'>
+          {text('Notes', 'Maelezo')}
+          <Input name='notes' />
+        </label>
+        {error && (
+          <p
+            role='alert'
+            className='rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive sm:col-span-2'
+          >
+            {error}
+          </p>
+        )}
+        <Button isLoading={pending} className='h-12 w-full sm:col-span-2'>
+          Save customer
+        </Button>
+      </form>
+    </FormDialog>
   );
 }

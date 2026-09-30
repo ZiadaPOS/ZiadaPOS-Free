@@ -23,18 +23,40 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useLanguage, type TranslationKey } from '@/lib/i18n';
+import { posApi } from '@/lib/pos-api';
 
 export default function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState('staff');
+  const [occupation, setOccupation] = useState('');
+  const [businessType, setBusinessType] = useState('retail');
   const { t } = useLanguage();
   useEffect(() => {
     try {
-      setRole(JSON.parse(localStorage.getItem('pos_user') || '{}').role || 'staff');
+      const user = JSON.parse(localStorage.getItem('pos_user') || '{}');
+      setRole(user.role || 'staff');
+      setOccupation(user.occupation || '');
+      setBusinessType(localStorage.getItem('pos_business_type') || 'retail');
     } catch {
       setRole('staff');
     }
+  }, []);
+  useEffect(() => {
+    let active = true;
+    posApi<{ organisation?: { business_type?: string; outlet_type?: string } }>('/accounts/me')
+      .then(({ data }) => {
+        const type = data.organisation?.business_type || 'retail';
+        if (!active) return;
+        setBusinessType(type);
+        localStorage.setItem('pos_business_type', type);
+        if (data.organisation?.outlet_type)
+          localStorage.setItem('pos_outlet_type', data.organisation.outlet_type);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
   }, []);
   async function signOut() {
     try {
@@ -43,11 +65,24 @@ export default function AppSidebar() {
       // Clear the local session even when the network is unavailable.
     } finally {
       localStorage.removeItem('pos_user');
+      localStorage.removeItem('pos_business_type');
+      localStorage.removeItem('pos_outlet_type');
       router.replace('/auth/sign-in');
     }
   }
   const managerOnly = new Set(['Staff', 'Branches', 'Reports', 'SMS messaging', 'Settings']);
+  const canViewPrescriptionRegister =
+    role === 'owner' ||
+    role === 'admin' ||
+    [
+      'pharmacist',
+      'pharmaceutical_technician',
+      'pharmaceutical_assistant',
+      'medicine_dispenser'
+    ].includes(occupation);
   const label = (value: string) => {
+    if (value === 'POS' && businessType === 'wholesale') return 'Wholesale POS';
+    if (value === 'Inventory' && businessType === 'pharmacy') return 'Medicine stock';
     const key = (
       {
         'Point of sale': 'pointOfSale',
@@ -84,10 +119,18 @@ export default function AppSidebar() {
             alt='Ziada'
             width={28}
             height={28}
-            className='size-7 rounded-md object-cover'
+            className='size-7 rounded-full object-cover'
             priority
           />
-          <span>Ziada POS</span>
+          <span>
+            {businessType === 'pharmacy'
+              ? 'Duka la Dawa'
+              : businessType === 'wholesale'
+                ? 'Ziada Wholesale'
+                : businessType === 'retail_wholesale'
+                  ? 'Ziada Retail + Wholesale'
+                  : 'Ziada POS'}
+          </span>
         </Link>
       </SidebarHeader>
       <SidebarContent>
@@ -97,7 +140,11 @@ export default function AppSidebar() {
             <SidebarMenu>
               {group.items
                 .filter(
-                  (item) => !managerOnly.has(item.title) || role === 'owner' || role === 'admin'
+                  (item) =>
+                    ((item.title !== 'Batches & Expiry' && item.title !== 'Prescription records') ||
+                      businessType === 'pharmacy') &&
+                    (item.title !== 'Prescription records' || canViewPrescriptionRegister) &&
+                    (!managerOnly.has(item.title) || role === 'owner' || role === 'admin')
                 )
                 .map((item) => {
                   const Icon = item.icon ? Icons[item.icon] : Icons.logo;
@@ -155,7 +202,7 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={() => router.push('/dashboard/settings')}>
-              <Icons.settings />
+              <Icons.adjustments />
               <span>{label('Business settings')}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

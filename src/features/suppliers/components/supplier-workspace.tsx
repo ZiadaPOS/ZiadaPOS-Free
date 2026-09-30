@@ -7,6 +7,8 @@ import { posApi, money, unwrapList } from '@/lib/pos-api';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useText } from '@/lib/i18n';
+import { FormDialog } from '@/components/ui/form-dialog';
+import type { FormEvent } from 'react';
 
 export function SupplierWorkspace() {
   const text = useText();
@@ -15,6 +17,9 @@ export function SupplierWorkspace() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
   const [error, setError] = useState('');
+  const [isPharmacy, setIsPharmacy] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
   useEffect(() => {
     posApi<unknown>('/suppliers?page=1&page_size=100')
       .then((result) => setSuppliers(unwrapList<Record<string, unknown>>(result.data)))
@@ -22,6 +27,39 @@ export function SupplierWorkspace() {
         setError(reason instanceof Error ? reason.message : 'Could not load suppliers.')
       );
   }, []);
+  useEffect(() => {
+    posApi<{ organisation?: { business_type?: string } }>('/accounts/me')
+      .then((result) => setIsPharmacy(result.data.organisation?.business_type === 'pharmacy'))
+      .catch(() => undefined);
+  }, []);
+  async function createSupplier(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+    setSaving(true);
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    try {
+      const result = await posApi<Record<string, unknown>>('/suppliers', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: values.name,
+          category: values.category,
+          rep: values.rep,
+          phone: values.phone,
+          email: values.email,
+          address: values.address,
+          payment_terms: Number(values.payment_terms),
+          lead_time_days: isPharmacy ? Number(values.lead_time_days) : undefined,
+          notes: values.notes
+        })
+      });
+      setSuppliers((current) => [result.data, ...current]);
+      setShowCreate(false);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not create supplier.');
+    } finally {
+      setSaving(false);
+    }
+  }
   const number = (supplier: Record<string, unknown>, key: string) => Number(supplier[key] || 0);
   const visible = suppliers.filter((supplier) => {
     const text =
@@ -72,13 +110,18 @@ export function SupplierWorkspace() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>{text('Supplier directory', 'Orodha ya wasambazaji')}</CardTitle>
-          <CardDescription>
-            {text(
-              'Review suppliers, purchasing history, and balances.',
-              'Kagua wasambazaji, historia ya manunuzi, na salio.'
-            )}
-          </CardDescription>
+          <div className='flex items-start justify-between gap-3'>
+            <div>
+              <CardTitle>{text('Supplier directory', 'Orodha ya wasambazaji')}</CardTitle>
+              <CardDescription>
+                {text(
+                  'Review suppliers, purchasing history, and balances.',
+                  'Kagua wasambazaji, historia ya manunuzi, na salio.'
+                )}
+              </CardDescription>
+            </div>
+            <Button onClick={() => setShowCreate(true)}>Add supplier</Button>
+          </div>
         </CardHeader>
         <CardContent className='space-y-4'>
           <div className='flex flex-col gap-2 sm:flex-row'>
@@ -170,6 +213,77 @@ export function SupplierWorkspace() {
           </div>
         </CardContent>
       </Card>
+      <FormDialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        title='Add supplier'
+        description='Save supplier contact and payment details for purchasing.'
+        size='wide'
+      >
+        <form onSubmit={createSupplier} className='mt-5 grid gap-4 sm:grid-cols-2'>
+          {error && (
+            <p role='alert' className='text-destructive text-sm sm:col-span-2'>
+              {error}
+            </p>
+          )}
+          <label className='grid gap-1.5 text-sm font-medium'>
+            Name
+            <Input name='name' required maxLength={200} />
+          </label>
+          <label className='grid gap-1.5 text-sm font-medium'>
+            Category
+            <Input name='category' maxLength={100} />
+          </label>
+          <label className='grid gap-1.5 text-sm font-medium'>
+            Contact person
+            <Input name='rep' maxLength={200} />
+          </label>
+          <label className='grid gap-1.5 text-sm font-medium'>
+            Phone
+            <Input name='phone' type='tel' maxLength={50} />
+          </label>
+          <label className='grid gap-1.5 text-sm font-medium'>
+            Email
+            <Input name='email' type='email' maxLength={150} />
+          </label>
+          <label className='grid gap-1.5 text-sm font-medium'>
+            Payment terms
+            <select
+              name='payment_terms'
+              defaultValue='30'
+              className='bg-background h-11 w-full rounded-lg border border-input px-3 text-sm font-normal'
+            >
+              <option value='30'>30 days</option>
+              <option value='60'>60 days</option>
+              <option value='90'>90 days</option>
+            </select>
+          </label>
+          {isPharmacy && (
+            <label className='grid gap-1.5 text-sm font-medium'>
+              Delivery lead time (days)
+              <Input
+                name='lead_time_days'
+                type='number'
+                min='1'
+                max='365'
+                defaultValue='7'
+                required
+              />
+            </label>
+          )}
+          <label className='grid gap-1.5 text-sm font-medium sm:col-span-2'>
+            Address
+            <Input name='address' maxLength={500} />
+          </label>
+          <label className='grid gap-1.5 text-sm font-medium sm:col-span-2'>
+            Notes
+            <Input name='notes' maxLength={1000} />
+          </label>
+          <Button className='sm:col-span-2' disabled={saving}>
+            {saving ? 'Saving…' : 'Save supplier'}
+          </Button>
+        </form>
+      </FormDialog>
     </div>
   );
 }

@@ -20,6 +20,19 @@
     @apply bg-background text-foreground;
   }
 
+  /* Give native and shared form controls a dependable edge in every theme. */
+  [data-theme]
+    :is(
+      input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not(
+          [type='color']
+        ):not([type='range']):not([type='submit']):not([type='button']):not([type='reset']),
+      textarea,
+      select
+    ) {
+    border-color: color-mix(in srgb, var(--foreground) 22%, var(--border));
+    background-color: var(--background);
+  }
+
   /* Global scrollbar styling to match ScrollArea */
   * {
     scrollbar-width: thin;

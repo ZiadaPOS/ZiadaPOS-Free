@@ -51,7 +51,9 @@
   --destructive: #fb7185;
   --destructive-foreground: #0a0a0b;
   --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.12);
+  /* Keep shared form controls distinct from the dark card surface. The field
+     primitives use this token for both their border and a translucent fill. */
+  --input: rgba(255, 255, 255, 0.28);
   --ring: #1e80ff;
   --sidebar: #0f0f12;
   --sidebar-foreground: #f5f5f7;

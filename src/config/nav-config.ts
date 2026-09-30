@@ -23,11 +23,11 @@ export const navGroups: NavGroup[] = [
       {
         title: 'Transactions',
         url: '/dashboard/transactions',
-        icon: 'creditCard',
+        icon: 'receipt',
         isActive: false,
         items: []
       },
-      { title: 'Sales', url: '/dashboard/sales', icon: 'post', isActive: false, items: [] }
+      { title: 'Sales', url: '/dashboard/sales', icon: 'trendingUp', isActive: false, items: [] }
     ]
   },
   {
@@ -41,9 +41,30 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
+        title: 'Batches & Expiry',
+        url: '/dashboard/pharmacy/expiry',
+        icon: 'calendarTime',
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Prescription records',
+        url: '/dashboard/pharmacy/prescriptions',
+        icon: 'prescription',
+        isActive: false,
+        items: []
+      },
+      {
         title: 'Categories',
         url: '/dashboard/categories',
-        icon: 'folder',
+        icon: 'category',
+        isActive: false,
+        items: []
+      },
+      {
+        title: 'Units',
+        url: '/dashboard/units',
+        icon: 'rulerMeasure',
         isActive: false,
         items: []
       },
@@ -57,29 +78,22 @@ export const navGroups: NavGroup[] = [
       {
         title: 'Credits',
         url: '/dashboard/credits',
-        icon: 'creditCard',
-        isActive: false,
-        items: []
-      },
-      {
-        title: 'Suppliers',
-        url: '/dashboard/suppliers',
-        icon: 'truckDelivery',
+        icon: 'wallet',
         isActive: false,
         items: []
       },
       {
         title: 'Expenses',
         url: '/dashboard/expenses',
-        icon: 'creditCard',
+        icon: 'cashMinus',
         isActive: false,
         items: []
       },
-      { title: 'Staff', url: '/dashboard/staff', icon: 'user', isActive: false, items: [] },
+      { title: 'Staff', url: '/dashboard/staff', icon: 'userCog', isActive: false, items: [] },
       {
         title: 'Branches',
         url: '/dashboard/stores',
-        icon: 'workspace',
+        icon: 'store',
         isActive: false,
         items: []
       },
@@ -93,14 +107,14 @@ export const navGroups: NavGroup[] = [
       {
         title: 'Reports',
         url: '/dashboard/reports',
-        icon: 'fileTypePdf',
+        icon: 'reportAnalytics',
         isActive: false,
         items: []
       },
       {
         title: 'Notebook',
         url: '/dashboard/notebook',
-        icon: 'post',
+        icon: 'notebook',
         isActive: false,
         items: []
       },
@@ -114,7 +128,7 @@ export const navGroups: NavGroup[] = [
       {
         title: 'SMS messaging',
         url: '/dashboard/sms',
-        icon: 'send',
+        icon: 'deviceMessage',
         isActive: false,
         items: []
       },

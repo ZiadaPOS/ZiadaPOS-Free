@@ -8,6 +8,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useText } from '@/lib/i18n';
 import { StoreSwitcher } from '@/features/settings/components/store-switcher';
 import { BusinessSettings } from '@/features/settings/components/business-settings';
+import Link from 'next/link';
+import { Icons } from '@/components/icons';
 
 export default function SettingsPage() {
   const text = useText();
@@ -26,6 +28,9 @@ export default function SettingsPage() {
     void load();
   }, [load]);
   const [user, setUser] = useState<{ role?: string } | null>(null);
+  const businessType = String(
+    (settingsData?.organisation as Record<string, unknown> | undefined)?.business_type || ''
+  );
   useEffect(() => {
     try {
       const saved = localStorage.getItem('pos_user');
@@ -61,6 +66,55 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
         <StoreSwitcher />
+        <Card>
+          <CardHeader>
+            <CardTitle>{text('Business tools', 'Zana za biashara')}</CardTitle>
+            <CardDescription>
+              {text(
+                'Manage your suppliers and pharmacy settings.',
+                'Simamia wasambazaji na mipangilio ya famasia.'
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className='grid gap-3 sm:grid-cols-2'>
+            <Link
+              href='/dashboard/suppliers'
+              className='hover:bg-muted/50 focus-visible:ring-ring flex min-h-20 items-center gap-3 rounded-lg border p-4 transition-colors focus-visible:ring-2 focus-visible:outline-none'
+            >
+              <Icons.truckDelivery className='text-primary size-5 shrink-0' />
+              <span className='min-w-0 flex-1'>
+                <span className='block font-medium'>{text('Suppliers', 'Wasambazaji')}</span>
+                <span className='text-muted-foreground block text-sm'>
+                  {text(
+                    'Manage suppliers, deliveries, and payments.',
+                    'Simamia wasambazaji, mizigo na malipo.'
+                  )}
+                </span>
+              </span>
+              <Icons.chevronRight className='text-muted-foreground size-4 shrink-0' />
+            </Link>
+            {businessType === 'pharmacy' && (
+              <Link
+                href='/dashboard/pharmacy/schedules'
+                className='hover:bg-muted/50 focus-visible:ring-ring flex min-h-20 items-center gap-3 rounded-lg border p-4 transition-colors focus-visible:ring-2 focus-visible:outline-none'
+              >
+                <Icons.clipboardList className='text-primary size-5 shrink-0' />
+                <span className='min-w-0 flex-1'>
+                  <span className='block font-medium'>
+                    {text('Medicine schedules', 'Ratiba za dawa')}
+                  </span>
+                  <span className='text-muted-foreground block text-sm'>
+                    {text(
+                      'Review medicine classifications and checkout rules.',
+                      'Kagua uainishaji wa dawa na masharti ya mauzo.'
+                    )}
+                  </span>
+                </span>
+                <Icons.chevronRight className='text-muted-foreground size-4 shrink-0' />
+              </Link>
+            )}
+          </CardContent>
+        </Card>
         {(user?.role === 'owner' || user?.role === 'admin') && (
           <BusinessSettings
             initialValue={settingsData?.organisation as Record<string, unknown> | undefined}

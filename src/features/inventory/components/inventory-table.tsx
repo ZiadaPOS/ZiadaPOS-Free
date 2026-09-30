@@ -10,9 +10,11 @@ import { useText } from '@/lib/i18n';
 
 export function InventoryTable({
   products,
+  isPharmacy,
   onUpdated
 }: {
   products: PosProduct[];
+  isPharmacy: boolean;
   onUpdated: () => void;
 }) {
   const text = useText();
@@ -84,7 +86,7 @@ export function InventoryTable({
                 text('SKU / barcode', 'SKU / barcode'),
                 text('Price', 'Bei'),
                 text('Cost', 'Gharama'),
-                text('Stock', 'Stoo'),
+                isPharmacy ? 'Sellable / batch stock' : text('Stock', 'Stoo'),
                 text('Status', 'Hali'),
                 text('Actions', 'Vitendo')
               ].map((label) => (
@@ -116,7 +118,31 @@ export function InventoryTable({
                   <td className='px-4 py-3'>{money(product.selling_price)}</td>
                   <td className='px-4 py-3'>{money(product.cost_price)}</td>
                   <td className='px-4 py-3'>
-                    {product.stock}{' '}
+                    {isPharmacy ? (
+                      <div className='space-y-1'>
+                        <div>{product.sellable_stock || 0} sellable</div>
+                        {!!product.expired_stock && (
+                          <div className='text-destructive text-xs'>
+                            {product.expired_stock} expired
+                          </div>
+                        )}
+                        {!!product.untracked_stock && (
+                          <div className='text-muted-foreground text-xs'>
+                            {product.untracked_stock} unassigned
+                          </div>
+                        )}
+                        {product.next_expiry_date && (
+                          <div className='text-muted-foreground text-xs'>
+                            Next expiry{' '}
+                            {new Date(
+                              `${product.next_expiry_date.slice(0, 10)}T00:00:00`
+                            ).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      product.stock
+                    )}
                     {product.low_stock && <span className='text-destructive'>Low</span>}
                   </td>
                   <td className='px-4 py-3'>{product.is_active ? 'Active' : 'Inactive'}</td>

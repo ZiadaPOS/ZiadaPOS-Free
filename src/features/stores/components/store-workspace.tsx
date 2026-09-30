@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { posApi, unwrapList } from '@/lib/pos-api';
-import { Icons } from '@/components/icons';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useText } from '@/lib/i18n';
+import { FormDialog } from '@/components/ui/form-dialog';
 
 export function StoreWorkspace() {
   const text = useText();
@@ -110,59 +110,41 @@ export function StoreWorkspace() {
           {message}
         </p>
       )}
-      {showForm && (
-        <div
-          className='fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4'
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setShowForm(false);
-          }}
-        >
-          <Card
-            className='min-h-[50svh] w-full rounded-b-none shadow-2xl sm:min-h-0 sm:max-w-xl sm:rounded-xl'
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-              <div>
-                <CardTitle>New store</CardTitle>
-                <CardDescription>Add a location to your business.</CardDescription>
-              </div>
-              <Button
-                variant='ghost'
-                size='icon'
-                aria-label='Close new store'
-                onClick={() => setShowForm(false)}
-              >
-                <Icons.close className='h-5 w-5' />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={create} className='space-y-3'>
-                <label className='block text-sm'>
-                  Store name
-                  <Input name='name' required />
-                </label>
-                <label className='block text-sm'>
-                  Address
-                  <Input name='address' />
-                </label>
-                <label className='block text-sm'>
-                  Area
-                  <Input name='area' />
-                </label>
-                <label className='block text-sm'>
-                  Code
-                  <Input name='code' />
-                </label>
-                <label className='block text-sm'>
-                  Email
-                  <Input name='email' type='email' />
-                </label>
-                <Button isLoading={pending}>Create store</Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <FormDialog
+        open={showForm}
+        onOpenChange={setShowForm}
+        title='New store'
+        description='Add a location to your business.'
+      >
+        <form onSubmit={create} className='mt-5 space-y-3'>
+          {message && (
+            <p role='alert' className='text-destructive text-sm'>
+              {message}
+            </p>
+          )}
+          <label className='block text-sm'>
+            Store name
+            <Input name='name' required />
+          </label>
+          <label className='block text-sm'>
+            Address
+            <Input name='address' />
+          </label>
+          <label className='block text-sm'>
+            Area
+            <Input name='area' />
+          </label>
+          <label className='block text-sm'>
+            Code
+            <Input name='code' />
+          </label>
+          <label className='block text-sm'>
+            Email
+            <Input name='email' type='email' />
+          </label>
+          <Button isLoading={pending}>Create store</Button>
+        </form>
+      </FormDialog>
     </div>
   );
 }
