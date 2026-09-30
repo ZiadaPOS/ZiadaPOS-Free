@@ -322,6 +322,35 @@ type ReviewPatch struct {
 	Status   *string `json:"status"`
 }
 
+type CategoryInput struct {
+	OrganisationID string `json:"organisation_id"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	SortOrder      int    `json:"sort_order"`
+	IsActive       *bool  `json:"is_active"`
+}
+
+func (s *Service) CategoryFields(p CategoryInput, creating bool) (uuid.UUID, map[string]interface{}, error) {
+	name := strings.TrimSpace(p.Name)
+	if name == "" {
+		return uuid.Nil, nil, errors.New("name is required")
+	}
+	fields := map[string]interface{}{"name": name, "description": strings.TrimSpace(p.Description), "sort_order": p.SortOrder}
+	if p.IsActive != nil {
+		fields["is_active"] = *p.IsActive
+	} else if creating {
+		fields["is_active"] = true
+	}
+	if creating {
+		orgID, err := uuid.Parse(strings.TrimSpace(p.OrganisationID))
+		if err != nil {
+			return uuid.Nil, nil, errors.New("valid organisation_id is required")
+		}
+		return orgID, fields, nil
+	}
+	return uuid.Nil, fields, nil
+}
+
 func (s *Service) ReviewPatchFields(p ReviewPatch) (map[string]interface{}, error) {
 	f := map[string]interface{}{}
 	if p.IsPublic != nil {

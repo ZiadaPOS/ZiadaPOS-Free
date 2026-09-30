@@ -38,6 +38,7 @@ Claims (`Claims` struct):
   "role":     "owner",       // admin | owner | staff
   "org_id":   "<uuid>",      // organisation (tenant) id
   "store_id": "<uuid>",      // active store id
+  "mfa": true,               // platform admin completed TOTP for this session
   "typ":      "access"|"refresh",
   "sub": "<uuid>", "exp": …, "iat": …, "jti": …
 }
@@ -54,7 +55,28 @@ fresh token pair: `POST /accounts/switch-store`.
 2. If attempts ≥ 5 → `423 Account temporarily locked …` (locked for **15 minutes**).
 3. Finds the user, `bcrypt.CompareHashAndPassword`.
 4. On failure: `recordFailedLogin` increments the counter (TTL 15 min) → wrong-password 401.
-5. On success: clears the lock, updates `last_login`, issues tokens.
+5. On success: clears the lock and issues tokens. Platform admins must use their email. If an
+   admin has enrolled TOTP, login returns a five-minute `mfa_token` challenge instead; no session
+   tokens are issued until `/auth/mfa/totp/verify` accepts the authenticator code.
+
+## Admin authenticator MFA
+
+Platform administrators can enroll Google Authenticator or any compatible TOTP app from the
+admin console's **Security & MFA** page. The setup API returns a QR image and one-time manual key;
+the encrypted pending seed expires after ten minutes and is not enabled until a current six-digit
+code is verified.
+
+- `GET /accounts/mfa/totp/status` — report whether the current admin has MFA enabled.
+- `POST /accounts/mfa/totp/setup` — create a pending seed and QR image.
+- `POST /accounts/mfa/totp/verify` — confirm setup with `{ "code": "123456" }`.
+- `POST /accounts/mfa/totp/disable` — disable with `{ "password": "…", "code": "123456" }`.
+- `POST /auth/mfa/totp/verify` — exchange `{ "mfa_token": "…", "code": "123456" }` for a
+  normal access and refresh token pair.
+
+Admin API and subscription-management endpoints reject sessions without the MFA claim once the
+account is enrolled. Refresh tokens issued before enrollment are also rejected. TOTP seeds are
+encrypted at rest using `MFA_ENCRYPTION_KEY`; set a stable key before enrolling admins. Rotating
+that key requires re-enrollment.
 
 Lockout can be cleared from Redis:
 

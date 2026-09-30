@@ -46,6 +46,16 @@ func (h *Handler) ListPlans(c *gin.Context) {
 	response.OK(c, map[string]interface{}{"plans": plans, "count": len(plans)})
 }
 
+// AdminPlans lists active and inactive plans for the platform console.
+func (h *Handler) AdminPlans(c *gin.Context) {
+	plans, err := h.svc.ListPlans(c.Request.Context(), true)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, map[string]interface{}{"plans": plans, "count": len(plans)})
+}
+
 // GetPlan godoc: GET /subscriptions/plans/{id} (public)
 func (h *Handler) GetPlan(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))

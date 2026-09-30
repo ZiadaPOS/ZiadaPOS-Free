@@ -19,11 +19,12 @@ type TokenPair struct {
 
 // Claims carries the identity of an authenticated user.
 type Claims struct {
-	UserID uuid.UUID `json:"uid"`
-	Role   string    `json:"role"`
-	OrgID  uuid.UUID `json:"org_id,omitempty"`
+	UserID  uuid.UUID `json:"uid"`
+	Role    string    `json:"role"`
+	OrgID   uuid.UUID `json:"org_id,omitempty"`
 	StoreID uuid.UUID `json:"store_id,omitempty"`
-	Type   string    `json:"typ"`
+	Type    string    `json:"typ"`
+	MFA     bool      `json:"mfa,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -47,13 +48,22 @@ func NewManager(cfg *config.Config) *Manager {
 
 // Issue creates a fresh access+refresh token pair.
 func (m *Manager) Issue(userID uuid.UUID, role string, orgID, storeID uuid.UUID) (*TokenPair, error) {
+	return m.issue(userID, role, orgID, storeID, false)
+}
+
+// IssueMFA creates a token pair indicating that the admin completed TOTP.
+func (m *Manager) IssueMFA(userID uuid.UUID, role string, orgID, storeID uuid.UUID) (*TokenPair, error) {
+	return m.issue(userID, role, orgID, storeID, true)
+}
+
+func (m *Manager) issue(userID uuid.UUID, role string, orgID, storeID uuid.UUID, mfa bool) (*TokenPair, error) {
 	now := time.Now()
 
-	access, err := m.sign(m.accessSecret, userID, role, orgID, storeID, "access", now, m.accessTTL)
+	access, err := m.sign(m.accessSecret, userID, role, orgID, storeID, "access", mfa, now, m.accessTTL)
 	if err != nil {
 		return nil, err
 	}
-	refresh, err := m.sign(m.refreshSecret, userID, role, orgID, storeID, "refresh", now, m.refreshTTL)
+	refresh, err := m.sign(m.refreshSecret, userID, role, orgID, storeID, "refresh", mfa, now, m.refreshTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -66,13 +76,26 @@ func (m *Manager) Issue(userID uuid.UUID, role string, orgID, storeID uuid.UUID)
 	}, nil
 }
 
-func (m *Manager) sign(secret []byte, userID uuid.UUID, role string, orgID, storeID uuid.UUID, typ string, now time.Time, ttl time.Duration) (string, error) {
+// IssueMFAChallenge issues a short-lived, narrowly scoped token that can only
+// be exchanged for a login session after the authenticator code is verified.
+func (m *Manager) IssueMFAChallenge(userID uuid.UUID) (string, error) {
+	now := time.Now()
+	return m.sign(m.accessSecret, userID, "admin", uuid.Nil, uuid.Nil, "mfa_challenge", false, now, 5*time.Minute)
+}
+
+// ParseMFAChallenge validates an authenticator login challenge token.
+func (m *Manager) ParseMFAChallenge(tokenString string) (*Claims, error) {
+	return m.parse(tokenString, m.accessSecret, "mfa_challenge")
+}
+
+func (m *Manager) sign(secret []byte, userID uuid.UUID, role string, orgID, storeID uuid.UUID, typ string, mfa bool, now time.Time, ttl time.Duration) (string, error) {
 	claims := &Claims{
-		UserID: userID,
-		Role:   role,
-		OrgID:  orgID,
+		UserID:  userID,
+		Role:    role,
+		OrgID:   orgID,
 		StoreID: storeID,
-		Type:   typ,
+		Type:    typ,
+		MFA:     mfa,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),

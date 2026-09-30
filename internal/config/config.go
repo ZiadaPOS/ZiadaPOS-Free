@@ -53,6 +53,7 @@ type Config struct {
 	JWTRefreshSecret string
 	JWTAccessTTL     time.Duration
 	JWTRefreshTTL    time.Duration
+	MFAEncryptionKey string
 
 	// SMTP (email)
 	SMTPHost     string
@@ -180,6 +181,7 @@ func Load(envFile string) (*Config, error) {
 		JWTRefreshSecret: env("JWT_REFRESH_SECRET", "change-me-refresh"),
 		JWTAccessTTL:     envDuration("JWT_ACCESS_TTL", 15*time.Minute),
 		JWTRefreshTTL:    envDuration("JWT_REFRESH_TTL", 7*24*time.Hour),
+		MFAEncryptionKey: env("MFA_ENCRYPTION_KEY", env("JWT_REFRESH_SECRET", "change-me-refresh")),
 
 		SMTPHost:     env("SMTP_HOST", "smtp.zoho.com"),
 		SMTPPort:     envInt("SMTP_PORT", 587),
@@ -207,7 +209,7 @@ func Load(envFile string) (*Config, error) {
 		DailyReportMinute: envInt("DAILY_REPORT_MINUTE", 0),
 		Timezone:          env("APP_TIMEZONE", "Africa/Dar_es_Salaam"),
 
-		CORSAllowedOrigins: splitList(env("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:1420,http://localhost:5173,https://app.ziadapos.com")),
+		CORSAllowedOrigins: splitList(env("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:1420,http://localhost:5173,https://app.ziadapos.com,https://admin.ziadapos.com")),
 	}
 
 	if cfg.JWTAccessSecret == "change-me-access" || cfg.JWTRefreshSecret == "change-me-refresh" {

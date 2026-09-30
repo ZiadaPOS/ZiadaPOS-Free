@@ -6,15 +6,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/troubleman96/ziadapos/internal/security"
+	"gorm.io/gorm"
 )
 
 // context keys
 const (
-	ctxUserID    = "auth_user_id"
-	ctxRole      = "auth_role"
-	ctxOrgID     = "auth_org_id"
-	ctxStoreID   = "auth_store_id"
-	ctxClaims    = "auth_claims"
+	ctxUserID  = "auth_user_id"
+	ctxRole    = "auth_role"
+	ctxOrgID   = "auth_org_id"
+	ctxStoreID = "auth_store_id"
+	ctxClaims  = "auth_claims"
 )
 
 // Auth protects routes with a valid access JWT. Claims are stored in the
@@ -116,4 +117,28 @@ func RequireOwner() gin.HandlerFunc {
 // RequireAdmin allows only platform admins.
 func RequireAdmin() gin.HandlerFunc {
 	return RequireRoles("admin")
+}
+
+// RequireAdminMFA requires a TOTP-verified session whenever the admin account
+// has enrolled MFA. It leaves unenrolled admins able to open enrollment.
+func RequireAdminMFA(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if Role(c) != "admin" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "message": "This action requires the admin role"})
+			return
+		}
+		var account struct {
+			MFAEnabled bool `gorm:"column:mfa_enabled"`
+		}
+		if err := db.Table("users").Select("mfa_enabled").Where("id = ?", UserID(c)).Take(&account).Error; err != nil {
+			abortUnauthorized(c, "Admin account not found")
+			return
+		}
+		claims := Claims(c)
+		if account.MFAEnabled && (claims == nil || !claims.MFA) {
+			abortUnauthorized(c, "Authenticator verification required. Sign in again")
+			return
+		}
+		c.Next()
+	}
 }

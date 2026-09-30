@@ -332,6 +332,88 @@ func (h *Handler) Categories(c *gin.Context) {
 	response.OK(c, rows)
 }
 
+func (h *Handler) CreateCategory(c *gin.Context) {
+	var input CategoryInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	orgID, fields, err := h.svc.CategoryFields(input, true)
+	if err != nil {
+		response.BadRequest(c, err.Error(), nil)
+		return
+	}
+	id, err := h.svc.repo.CreateCategoryRecord(orgID, fields["name"].(string), fields["description"].(string), fields["sort_order"].(int), fields["is_active"].(bool))
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	row, err := h.svc.repo.CategoryByID(id)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Created(c, row, "Category created")
+}
+
+func (h *Handler) UpdateCategory(c *gin.Context) {
+	id, ok := h.id(c)
+	if !ok {
+		return
+	}
+	var input CategoryInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	_, fields, err := h.svc.CategoryFields(input, false)
+	if err != nil {
+		response.BadRequest(c, err.Error(), nil)
+		return
+	}
+	matched, err := h.svc.repo.Update("categories", id, fields)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	if !matched {
+		response.NotFound(c, "Category not found")
+		return
+	}
+	row, err := h.svc.repo.CategoryByID(id)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, row)
+}
+
+func (h *Handler) DeleteCategory(c *gin.Context) {
+	id, ok := h.id(c)
+	if !ok {
+		return
+	}
+	count, err := h.svc.repo.CategoryProductCount(id)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	if count > 0 {
+		response.Conflict(c, "Category is assigned to products. Deactivate it instead.")
+		return
+	}
+	matched, err := h.svc.repo.Delete("categories", id)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	if !matched {
+		response.NotFound(c, "Category not found")
+		return
+	}
+	response.Message(c, 200, "Category deleted")
+}
+
 // ── Transactions ──────────────────────────────────────────────────────────
 
 // Transactions godoc: GET /admin/transactions?search=&status=&method=&org_id=&store_id=&customer=&from=&to=&page=&page_size=

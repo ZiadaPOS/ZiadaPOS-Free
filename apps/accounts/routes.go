@@ -87,10 +87,19 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 		auth.POST("/otp/send", authH.SendOTP)
 		auth.POST("/otp/verify", authH.VerifyOTP)
 		auth.POST("/login", authH.Login)
+		auth.POST("/mfa/totp/verify", authH.VerifyAdminTOTP)
 		auth.POST("/refresh", authH.Refresh)
 		auth.GET("/confirm-email", authH.ConfirmEmail)
 		auth.POST("/password/forgot", authH.PasswordForgot)
 		auth.POST("/password/reset", authH.PasswordReset)
+	}
+
+	adminMFA := base.Group("/accounts/mfa/totp", middleware.Auth(deps.Tokens), middleware.RequireAdminMFA(deps.DB))
+	{
+		adminMFA.GET("/status", authH.AdminTOTPStatus)
+		adminMFA.POST("/setup", authH.BeginAdminTOTPSetup)
+		adminMFA.POST("/verify", authH.VerifyAdminTOTPSetup)
+		adminMFA.POST("/disable", authH.DisableAdminTOTP)
 	}
 
 	authed := auth.Group("", middleware.Auth(deps.Tokens))

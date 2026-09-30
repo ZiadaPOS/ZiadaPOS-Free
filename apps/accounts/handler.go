@@ -79,6 +79,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		writeErr(c, err)
 		return
 	}
+	if pair == nil && user != nil && user.Role == "admin" && user.MFAEnabled {
+		challenge, err := h.svc.tokens.IssueMFAChallenge(user.ID)
+		if err != nil {
+			writeErr(c, err)
+			return
+		}
+		response.OK(c, gin.H{"mfa_required": true, "mfa_token": challenge})
+		return
+	}
 	response.OK(c, gin.H{
 		"access_token":  pair.AccessToken,
 		"refresh_token": pair.RefreshToken,
@@ -86,6 +95,107 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		"token_type":    pair.TokenType,
 		"user":          toUserResponse(user),
 	})
+}
+
+// VerifyAdminTOTP completes a password-verified admin login challenge.
+func (h *AuthHandler) VerifyAdminTOTP(c *gin.Context) {
+	var req struct {
+		Challenge string `json:"mfa_token" binding:"required"`
+		Code      string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "mfa_token and code are required", nil)
+		return
+	}
+	pair, user, err := h.svc.CompleteAdminMFALogin(c.Request.Context(), req.Challenge, req.Code, c.ClientIP())
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, gin.H{
+		"access_token":  pair.AccessToken,
+		"refresh_token": pair.RefreshToken,
+		"expires_in":    pair.ExpiresIn,
+		"token_type":    pair.TokenType,
+		"user":          toUserResponse(user),
+	})
+}
+
+// AdminTOTPStatus reports whether authenticator MFA is enabled for this admin.
+func (h *AuthHandler) AdminTOTPStatus(c *gin.Context) {
+	uid, err := uuid.Parse(middleware.UserID(c))
+	if err != nil {
+		response.Unauthorized(c, "Invalid session")
+		return
+	}
+	status, err := h.svc.AdminTOTPStatus(c.Request.Context(), uid)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, status)
+}
+
+func (h *AuthHandler) BeginAdminTOTPSetup(c *gin.Context) {
+	uid, err := uuid.Parse(middleware.UserID(c))
+	if err != nil {
+		response.Unauthorized(c, "Invalid session")
+		return
+	}
+	var req struct {
+		Password string `json:"password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Password is required", nil)
+		return
+	}
+	setup, err := h.svc.BeginAdminTOTPSetup(c.Request.Context(), uid, req.Password)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, setup)
+}
+
+func (h *AuthHandler) VerifyAdminTOTPSetup(c *gin.Context) {
+	uid, err := uuid.Parse(middleware.UserID(c))
+	if err != nil {
+		response.Unauthorized(c, "Invalid session")
+		return
+	}
+	var req struct {
+		Code string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Authenticator code is required", nil)
+		return
+	}
+	if err := h.svc.VerifyAdminTOTPSetup(c.Request.Context(), uid, req.Code); err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Message(c, http.StatusOK, "Authenticator MFA enabled")
+}
+
+func (h *AuthHandler) DisableAdminTOTP(c *gin.Context) {
+	uid, err := uuid.Parse(middleware.UserID(c))
+	if err != nil {
+		response.Unauthorized(c, "Invalid session")
+		return
+	}
+	var req struct {
+		Password string `json:"password" binding:"required"`
+		Code     string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Password and authenticator code are required", nil)
+		return
+	}
+	if err := h.svc.DisableAdminTOTP(c.Request.Context(), uid, req.Password, req.Code); err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Message(c, http.StatusOK, "Authenticator MFA disabled")
 }
 
 // Refresh godoc: POST /auth/refresh

@@ -371,6 +371,10 @@ func (s *AuthService) Login(ctx context.Context, identifier, password, ip string
 		}
 		return nil, nil, err
 	}
+	if user.Role == "admin" && !strings.Contains(identifier, "@") {
+		s.recordFailedLogin(ctx, identifier)
+		return nil, nil, apierr.Unauthorized("Invalid credentials")
+	}
 
 	if !user.IsActive {
 		return nil, nil, apierr.Forbidden("Account is inactive")
@@ -383,6 +387,12 @@ func (s *AuthService) Login(ctx context.Context, identifier, password, ip string
 
 	if s.cache != nil {
 		_ = s.cache.Del(ctx, "login:lock:"+strings.ToLower(identifier))
+	}
+
+	// An enrolled platform administrator gets a short-lived second-factor
+	// challenge instead of a usable access or refresh token at this stage.
+	if user.Role == "admin" && user.MFAEnabled {
+		return nil, user, nil
 	}
 
 	now := time.Now()
@@ -422,6 +432,12 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*securi
 	}
 	if !user.IsActive {
 		return nil, apierr.Forbidden("Account is inactive")
+	}
+	if user.Role == "admin" && user.MFAEnabled && !claims.MFA {
+		return nil, apierr.Unauthorized("Authenticator verification required. Sign in again")
+	}
+	if user.Role == "admin" && user.MFAEnabled && claims.MFA {
+		return s.issueMFATokens(user)
 	}
 	return s.issueTokens(user)
 }

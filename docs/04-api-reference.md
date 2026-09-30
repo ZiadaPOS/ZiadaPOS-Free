@@ -31,12 +31,22 @@ Conventions:
 | POST | `/auth/otp/send` | — | Send a 6-digit OTP by SMS (`phone`, `purpose`). |
 | POST | `/auth/otp/verify` | — | Verify an OTP (`phone`, `purpose`, `code`); marks phone verified. |
 | POST | `/auth/login` | — | Login with `identifier` (phone or email) + `password`; returns `{access_token, refresh_token, expires_in, token_type, user}`. 5 failures → 15-min lockout. |
+| POST | `/auth/mfa/totp/verify` | — | Complete an enrolled admin login with `mfa_token` and six-digit TOTP code. |
 | POST | `/auth/refresh` | — | Exchange `refresh_token` for a new pair. |
 | GET | `/auth/confirm-email` | — | `token` → confirm email address (link from the welcome email). |
 | POST | `/auth/password/forgot` | — | `identifier` → sends a reset OTP by SMS. |
 | POST | `/auth/password/reset` | — | `identifier`, `otp`, `new_password` → re-hash + clear lock. |
 | POST | `/auth/logout` | JWT | Log out (client discards tokens). |
 | POST | `/auth/resend-confirmation` | JWT | Re-send the email confirmation. |
+
+## Admin MFA — `/accounts/mfa/totp`
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/accounts/mfa/totp/status` | Admin JWT | Read current admin MFA status. |
+| POST | `/accounts/mfa/totp/setup` | Admin JWT | Generate a TOTP enrollment QR code and temporary secret. |
+| POST | `/accounts/mfa/totp/verify` | Admin JWT | Confirm enrollment with a six-digit code. |
+| POST | `/accounts/mfa/totp/disable` | Admin JWT | Disable MFA after password and TOTP verification. |
 
 ---
 

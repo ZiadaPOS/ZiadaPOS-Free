@@ -43,8 +43,9 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 	base.POST("/subscriptions/webhooks/snippe", h.SnippeWebhook)
 
 	// Cameltech admin management.
-	admin := base.Group("/subscriptions", middleware.Auth(deps.Tokens), middleware.RequireAdmin())
+	admin := base.Group("/subscriptions", middleware.Auth(deps.Tokens), middleware.RequireAdminMFA(deps.DB))
 	{
+		admin.GET("/admin/plans", h.AdminPlans)
 		admin.POST("/plans", h.CreatePlan)
 		admin.PATCH("/plans/:id", h.UpdatePlan)
 		admin.DELETE("/plans/:id", h.DeactivatePlan)

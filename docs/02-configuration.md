@@ -56,6 +56,7 @@ Defaults are development-friendly; set real values in production.
 | --- | --- | --- |
 | `JWT_ACCESS_SECRET` | `change-me-access` | HS256 key for access tokens. **Set in production** (the server warns otherwise). |
 | `JWT_REFRESH_SECRET` | `change-me-refresh` | HS256 key for refresh tokens. **Set in production**. |
+| `MFA_ENCRYPTION_KEY` | falls back to `JWT_REFRESH_SECRET` | Stable secret used to encrypt admin authenticator seeds at rest. Set explicitly before enrolling admins; changing it later requires MFA re-enrollment. |
 | `JWT_ACCESS_TTL` | `15m` | Access token lifetime. |
 | `JWT_REFRESH_TTL` | `168h` (7 days) | Refresh token lifetime. |
 
@@ -126,7 +127,7 @@ override that provider-controlled sender identity.
 
 | Env var | Default | Meaning |
 | --- | --- | --- |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:1420,http://localhost:5173` | Comma-separated allowed origins. |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:1420,http://localhost:5173,https://app.ziadapos.com,https://admin.ziadapos.com` | Comma-separated allowed origins. |
 
 ## Security notes
 

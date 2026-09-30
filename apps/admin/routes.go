@@ -20,7 +20,7 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 	svc := NewService(repo)
 	h := NewHandler(svc)
 
-	r := base.Group("/admin", middleware.Auth(deps.Tokens), middleware.RequireAdmin())
+	r := base.Group("/admin", middleware.Auth(deps.Tokens), middleware.RequireAdminMFA(deps.DB))
 	{
 		r.GET("/dashboard", h.Dashboard)
 
@@ -40,6 +40,9 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 		r.GET("/products/:id", h.Product)
 		r.PATCH("/products/:id", h.UpdateProduct)
 		r.GET("/categories", h.Categories)
+		r.POST("/categories", h.CreateCategory)
+		r.PATCH("/categories/:id", h.UpdateCategory)
+		r.DELETE("/categories/:id", h.DeleteCategory)
 
 		r.GET("/transactions", h.Transactions)
 		r.GET("/transactions/:id", h.Transaction)

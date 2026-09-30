@@ -134,6 +134,11 @@ type User struct {
 	LastLoginIP      string     `gorm:"size:45" json:"-"`
 	ResetToken       string     `gorm:"size:64;index" json:"-"`
 	ResetTokenExpiry *time.Time `json:"-"`
+
+	MFAEnabled                bool       `gorm:"not null;default:false;index" json:"-"`
+	MFASecretEncrypted        string     `gorm:"type:text" json:"-"`
+	MFAPendingSecretEncrypted string     `gorm:"type:text" json:"-"`
+	MFAPendingExpiresAt       *time.Time `json:"-"`
 }
 
 func (u *User) FullName() string {

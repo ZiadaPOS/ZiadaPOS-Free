@@ -1,6 +1,8 @@
 package admin
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -362,10 +364,39 @@ func (r *Repo) ProductByID(id uuid.UUID) (*productRow, error) {
 func (r *Repo) Categories() ([]map[string]interface{}, error) {
 	var rows []map[string]interface{}
 	err := r.db.Table("categories c").
-		Select(`c.id, c.name, c.description, c.colour, c.created_at,
+		Select(`c.id, c.organisation_id, org.name AS organisation_name,
+		        c.name, c.description, c.sort_order, c.is_active, c.is_default, c.created_at,
 		        (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count`).
+		Joins("LEFT JOIN organisations org ON org.id = c.organisation_id").
 		Order("c.name asc").Limit(500).Scan(&rows).Error
 	return rows, err
+}
+
+func (r *Repo) CategoryByID(id uuid.UUID) (map[string]interface{}, error) {
+	row := map[string]interface{}{}
+	err := r.db.Table("categories c").
+		Select(`c.id, c.organisation_id, org.name AS organisation_name, c.name,
+		        c.description, c.sort_order, c.is_active, c.is_default, c.created_at,
+		        (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count`).
+		Joins("LEFT JOIN organisations org ON org.id = c.organisation_id").
+		Where("c.id = ?", id).Take(&row).Error
+	return row, err
+}
+
+func (r *Repo) CategoryProductCount(id uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.Table("products").Where("category_id = ?", id).Count(&count).Error
+	return count, err
+}
+
+func (r *Repo) CreateCategoryRecord(orgID uuid.UUID, name, description string, sortOrder int, isActive bool) (uuid.UUID, error) {
+	category := map[string]interface{}{
+		"id": uuid.New(), "organisation_id": orgID, "name": name,
+		"description": description, "sort_order": sortOrder, "is_active": isActive,
+		"is_default": false, "created_at": time.Now(), "updated_at": time.Now(),
+	}
+	id := category["id"].(uuid.UUID)
+	return id, r.db.Table("categories").Create(category).Error
 }
 
 // ── Transactions ──────────────────────────────────────────────────────────
