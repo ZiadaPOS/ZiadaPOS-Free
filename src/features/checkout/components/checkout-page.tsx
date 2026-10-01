@@ -22,6 +22,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [products, setProducts] = useState<PosProduct[]>([]);
+  const [activeUserId, setActiveUserId] = useState('');
   const [activeStoreId, setActiveStoreId] = useState('');
   const [isPharmacy, setIsPharmacy] = useState(false);
   const [businessType, setBusinessType] = useState('retail');
@@ -41,7 +42,10 @@ export default function CheckoutPage() {
   const [scanCode, setScanCode] = useState('');
   const [receiptTransaction, setReceiptTransaction] = useState<PosTransaction | null>(null);
   const [cartRestored, setCartRestored] = useState(false);
+  const [restoredCartStorageKey, setRestoredCartStorageKey] = useState('');
   const [productsLoaded, setProductsLoaded] = useState(false);
+  const cartStorageKey =
+    activeUserId && activeStoreId ? `ziada-checkout-cart:${activeUserId}:${activeStoreId}` : '';
   const updateCart = useCallback((action: SetStateAction<Record<string, number>>) => {
     setError('');
     setCart(action);
@@ -57,6 +61,7 @@ export default function CheckoutPage() {
   const load = useCallback(
     async ({ clearError = true }: { clearError?: boolean } = {}) => {
       if (clearError) setError('');
+      setProductsLoaded(false);
       try {
         const [p, c, categoryResult, profile] = await Promise.all([
           posApi<unknown>('/inventory/products?status=active&page=1&page_size=100'),
@@ -65,8 +70,10 @@ export default function CheckoutPage() {
           posApi<{
             organisation?: { business_type?: string };
             store?: { id?: string };
+            user?: { id?: string };
           }>('/accounts/me')
         ]);
+        setActiveUserId(profile.data.user?.id || '');
         setActiveStoreId(profile.data.store?.id || '');
         const type = profile.data.organisation?.business_type || 'retail';
         setBusinessType(type);
@@ -74,9 +81,13 @@ export default function CheckoutPage() {
         const pharmacy = type === 'pharmacy';
         setIsPharmacy(pharmacy);
         let productList = unwrapList<PosProduct>(p.data);
-        const catalogStoreId =
-          productList.find((product) => product.store_id)?.store_id || profile.data.store?.id || '';
-        setActiveStoreId(catalogStoreId);
+        const profileStoreId = profile.data.store?.id || '';
+        const catalogStoreId = productList.find((product) => product.store_id)?.store_id || '';
+        // The authenticated session is the source of truth for the active
+        // store. Do not silently replace its identity with the catalog's.
+        if (profileStoreId && catalogStoreId && catalogStoreId !== profileStoreId) {
+          throw new Error('ACTIVE_STORE_CHANGED');
+        }
         if (pharmacy) {
           const [batchResult, profileResult] = await Promise.all([
             posApi<unknown>('/pharmacy/batches'),
@@ -129,9 +140,14 @@ export default function CheckoutPage() {
       } catch (reason) {
         if (clearError) {
           setError(
-            reason instanceof Error
-              ? reason.message
-              : text('Could not load data.', 'Imeshindikana kupakia taarifa.')
+            reason instanceof Error && reason.message === 'ACTIVE_STORE_CHANGED'
+              ? text(
+                  'The store changed while Checkout was loading. Refresh Checkout, then review the products for the active store.',
+                  'Duka limebadilika wakati mauzo yanapakia. Pakia upya ukurasa wa mauzo, kisha kagua bidhaa za duka linalotumika.'
+                )
+              : reason instanceof Error
+                ? reason.message
+                : text('Could not load data.', 'Imeshindikana kupakia taarifa.')
           );
         }
       }
@@ -142,8 +158,14 @@ export default function CheckoutPage() {
     void load();
   }, [load]);
   useEffect(() => {
+    // Older builds stored one unscoped cart for every signed-in user and
+    // store. It cannot be safely assigned to this session, so discard it.
+    window.localStorage.removeItem('ziada-checkout-cart');
+  }, []);
+  useEffect(() => {
+    if (!cartStorageKey || restoredCartStorageKey === cartStorageKey) return;
     try {
-      const saved = window.localStorage.getItem('ziada-checkout-cart');
+      const saved = window.localStorage.getItem(cartStorageKey);
       if (saved) {
         const parsed = JSON.parse(saved) as Record<string, unknown>;
         setCart(
@@ -153,21 +175,30 @@ export default function CheckoutPage() {
             )
           ) as Record<string, number>
         );
+      } else {
+        setCart({});
       }
     } catch {
-      window.localStorage.removeItem('ziada-checkout-cart');
-    } finally {
-      setCartRestored(true);
+      window.localStorage.removeItem(cartStorageKey);
+      setCart({});
     }
-  }, []);
+    setRestoredCartStorageKey(cartStorageKey);
+    setCartRestored(true);
+  }, [cartStorageKey, restoredCartStorageKey]);
   useEffect(() => {
-    if (!cartRestored || !productsLoaded) return;
+    if (
+      !cartRestored ||
+      !productsLoaded ||
+      !cartStorageKey ||
+      restoredCartStorageKey !== cartStorageKey
+    )
+      return;
     if (Object.keys(cart).length) {
-      window.localStorage.setItem('ziada-checkout-cart', JSON.stringify(cart));
+      window.localStorage.setItem(cartStorageKey, JSON.stringify(cart));
     } else {
-      window.localStorage.removeItem('ziada-checkout-cart');
+      window.localStorage.removeItem(cartStorageKey);
     }
-  }, [cart, cartRestored, productsLoaded]);
+  }, [cart, cartRestored, cartStorageKey, productsLoaded, restoredCartStorageKey]);
   useEffect(() => {
     if (!cartRestored || !productsLoaded) return;
     const available = new Set(products.map((product) => product.id));
@@ -252,6 +283,18 @@ export default function CheckoutPage() {
         ),
         posApi<{ store?: { id?: string } }>('/accounts/me')
       ]);
+      const currentStoreId = session.data.store?.id || '';
+      if (!activeStoreId || !currentStoreId) {
+        throw new Error(
+          text(
+            'Could not confirm the active store. Reload checkout and try again.',
+            'Imeshindikana kuthibitisha duka linalotumika. Pakia upya ukurasa wa mauzo kisha ujaribu tena.'
+          )
+        );
+      }
+      if (currentStoreId !== activeStoreId) {
+        throw new Error('ACTIVE_STORE_CHANGED');
+      }
       const latestProducts = unwrapList<PosProduct>(catalog.data);
       const available = new Set(latestProducts.map((product) => product.id));
       const staleProductIds = Object.keys(cart).filter((productId) => !available.has(productId));
@@ -260,6 +303,8 @@ export default function CheckoutPage() {
           Object.entries(cart).filter(([productId]) => available.has(productId))
         );
         setCart(currentCart);
+        setMobileCartOpen(false);
+        setCheckoutViewResetKey((key) => key + 1);
         void load({ clearError: false });
         setError(
           text(
@@ -276,18 +321,6 @@ export default function CheckoutPage() {
         throw new Error(
           text('Select a customer for a credit sale.', 'Chagua mteja kwa mauzo ya mkopo.')
         );
-      const currentStoreId = session.data.store?.id || '';
-      if (!activeStoreId || !currentStoreId) {
-        throw new Error(
-          text(
-            'Could not confirm the active store. Reload checkout and try again.',
-            'Imeshindikana kuthibitisha duka linalotumika. Pakia upya ukurasa wa mauzo kisha ujaribu tena.'
-          )
-        );
-      }
-      if (currentStoreId !== activeStoreId) {
-        throw new Error('ACTIVE_STORE_CHANGED');
-      }
       const customer = customers.find((item) => item.id === customerId);
       const result = await posApi<PosTransaction>('/pos/sale', {
         method: 'POST',
@@ -310,8 +343,7 @@ export default function CheckoutPage() {
       setRxDetails({});
       setMobileCartOpen(false);
       setCheckoutViewResetKey((key) => key + 1);
-      window.localStorage.removeItem('ziada-checkout-cart');
-      window.localStorage.removeItem('ziada-checkout-step');
+      if (cartStorageKey) window.localStorage.removeItem(cartStorageKey);
       setCustomerId('');
       setDiscountPct('0');
       setPaymentReference('');

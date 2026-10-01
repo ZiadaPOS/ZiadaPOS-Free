@@ -132,15 +132,12 @@ export function CheckoutWorkspace({
 }) {
   const text = useText();
   const [activeCategory, setActiveCategory] = useState('');
-  const [showCheckoutDetails, setShowCheckoutDetails] = useState(() => {
-    return (
-      typeof window !== 'undefined' &&
-      window.localStorage.getItem('ziada-checkout-step') === 'details'
-    );
-  });
+  const [showCheckoutDetails, setShowCheckoutDetails] = useState(false);
   useEffect(() => {
-    window.localStorage.setItem('ziada-checkout-step', showCheckoutDetails ? 'details' : 'items');
-  }, [showCheckoutDetails]);
+    // Do not restore payment details from a previous checkout/session. A
+    // restored cart must always open at the products review step.
+    window.localStorage.removeItem('ziada-checkout-step');
+  }, []);
   useEffect(() => {
     if (checkoutViewResetKey === 0) return;
     setShowCheckoutDetails(false);
