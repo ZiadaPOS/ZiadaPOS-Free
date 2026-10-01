@@ -46,8 +46,10 @@ export default function CheckoutPage() {
   const [productsLoaded, setProductsLoaded] = useState(false);
   const legacyCartStorageKey =
     activeUserId && activeStoreId ? `ziada-checkout-cart:${activeUserId}:${activeStoreId}` : '';
-  const cartStorageKey =
+  const previousCartStorageKey =
     activeUserId && activeStoreId ? `ziada-checkout-cart:v2:${activeUserId}:${activeStoreId}` : '';
+  const cartStorageKey =
+    activeUserId && activeStoreId ? `ziada-checkout-cart:v3:${activeUserId}:${activeStoreId}` : '';
   const updateCart = useCallback((action: SetStateAction<Record<string, number>>) => {
     setError('');
     setCart(action);
@@ -161,10 +163,11 @@ export default function CheckoutPage() {
   }, [load]);
   useEffect(() => {
     // Previous carts can contain product IDs from another store or catalog.
-    // Start with an empty cart after the store-aware checkout migration.
+    // Start with an empty cart after the catalog reconciliation migration.
     window.localStorage.removeItem('ziada-checkout-cart');
     if (legacyCartStorageKey) window.localStorage.removeItem(legacyCartStorageKey);
-  }, [legacyCartStorageKey]);
+    if (previousCartStorageKey) window.localStorage.removeItem(previousCartStorageKey);
+  }, [legacyCartStorageKey, previousCartStorageKey]);
   useEffect(() => {
     // Restore only after both the user/store identity and that store's fresh
     // catalog are known. Otherwise a saved ID from an old/deleted product can
@@ -226,6 +229,44 @@ export default function CheckoutPage() {
       window.localStorage.removeItem(cartStorageKey);
     }
   }, [cart, cartRestored, cartStorageKey, productsLoaded, restoredCartStorageKey]);
+  useEffect(() => {
+    if (
+      !cartRestored ||
+      !productsLoaded ||
+      !cartStorageKey ||
+      restoredCartStorageKey !== cartStorageKey
+    )
+      return;
+
+    // Catalogs can change while a checkout tab is open (for example, when a
+    // product is archived in another tab). Reconcile the in-memory cart after
+    // every successful refresh instead of checking only on the initial restore.
+    const productById = new Map(products.map((product) => [product.id, product]));
+    let changed = false;
+    const currentCart: Record<string, number> = {};
+    for (const [productId, quantity] of Object.entries(cart)) {
+      const product = productById.get(productId);
+      if (!product || !Number.isInteger(quantity) || quantity <= 0) {
+        changed = true;
+        continue;
+      }
+      const safeQuantity = product.is_service ? quantity : Math.min(quantity, product.stock);
+      if (safeQuantity > 0) currentCart[productId] = safeQuantity;
+      if (safeQuantity !== quantity) changed = true;
+    }
+
+    if (changed) {
+      setCart(currentCart);
+      setMobileCartOpen(false);
+      setCheckoutViewResetKey((key) => key + 1);
+      setError(
+        text(
+          'The cart was refreshed to match products and stock available at this store. Review it before continuing.',
+          'Kikapu kimepangwa upya kulingana na bidhaa na stoo inayopatikana katika duka hili. Kihakiki kabla ya kuendelea.'
+        )
+      );
+    }
+  }, [cart, cartRestored, cartStorageKey, products, productsLoaded, restoredCartStorageKey, text]);
   useEffect(() => {
     document.documentElement.dataset.catalogView = catalogView;
     return () => {
