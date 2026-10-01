@@ -22,6 +22,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [products, setProducts] = useState<PosProduct[]>([]);
+  const [activeStoreId, setActiveStoreId] = useState('');
   const [isPharmacy, setIsPharmacy] = useState(false);
   const [businessType, setBusinessType] = useState('retail');
   const [priceMode, setPriceMode] = useState<'retail' | 'wholesale'>('retail');
@@ -60,8 +61,12 @@ export default function CheckoutPage() {
           posApi<unknown>('/inventory/products?status=active&page=1&page_size=100'),
           posApi<unknown>('/customers?page=1&page_size=100'),
           posApi<unknown>('/inventory/categories'),
-          posApi<{ organisation?: { business_type?: string } }>('/accounts/me')
+          posApi<{
+            organisation?: { business_type?: string };
+            store?: { id?: string };
+          }>('/accounts/me')
         ]);
+        setActiveStoreId(profile.data.store?.id || '');
         const type = profile.data.organisation?.business_type || 'retail';
         setBusinessType(type);
         setPriceMode(type === 'wholesale' ? 'wholesale' : 'retail');
@@ -254,10 +259,24 @@ export default function CheckoutPage() {
         throw new Error(
           text('Select a customer for a credit sale.', 'Chagua mteja kwa mauzo ya mkopo.')
         );
+      const session = await posApi<{ store?: { id?: string } }>('/accounts/me');
+      const currentStoreId = session.data.store?.id || '';
+      if (!activeStoreId || !currentStoreId) {
+        throw new Error(
+          text(
+            'Could not confirm the active store. Reload checkout and try again.',
+            'Imeshindikana kuthibitisha duka linalotumika. Pakia upya ukurasa wa mauzo kisha ujaribu tena.'
+          )
+        );
+      }
+      if (currentStoreId !== activeStoreId) {
+        throw new Error('ACTIVE_STORE_CHANGED');
+      }
       const customer = customers.find((item) => item.id === customerId);
       const result = await posApi<PosTransaction>('/pos/sale', {
         method: 'POST',
         body: JSON.stringify({
+          expected_store_id: activeStoreId,
           lines,
           payment_method: paymentMethod,
           price_mode:
@@ -282,6 +301,18 @@ export default function CheckoutPage() {
       if (result.data?.id) setReceiptTransaction(result.data);
     } catch (reason) {
       if (
+        reason instanceof Error &&
+        (reason.message === 'ACTIVE_STORE_CHANGED' ||
+          reason.message === 'Active store changed; refresh checkout before completing the sale')
+      ) {
+        await load({ clearError: false });
+        setError(
+          text(
+            'The active store changed in another tab. Checkout has refreshed; review the updated cart before completing the sale.',
+            'Duka linalotumika limebadilishwa kwenye kichupo kingine. Mauzo yamepakiwa upya; kagua kikapu kabla ya kukamilisha.'
+          )
+        );
+      } else if (
         reason instanceof Error &&
         reason.message === 'One or more products were not found in this store'
       ) {
