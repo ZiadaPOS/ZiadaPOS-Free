@@ -1,176 +1,49 @@
-# 08 — Messaging, SMS Credits & Public Commerce
+# 08 — Messaging and Public Commerce (Planned)
 
-This document defines the messaging and public-commerce contract for ZiadaPOS.
+> **Status: design notes only.** The current API server does not register a messaging, public-storefront, order, commerce, or Snippe webhook app. No route listed here should be called or described as a shipped feature until implementation, route registration, persistence, authorization, webhook verification and deployment are complete. See [business workflows](business-workflows.md) for supported current behavior and [04 — API Reference](04-api-reference.md) for implemented routes.
 
-## Sender IDs
+This document retains the intended product and integration requirements so they are not confused with the active API contract.
 
-- Every shop connects its own SendAfrica account by pasting its API key into ZiadaPOS.
-- Sender-ID requests are submitted directly to SendAfrica through that shop's account; ZiadaPOS
-  does not own or approve sender-ID applications.
-- A requested sender ID is unusable while it is `draft`, `submitted`, `under_review`, or `rejected`.
-- Only a provider-approved sender ID can become the shop's active sender.
-- The UI may display **ZIADA POS** as the initial product default, but operational sending must
-  use a sender available to the connected shop account.
-- Sender changes are audited and do not rewrite historical message records.
+## Intended shop-owned SMS model
 
-```text
-draft → submitted → under_review → approved
-                              ↘ rejected
-```
+- A shop would connect its own SendAfrica account; platform credentials must not be used for operational or promotional sends.
+- Sender-ID requests should be submitted through the shop's account. Only provider-approved IDs should be available for sending.
+- The proposed organisation-level SMS wallet starts with a one-time 100-credit grant shared across stores. Messages reserve credits before dispatch and reconcile against provider outcomes; failed submissions release reservations.
+- The planned controls include templates, campaigns, automation preferences, low-balance views, opt-outs, quiet hours, deduplication and rate limits.
+- Provider credentials must be encrypted at rest, write-only in the UI/API, rotatable, and never returned in cleartext.
 
-## SMS allowance and top-ups
+These are requirements, not present application guarantees. Existing Go SMS integration code for other flows does not imply these campaign or wallet routes exist.
 
-Each shop owner receives **100 free SMS credits once**. In the data model this is an
-organisation-level wallet shared by that shop's stores and authorised staff. It is not a
-separate wallet for every cashier and is never reset monthly.
+## Intended public storefront and orders
 
-The owner connects their own SendAfrica API key in Messaging Settings. The key belongs to that
-shop's organisation and is never shown to staff, customers, or the browser after it is saved.
-The owner may rotate or remove the key.
-
-- One recipient message consumes one SMS credit unless SendAfrica reports a different cost.
-- Bulk campaigns are charged per accepted recipient, not per HTTP request.
-- Validation failures before provider submission do not consume credits.
-- Provider-submitted messages are reserved before dispatch and reconciled with the provider response.
-- Failed provider submission releases the reservation.
-- Delivery failure after provider acceptance remains in the message log for reconciliation.
-- Once free credits are exhausted, the shop must connect its own SendAfrica API key and top up
-  its own SendAfrica balance before sending.
-- Provider billing, sender ownership, and sender approval remain inside the shop's SendAfrica
-  account.
-- SendAfrica/provider balance is the source of truth for actual deliverability.
-
-The UI must show `free_sms_remaining`, `paid_sms_balance`, `reserved_sms`,
-`available_sms`, and `low_balance_threshold`. Sending fails explicitly with
-`insufficient_sms_credits`; it never silently sends without accounting.
-
-## Automated messages
-
-Owners can enable or disable these per store:
-
-- Credit/debt reminders
-- Daily sales summaries
-- Low-stock alerts
-- Receipt confirmations
-- New-customer welcome messages
-- Order confirmations and status updates
-- Promotional campaigns
-
-Automated sends run asynchronously through the event bus or scheduler, with bounded retries
-and a durable message log.
-
-## Messaging interface
+Proposed storefront flow:
 
 ```text
-GET    /messaging/settings
-PATCH  /messaging/settings
-GET    /messaging/balance
-GET    /messaging/usage
-GET    /messaging/topups
-GET    /messaging/sender-id
-GET    /messaging/sender-id/requirements
-POST   /messaging/sender-id/request
-GET    /messaging/sender-id/status
-GET    /messaging/templates
-POST   /messaging/templates
-PATCH  /messaging/templates/:id
-DELETE /messaging/templates/:id
-POST   /messaging/send
-POST   /messaging/campaigns
-GET    /messaging/campaigns
-GET    /messaging/campaigns/:id
-GET    /messaging/messages/:id
-POST   /webhooks/sendafrica
+published shop link → public catalogue → cart → customer details → pickup/delivery → order
 ```
 
-The provider adapter supports single and bulk SMS, preserves SendAfrica `request_id` and
-`message_id`, and reconciles delivery through webhooks. SendAfrica documents bulk requests
-for up to 1,000 recipients per call.
+The intended design includes product/price snapshots, public order tokens separate from internal IDs, owner-side order state management, and invoice views. Stock should not be decremented merely because a visitor adds an item to a cart. The final reservation/receipt lifecycle must be defined transactionally when implemented.
 
-## Public storefront
+## Proposed route families (not active)
 
-Each store may publish:
+The following are design placeholders only:
 
 ```text
-https://shop.ziadapos.com/{store_slug}
+/messaging/*
+/webhooks/sendafrica
+/public/stores/:slug/*
+/public/orders/:token/*
+/commerce/*
+/subscriptions/webhooks/snippe
+/commerce/webhooks/snippe
 ```
 
-The page can expose branding, opening hours, categories, active products, product images,
-prices, availability, promotions, pickup, delivery, and a cart without customer registration.
+Do not use these paths in production clients. They currently have no registered handlers. In particular, payment redirects must never be considered proof that a subscription or order was paid.
 
-Public reads are unauthenticated. Store ownership, visibility, stock reservation, and order
-mutations are enforced server-side.
+## Payment callback requirements before release
 
-## Orders and invoices
+When a payment module is built, callback handlers must verify the provider signature over the raw request body, deduplicate provider event IDs/references, persist the provider event and ZiadaPOS payment record, and only then apply an idempotent subscription/order transition. Secrets must be configured and rotated outside source control. Add negative signature, replay, duplicate, malformed body, amount mismatch and out-of-order event coverage before exposing callback URLs.
 
-```text
-Store link → catalogue → cart → customer details → delivery/pickup → order → invoice
-```
+## Planned data model
 
-Order states:
-
-```text
-pending | confirmed | preparing | ready | out_for_delivery | completed | cancelled | rejected
-```
-
-Orders store immutable product-price snapshots. Stock is reserved when the shop confirms an
-order, not when a customer adds an item to a cart.
-
-Initial payment methods are cash on delivery, pay on pickup, and manual payment confirmation.
-Online payment adapters can be added later without changing the cart/order interface.
-
-```text
-GET    /public/stores/:slug
-GET    /public/stores/:slug/categories
-GET    /public/stores/:slug/products
-POST   /public/stores/:slug/orders
-GET    /public/orders/:token
-POST   /public/orders/:token/cancel
-GET    /commerce/settings
-PATCH  /commerce/settings
-GET    /commerce/orders
-GET    /commerce/orders/:id
-PATCH  /commerce/orders/:id/status
-GET    /commerce/orders/:id/invoice
-```
-
-Public order tokens are random, non-sequential, and separate from internal UUIDs.
-
-## Planned data additions
-
-- `sender_id_requests`, `messaging_settings`
-- `sms_wallets`, `sms_ledger_entries`, `sms_campaigns`, `sms_messages`
-- encrypted organisation SendAfrica credential metadata (fingerprint, configured-at, rotated-at,
-  and active state; never return the raw key)
-- `storefront_settings`
-- `orders`, `order_lines`, `invoices`
-
-`sms_wallets` is organisation-scoped and contains the one-time free grant, paid balance,
-reserved balance, consumed balance, and a version for safe concurrent reservations.
-
-## Safety controls
-
-- Owner-only access to sender IDs, wallets, campaigns, and storefront settings.
-- Deduplicate recipients before charging credits.
-- Enforce daily organisation send limits and rate limits.
-- Support STOP/opt-out records for promotional messages.
-- Keep each organisation's SendAfrica credential server-side and encrypted at rest.
-- Never use a shared platform SendAfrica credential for a shop's operational or promotional SMS.
-- Registration/password OTPs happen before a shop has a provider key; they require a separately
-  documented platform-auth channel or temporary onboarding provider policy.
-
-## Payment-provider separation
-
-SendAfrica SMS API keys and Snippe payment API keys are different credentials. SendAfrica keys
-are used only for SMS/account operations. ZiadaPOS subscription and ecommerce payments use
-Snippe and send callbacks to the ZiadaPOS API:
-
-```text
-https://api.ziadapos.com/api/v1/subscriptions/webhooks/snippe
-https://api.ziadapos.com/api/v1/commerce/webhooks/snippe
-```
-
-The callback endpoints must not be advertised as live until their handlers exist and are
-signature-verified. A payment redirect alone must never activate a subscription or complete an
-order.
-- Never block an order or POS sale on an SMS provider call.
+Potential entities include sender-ID requests, messaging settings, SMS wallet and ledger, campaigns and messages, storefront settings, orders/order lines and invoices. None of these entities are currently migrated by the API's registered apps. Do not assume they exist in a running database. Once implemented, move their contracts into the active API reference and data model and keep this file as an implementation decision record or remove it.

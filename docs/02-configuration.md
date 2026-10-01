@@ -81,32 +81,22 @@ Defaults are development-friendly; set real values in production.
 | `SENDAFRICA_API_KEY` | *(empty)* | API key (`SA-…`). When empty, SMS runs in dry-run (logged, not sent). |
 | `SENDAFRICA_SENDER_ID` | `ZIADA POS` | Sender id shown to recipients. |
 
-SMS free-credit policy is organisation-scoped and stored in the database: one non-resetting
-100-message grant per organisation. SendAfrica provider balance/top-ups are not configured by
-an environment variable; they are reconciled through the messaging wallet and provider
-references. Provider keys remain server-side and are never returned by the API.
+The registered API uses SendAfrica for OTPs, staff temporary-password messages, customer SMS,
+and credit reminders. There is no registered SMS campaign/wallet app and no implemented
+organisation-level 100-message wallet in the current schema. Do not infer campaign credit,
+top-up, per-organisation provider-key or sender-ID approval behavior from these environment
+variables.
 
 ## Snippe payments
 
-Snippe credentials are separate from SendAfrica SMS credentials. The planned ZiadaPOS payment
-callbacks are:
+Snippe configuration fields are loaded but **are not used by a registered payment integration**
+in the current server. There are no active Snippe checkout or webhook routes. Do not enable or
+advertise payment processing based on these values; the environment flags alone do not create a
+working, verified payment workflow. When such a module is implemented, document its real route
+registration and signature/replay protections before deployment.
 
-```text
-https://api.ziadapos.com/api/v1/subscriptions/webhooks/snippe
-https://api.ziadapos.com/api/v1/commerce/webhooks/snippe
-```
-
-These routes must not be enabled with `ENABLE_SNIPPE=true` until the subscription/commerce
-payment module is deployed. Payment completion must be accepted only from a verified Snippe
-webhook; browser redirects are informational and cannot activate a subscription or complete an
-order.
-
-### SMS sender identity
-
-ZiadaPOS-controlled OTPs, temporary-password messages, payment confirmations, debt reminders,
-and reports are sent through SendAfrica using `SENDAFRICA_SENDER_ID` (production value:
-`ZIADA POS`). Snippe payment OTPs are generated and delivered by Snippe itself; ZiadaPOS cannot
-override that provider-controlled sender identity.
+`SENDAFRICA_SENDER_ID` is the configured sender value used by the current SendAfrica client. No
+Snippe payment OTP or payment-confirmation flow is implemented by this API.
 
 ## AI (Ngamia)
 

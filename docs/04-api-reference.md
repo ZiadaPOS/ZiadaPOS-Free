@@ -98,12 +98,19 @@ wholesale sale is rejected when a price is missing or the quantity is below mini
 | DELETE | `/inventory/categories/:id` | JWT | Delete (products keep data, lose the link). |
 | GET | `/inventory/products` | JWT | List: `search?`, `category_id?`, `status?`, `low_stock?`, `page`, `page_size`. |
 | POST | `/inventory/products` | JWT | Create product (`name`, `selling_price`, `cost_price?`, `category_id?`, `sku?`, `barcode?`, `stock?`, `reorder_point?`, `image?`, `tax_rate?`, `description?`, `is_service?`, `is_active?`). Stock is opening quantity. |
+| POST | `/inventory/import` | JWT | Import products from the supported multipart/file payload; see handler contract. |
 | GET | `/inventory/products/:id` | JWT | One product. |
 | PATCH | `/inventory/products/:id` | JWT | **Partial update** — only provided fields change (`UpdateProductInput`, pointer fields). Stock must use `/adjust`. |
 | DELETE | `/inventory/products/:id` | JWT | Soft-delete (deactivate). |
 | GET | `/inventory/products/barcode/:code` | JWT | Find by barcode (scanner / phone lookup). |
 | POST | `/inventory/products/:id/adjust` | JWT | `qty_change`, `reason` (restock/damage/correction/return), `note?` → record `StockAdjustment` + update stock. |
 | GET | `/inventory/products/:id/adjustments` | JWT | Adjustment history (`limit`). |
+| GET | `/inventory/units` | JWT | List units for the organisation. |
+| POST | `/inventory/units` | JWT | Create a unit. |
+| PATCH | `/inventory/units/:id` | JWT | Update a unit. |
+| DELETE | `/inventory/units/:id` | JWT | Delete a unit. |
+| GET | `/inventory/batches` | JWT | List pharmacy batches for active store (optional product filter). |
+| POST | `/inventory/products/:id/batches` | JWT | Receive/reconcile a pharmacy batch. |
 | GET | `/inventory/low-stock` | JWT | Products at/below reorder point. |
 
 ---
@@ -117,6 +124,7 @@ wholesale sale is rejected when a price is missing or the quantity is below mini
 | GET | `/pos/transactions/:id` | JWT | One transaction with itemised lines. |
 | POST | `/pos/transactions/:id/refund` | JWT with refund permission | Refund a paid sale and mark `refunded`; pharmacy-returned units are placed in quarantine and are excluded from sellable stock until inspected/released. |
 | POST | `/pos/transactions/:id/void` | JWT | Void a transaction → restore stock, mark `void`. |
+| POST | `/pos/transactions/:id/receipt` | JWT | Email a receipt for a transaction. |
 | GET | `/pos/summary` | JWT | Revenue / transactions / profit for `date_from?`–`date_to?` (default today). |
 | GET | `/pos/summary/hourly` | JWT | Hourly revenue breakdown for `date?`. |
 
@@ -134,6 +142,7 @@ wholesale sale is rejected when a price is missing or the quantity is below mini
 | GET | `/customers/credits` | JWT | Customers with outstanding credit (`overdue?`). |
 | GET | `/customers/:id` | JWT | Full profile (spend stats maintained by POS events). |
 | PATCH | `/customers/:id` | JWT | Partial update (`credit_limit: -1` clears). |
+| POST | `/customers/:id/sms` | JWT | Send a customer SMS through configured SendAfrica integration; customer must have a phone number. |
 
 ---
 
@@ -326,61 +335,9 @@ audit reason; it writes a negative batch movement and stock adjustment in one tr
 
 ---
 
-## Messaging — `/messaging`
+## Messaging and public commerce (not implemented)
 
-| Method | Path | Auth | Description |
-| --- | --- | --- | --- |
-| GET | `/messaging/settings` | Owner | Sender, automation, quiet-hour, opt-out, and low-balance settings. |
-| PATCH | `/messaging/settings` | Owner | Update messaging settings. |
-| GET | `/messaging/balance` | Owner | Free, paid, reserved, consumed, available credits, and provider connection state. |
-| GET | `/messaging/usage` | Owner | Usage totals and immutable ledger summary. |
-| GET | `/messaging/topups` | Owner | Top-up history and provider references. |
-| POST | `/messaging/provider-key` | Owner | Connect or rotate the shop owner's SendAfrica API key. The raw key is write-only. |
-| DELETE | `/messaging/provider-key` | Owner | Disconnect the shop's SendAfrica account after queued sends finish. |
-| GET | `/messaging/sender-id` | Owner | Active sender and request status. Defaults to `ZIADA POS`. |
-| GET | `/messaging/sender-id/requirements` | Owner | Read sender-ID requirements from the connected shop SendAfrica account. |
-| POST | `/messaging/sender-id/request` | Owner | Submit a sender-ID request through the connected shop SendAfrica account. |
-| GET | `/messaging/sender-id/status` | Owner | Read approval state from the connected shop account. |
-| GET | `/messaging/templates` | Owner | List SMS templates. |
-| POST | `/messaging/templates` | Owner | Create a transactional or promotional template. |
-| PATCH | `/messaging/templates/:id` | Owner | Update a template. |
-| DELETE | `/messaging/templates/:id` | Owner | Deactivate a template. |
-| POST | `/messaging/send` | Owner | Send one message after reserving SMS credits. |
-| POST | `/messaging/campaigns` | Owner | Create a deduplicated bulk campaign. Maximum provider batch is 1,000 recipients. |
-| GET | `/messaging/campaigns` | Owner | List campaigns and send totals. |
-| GET | `/messaging/campaigns/:id` | Owner | Campaign details and recipient outcomes. |
-| GET | `/messaging/messages/:id` | Owner | One message delivery record. |
-| POST | `/webhooks/sendafrica` | — | Provider delivery callback; authenticated by webhook signature. |
-
-Each shop owner/organisation receives a **one-time 100-SMS grant** shared by that shop's stores
-and authorised staff. Operational sends are made only through that shop's connected SendAfrica
-API key. When the free grant is exhausted, the owner tops up their own provider balance. The
-wallet rejects sends with `provider_key_required` or `insufficient_sms_credits` when no usable
-balance is available.
-
----
-
-## Public storefront — `/public`
-
-| Method | Path | Auth | Description |
-| --- | --- | --- | --- |
-| GET | `/public/stores/:slug` | — | Published store profile and storefront settings. |
-| GET | `/public/stores/:slug/categories` | — | Visible product categories. |
-| GET | `/public/stores/:slug/products` | — | Searchable visible catalogue. |
-| POST | `/public/stores/:slug/orders` | — | Create an order from cart lines, customer details, and pickup/delivery choice. |
-| GET | `/public/orders/:token` | — | Read an order using its secure public token. |
-| POST | `/public/orders/:token/cancel` | — | Cancel an eligible public order. |
-
-## Commerce — `/commerce`
-
-| Method | Path | Auth | Description |
-| --- | --- | --- | --- |
-| GET | `/commerce/settings` | Owner | Read public-store, delivery, payment, and sharing settings. |
-| PATCH | `/commerce/settings` | Owner | Configure or publish the storefront. |
-| GET | `/commerce/orders` | JWT | List incoming orders by status and date. |
-| GET | `/commerce/orders/:id` | JWT | Order, lines, customer, status history, and invoice. |
-| PATCH | `/commerce/orders/:id/status` | JWT | Confirm, prepare, ready, dispatch, complete, reject, or cancel. |
-| GET | `/commerce/orders/:id/invoice` | JWT | Download or view the generated invoice. |
+The current server does not register `/messaging`, `/webhooks/sendafrica`, `/public`, `/commerce`, or payment-webhook handlers. The proposed routes and requirements are in [08 — Messaging & Commerce](08-messaging-and-commerce.md), clearly marked as planned. They are not part of this active endpoint reference.
 
 ---
 
@@ -399,20 +356,6 @@ balance is available.
 | GET | `/subscriptions/all/:id` | Admin | One subscription. |
 | POST | `/subscriptions/all/:id/activate` | Admin | Activate / grant. |
 | PATCH | `/subscriptions/all/:id/extra-stores` | Admin | Adjust extra-store allowance. |
-
-### Planned Snippe callbacks
-
-These public HTTPS routes are reserved for the ZiadaPOS payment module and are not active until
-that module is deployed:
-
-```text
-POST /subscriptions/webhooks/snippe
-POST /commerce/webhooks/snippe
-```
-
-They must verify the raw-body HMAC signature using `SNIPPE_WEBHOOK_SECRET`, deduplicate by
-provider event/payment reference, and record ZiadaPOS's own transaction before applying any
-subscription or order state change.
 
 > Registration auto-creates a **7-day trial** via the `user.registered` event
 > (`apps/subscriptions`).

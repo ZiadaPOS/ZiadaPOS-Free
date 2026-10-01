@@ -8,7 +8,9 @@
 - **[06 — Internals](06-internals.md)** — `Deps`, cache, storage, mailer, provider integrations.
 - **[07 — Deployment](07-deployment.md)** — local, Docker, production VPS, CI/CD.
 - **[08 — Messaging & Commerce](08-messaging-and-commerce.md)** — SendAfrica sender IDs,
-  SMS credits, campaigns, storefronts, carts, orders, and invoices.
+  SMS credits, campaigns, storefronts, carts, orders, and invoices (planned contract; routes are not registered yet).
+- **[Business Workflows](business-workflows.md)** — implemented retail, wholesale, mixed pricing,
+  pharmacy, inventory, credit, procurement and daily-close behavior.
 
 ## Reference
 
