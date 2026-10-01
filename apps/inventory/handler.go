@@ -3,6 +3,7 @@ package inventory
 import (
 	"encoding/csv"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -224,6 +225,17 @@ func (h *Handler) ListProducts(c *gin.Context) {
 	f.Status = c.Query("status")
 	f.LowStock, _ = strconv.ParseBool(c.Query("low_stock"))
 	f.NoCache, _ = strconv.ParseBool(c.Query("fresh"))
+	if rawIDs := strings.TrimSpace(c.Query("ids")); rawIDs != "" {
+		for _, rawID := range strings.Split(rawIDs, ",") {
+			id, parseErr := uuid.Parse(strings.TrimSpace(rawID))
+			if parseErr != nil {
+				response.BadRequest(c, "Invalid product id", nil)
+				return
+			}
+			f.IDs = append(f.IDs, id)
+		}
+		f.NoCache = true
+	}
 	f.Page, _ = strconv.Atoi(c.DefaultQuery("page", "1"))
 	f.PageSize, _ = strconv.Atoi(c.DefaultQuery("page_size", "20"))
 	out, err := h.svc.ListProducts(c.Request.Context(), storeID, f)

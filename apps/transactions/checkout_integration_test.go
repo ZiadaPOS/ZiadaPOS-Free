@@ -53,6 +53,10 @@ func TestCatalogProductCanBeSoldUnderSameStoreSession(t *testing.T) {
 	if err := db.Create(&product).Error; err != nil {
 		t.Fatal(err)
 	}
+	otherProduct := inventory.Product{StoreID: otherStore.ID, Name: "Other store item", SellingPrice: 65, Stock: 10, IsActive: true}
+	if err := db.Create(&otherProduct).Error; err != nil {
+		t.Fatal(err)
+	}
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
@@ -103,6 +107,35 @@ func TestCatalogProductCanBeSoldUnderSameStoreSession(t *testing.T) {
 	listedProduct := catalog.Data.Items[0]
 	if listedProduct.ID != product.ID || listedProduct.StoreID != store.ID {
 		t.Fatalf("catalog product context mismatch: product=%s/%s store=%s", listedProduct.ID, product.ID, listedProduct.StoreID)
+	}
+
+	// Checkout revalidates only the cart's exact IDs, without the list page
+	// limit, and the API must still scope those IDs to the authenticated store.
+	freshRequest := httptest.NewRequest(http.MethodGet, fmt.Sprintf(
+		"/api/v1/inventory/products?fresh=true&ids=%s,%s,%s",
+		product.ID, uuid.New(), otherProduct.ID,
+	), nil)
+	freshRequest.Header.Set("Authorization", "Bearer "+pair.AccessToken)
+	freshResponse := httptest.NewRecorder()
+	router.ServeHTTP(freshResponse, freshRequest)
+	if freshResponse.Code != http.StatusOK {
+		t.Fatalf("fresh catalog lookup returned %d: %s", freshResponse.Code, freshResponse.Body.String())
+	}
+	var freshCatalog struct {
+		Success bool `json:"success"`
+		Data    struct {
+			Items []struct {
+				ID      uuid.UUID `json:"id"`
+				StoreID uuid.UUID `json:"store_id"`
+			} `json:"items"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(freshResponse.Body.Bytes(), &freshCatalog); err != nil {
+		t.Fatalf("decode fresh catalog response: %v", err)
+	}
+	if !freshCatalog.Success || len(freshCatalog.Data.Items) != 1 ||
+		freshCatalog.Data.Items[0].ID != product.ID || freshCatalog.Data.Items[0].StoreID != store.ID {
+		t.Fatalf("fresh catalog returned products outside the active store: %s", freshResponse.Body.String())
 	}
 
 	// A checkout tab can retain its old catalog after another tab switches the

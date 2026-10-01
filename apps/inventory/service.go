@@ -382,14 +382,19 @@ func (s *Service) CreateProduct(ctx context.Context, storeID uuid.UUID, in *Prod
 
 // ListProducts returns products (with category) for a store, cached.
 func (s *Service) ListProducts(ctx context.Context, storeID uuid.UUID, f ProductFilter) (map[string]interface{}, error) {
-	if f.Page <= 0 {
-		f.Page = 1
-	}
-	if f.PageSize <= 0 {
-		f.PageSize = 20
-	}
-	if f.PageSize > 200 {
-		f.PageSize = 200
+	if len(f.IDs) > 0 {
+		f.Page = 0
+		f.PageSize = 0
+	} else {
+		if f.Page <= 0 {
+			f.Page = 1
+		}
+		if f.PageSize <= 0 {
+			f.PageSize = 20
+		}
+		if f.PageSize > 200 {
+			f.PageSize = 200
+		}
 	}
 	queryKey := fmt.Sprintf("inv:products:%s:p%d:s%d:cat%s:q%s:st%s:lo%t",
 		storeID, f.Page, f.PageSize, f.CategoryID, f.Search, f.Status, f.LowStock)

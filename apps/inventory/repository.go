@@ -121,6 +121,7 @@ func (r *Repo) DeleteUnit(orgID, id uuid.UUID) error {
 // ProductFilter constrains product list queries.
 type ProductFilter struct {
 	StoreID    uuid.UUID
+	IDs        []uuid.UUID
 	CategoryID uuid.UUID
 	Search     string
 	Status     string // "", "active", "inactive"
@@ -133,6 +134,9 @@ type ProductFilter struct {
 
 func (r *Repo) ListProducts(f ProductFilter) ([]Product, int64, error) {
 	q := r.db.Model(&Product{}).Where("store_id = ?", f.StoreID)
+	if len(f.IDs) > 0 {
+		q = q.Where("id IN ?", f.IDs)
+	}
 
 	if f.CategoryID != uuid.Nil {
 		q = q.Where("category_id = ?", f.CategoryID)
