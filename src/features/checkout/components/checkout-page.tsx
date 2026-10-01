@@ -232,14 +232,23 @@ export default function CheckoutPage() {
       );
       return;
     }
+    if (!Object.values(cart).some((quantity) => quantity > 0)) {
+      setError(
+        text('Add at least one product to the sale.', 'Ongeza bidhaa angalau moja kwenye mauzo.')
+      );
+      return;
+    }
     setBusy(true);
     setError('');
     try {
       // A checkout tab may stay open after products are deleted or replaced.
       // Validate against an uncached catalog so the UI cannot submit an old ID
       // just because it is still present in this tab's in-memory product list.
+      const cartProductIds = Object.keys(cart).filter((productId) => cart[productId] > 0);
       const [catalog, session] = await Promise.all([
-        posApi<unknown>('/inventory/products?status=active&page=1&page_size=100&fresh=true'),
+        posApi<unknown>(
+          `/inventory/products?status=active&fresh=true&ids=${encodeURIComponent(cartProductIds.join(','))}`
+        ),
         posApi<{ store?: { id?: string } }>('/accounts/me')
       ]);
       const latestProducts = unwrapList<PosProduct>(catalog.data);
@@ -250,7 +259,7 @@ export default function CheckoutPage() {
           Object.entries(cart).filter(([productId]) => available.has(productId))
         );
         setCart(currentCart);
-        await load({ clearError: false });
+        void load({ clearError: false });
         setError(
           text(
             'A product in this cart is no longer available in the active store. It was removed; add the current product and try again.',
@@ -262,10 +271,6 @@ export default function CheckoutPage() {
       const lines = Object.entries(cart)
         .filter(([, qty]) => qty > 0)
         .map(([product_id, qty]) => ({ product_id, qty, ...rxDetails[product_id] }));
-      if (!lines.length)
-        throw new Error(
-          text('Add at least one product to the sale.', 'Ongeza bidhaa angalau moja kwenye mauzo.')
-        );
       if (paymentMethod === 'Credit' && !customerId)
         throw new Error(
           text('Select a customer for a credit sale.', 'Chagua mteja kwa mauzo ya mkopo.')

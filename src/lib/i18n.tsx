@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 export type Language = 'en' | 'sw';
 
@@ -138,7 +138,10 @@ export function useLanguage() {
 
 export function useText() {
   const { language } = useLanguage();
-  return (english: string, swahili: string) => (language === 'sw' ? swahili : english);
+  return useCallback(
+    (english: string, swahili: string) => (language === 'sw' ? swahili : english),
+    [language]
+  );
 }
 
 export type { TranslationKey };
