@@ -12,7 +12,7 @@ import {
   type PosProduct,
   type PosTransaction
 } from '@/lib/pos-api';
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState, type SetStateAction } from 'react';
 import { useText } from '@/lib/i18n';
 import { CheckoutWorkspace } from '@/features/checkout/components/checkout-workspace';
 import { ReceiptDialog } from '@/features/sales/components/receipt-dialog';
@@ -38,7 +38,12 @@ export default function CheckoutPage() {
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [scanCode, setScanCode] = useState('');
   const [receiptTransaction, setReceiptTransaction] = useState<PosTransaction | null>(null);
-  const cartRestored = useRef(false);
+  const [cartRestored, setCartRestored] = useState(false);
+  const [productsLoaded, setProductsLoaded] = useState(false);
+  const updateCart = useCallback((action: SetStateAction<Record<string, number>>) => {
+    setError('');
+    setCart(action);
+  }, []);
   useEffect(() => {
     setRxDetails((current) => {
       const remaining = Object.fromEntries(
@@ -110,6 +115,7 @@ export default function CheckoutPage() {
       setProducts(productList);
       setCustomers(unwrapList<PosCustomer>(c.data));
       setCategories(unwrapList<PosCategory>(categoryResult.data));
+      setProductsLoaded(true);
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -137,19 +143,19 @@ export default function CheckoutPage() {
     } catch {
       window.localStorage.removeItem('ziada-checkout-cart');
     } finally {
-      cartRestored.current = true;
+      setCartRestored(true);
     }
   }, []);
   useEffect(() => {
-    if (!cartRestored.current) return;
+    if (!cartRestored || !productsLoaded) return;
     if (Object.keys(cart).length) {
       window.localStorage.setItem('ziada-checkout-cart', JSON.stringify(cart));
     } else {
       window.localStorage.removeItem('ziada-checkout-cart');
     }
-  }, [cart]);
+  }, [cart, cartRestored, productsLoaded]);
   useEffect(() => {
-    if (!products.length) return;
+    if (!cartRestored || !productsLoaded) return;
     const available = new Set(products.map((product) => product.id));
     setCart((current) => {
       const next = Object.fromEntries(
@@ -157,7 +163,7 @@ export default function CheckoutPage() {
       ) as Record<string, number>;
       return Object.keys(next).length === Object.keys(current).length ? current : next;
     });
-  }, [products]);
+  }, [cartRestored, productsLoaded, products]);
   useEffect(() => {
     document.documentElement.dataset.catalogView = catalogView;
     return () => {
@@ -204,9 +210,34 @@ export default function CheckoutPage() {
 
   async function checkout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!productsLoaded) {
+      setError(
+        text(
+          'Products are still loading. Try again shortly.',
+          'Bidhaa bado zinapakia. Jaribu tena baada ya muda mfupi.'
+        )
+      );
+      return;
+    }
     setBusy(true);
     setError('');
     try {
+      const available = new Set(products.map((product) => product.id));
+      const staleProductIds = Object.keys(cart).filter((productId) => !available.has(productId));
+      if (staleProductIds.length) {
+        setCart((current) => {
+          const next = Object.fromEntries(
+            Object.entries(current).filter(([productId]) => available.has(productId))
+          );
+          return next;
+        });
+        throw new Error(
+          text(
+            'Your cart had products from another store or an old session. They were removed; review the cart and complete the sale again.',
+            'Kikapu kilikuwa na bidhaa za duka jingine au kipindi cha zamani. Zimeondolewa; kagua kikapu kisha kamilisha mauzo tena.'
+          )
+        );
+      }
       const lines = Object.entries(cart)
         .filter(([, qty]) => qty > 0)
         .map(([product_id, qty]) => ({ product_id, qty, ...(rxDetails[product_id] || {}) }));
@@ -279,7 +310,7 @@ export default function CheckoutPage() {
           categories={categories}
           customers={customers}
           cart={cart}
-          setCart={setCart}
+          setCart={updateCart}
           search={search}
           setSearch={setSearch}
           scanCode={scanCode}
