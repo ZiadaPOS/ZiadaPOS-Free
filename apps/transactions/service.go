@@ -169,6 +169,7 @@ func hasPrescriptionRegisterDetails(line SaleLineInput) bool {
 // SaleInput is a complete sale payload.
 type SaleInput struct {
 	Lines            []SaleLineInput `json:"lines" binding:"required,min=1,dive"`
+	ExpectedStoreID  *uuid.UUID      `json:"expected_store_id,omitempty"`
 	PaymentMethod    string          `json:"payment_method" binding:"required"`
 	PriceMode        string          `json:"price_mode"`
 	PaymentReference string          `json:"payment_reference"`
@@ -182,6 +183,9 @@ type SaleInput struct {
 
 // CompleteSale validates, decrements stock and persists a sale.
 func (s *Service) CompleteSale(ctx context.Context, orgID, storeID, cashierID uuid.UUID, in *SaleInput) (*Transaction, error) {
+	if in.ExpectedStoreID != nil && *in.ExpectedStoreID != storeID {
+		return nil, apierr.Conflict("Active store changed; refresh checkout before completing the sale")
+	}
 	method := strings.TrimSpace(in.PaymentMethod)
 	if !contains(ValidMethods, method) {
 		return nil, apierr.BadRequest("Invalid payment method").WithField("payment_method", "must be Cash, M-Pesa, Tigo Pesa, Bank or Credit")

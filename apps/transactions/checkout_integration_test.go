@@ -45,6 +45,10 @@ func TestCatalogProductCanBeSoldUnderSameStoreSession(t *testing.T) {
 	if err := db.Create(&store).Error; err != nil {
 		t.Fatal(err)
 	}
+	otherStore := accounts.Store{OrganisationID: org.ID, Name: "Other Checkout Store", Status: "open", IsActive: true}
+	if err := db.Create(&otherStore).Error; err != nil {
+		t.Fatal(err)
+	}
 	product := inventory.Product{StoreID: store.ID, Name: "Panadol", SellingPrice: 65, CostPrice: 30, Stock: 10, IsActive: true}
 	if err := db.Create(&product).Error; err != nil {
 		t.Fatal(err)
@@ -101,10 +105,37 @@ func TestCatalogProductCanBeSoldUnderSameStoreSession(t *testing.T) {
 		t.Fatalf("catalog product context mismatch: product=%s/%s store=%s", listedProduct.ID, product.ID, listedProduct.StoreID)
 	}
 
+	// A checkout tab can retain its old catalog after another tab switches the
+	// shared session cookie to a different store. Reject that stale sale with a
+	// specific conflict before product validation obscures the cause.
+	otherStorePair, err := deps.Tokens.Issue(uuid.MustParse(cashierID), accounts.RoleOwner, org.ID, otherStore.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedStoreID := store.ID
+	stalePayload, err := json.Marshal(SaleInput{
+		ExpectedStoreID: &expectedStoreID,
+		Lines:           []SaleLineInput{{ProductID: listedProduct.ID, Qty: 2}},
+		PaymentMethod:   MethodCash,
+		PriceMode:       "retail",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	staleRequest := httptest.NewRequest(http.MethodPost, "/api/v1/pos/sale", bytes.NewReader(stalePayload))
+	staleRequest.Header.Set("Authorization", "Bearer "+otherStorePair.AccessToken)
+	staleRequest.Header.Set("Content-Type", "application/json")
+	staleResponse := httptest.NewRecorder()
+	router.ServeHTTP(staleResponse, staleRequest)
+	if staleResponse.Code != http.StatusConflict || !strings.Contains(staleResponse.Body.String(), "Active store changed") {
+		t.Fatalf("stale checkout returned %d: %s", staleResponse.Code, staleResponse.Body.String())
+	}
+
 	payload, err := json.Marshal(SaleInput{
-		Lines:         []SaleLineInput{{ProductID: listedProduct.ID, Qty: 2}},
-		PaymentMethod: MethodCash,
-		PriceMode:     "retail",
+		ExpectedStoreID: &expectedStoreID,
+		Lines:           []SaleLineInput{{ProductID: listedProduct.ID, Qty: 2}},
+		PaymentMethod:   MethodCash,
+		PriceMode:       "retail",
 	})
 	if err != nil {
 		t.Fatal(err)
