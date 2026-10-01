@@ -13,7 +13,7 @@ const empty: PosMedicineProfile = {
   unit: '',
   pack_size: '',
   requires_prescription: false,
-  medicine_schedule: 'unscheduled',
+  medicine_schedule: 'otc',
   registration_number: ''
 };
 
@@ -102,7 +102,7 @@ export function MedicineProfileEditor({ productId }: { productId: string }) {
             Medicine schedule
             <select
               name='medicine_schedule'
-              value={profile.medicine_schedule || 'unscheduled'}
+              value={profile.medicine_schedule || 'otc'}
               onChange={(event) =>
                 setProfile({ ...profile, medicine_schedule: event.target.value })
               }

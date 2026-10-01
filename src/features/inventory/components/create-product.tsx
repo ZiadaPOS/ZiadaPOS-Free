@@ -235,7 +235,7 @@ export function CreateProduct({
             unit: raw.unit,
             pack_size: raw.pack_size,
             requires_prescription: raw.requires_prescription === 'on',
-            medicine_schedule: raw.medicine_schedule || 'unscheduled',
+            medicine_schedule: raw.medicine_schedule || 'otc',
             registration_number: raw.registration_number
           })
         });
@@ -500,7 +500,7 @@ export function CreateProduct({
                           Medicine schedule
                           <select
                             name='medicine_schedule'
-                            defaultValue='unscheduled'
+                            defaultValue='otc'
                             className='bg-background h-10 w-full rounded-md border px-3 font-normal'
                           >
                             <option value='unscheduled'>Unclassified</option>
