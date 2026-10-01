@@ -22,12 +22,26 @@ export function MedicineProfileEditor({ productId }: { productId: string }) {
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
   useEffect(() => {
+    let active = true;
+    setProfileLoading(true);
+    setError('');
+    setSaved(false);
     posApi<PosMedicineProfile>(`/pharmacy/products/${productId}`)
-      .then((result) => setProfile(result.data))
-      .catch((reason) =>
-        setError(reason instanceof Error ? reason.message : 'Could not load medicine details.')
-      );
+      .then((result) => {
+        if (active) setProfile(result.data);
+      })
+      .catch((reason) => {
+        if (active)
+          setError(reason instanceof Error ? reason.message : 'Could not load medicine details.');
+      })
+      .finally(() => {
+        if (active) setProfileLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [productId]);
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -150,7 +164,14 @@ export function MedicineProfileEditor({ productId }: { productId: string }) {
             </p>
           )}
           <div className='sm:col-span-2'>
-            <Button disabled={busy}>{busy ? 'Saving…' : 'Save medicine details'}</Button>
+            <Button
+              type='submit'
+              isLoading={busy}
+              disabled={profileLoading}
+              loadingLabel='Saving medicine details'
+            >
+              Save medicine details
+            </Button>
           </div>
         </form>
       </CardContent>

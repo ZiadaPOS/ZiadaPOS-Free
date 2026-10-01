@@ -44,8 +44,10 @@ export default function CheckoutPage() {
   const [cartRestored, setCartRestored] = useState(false);
   const [restoredCartStorageKey, setRestoredCartStorageKey] = useState('');
   const [productsLoaded, setProductsLoaded] = useState(false);
-  const cartStorageKey =
+  const legacyCartStorageKey =
     activeUserId && activeStoreId ? `ziada-checkout-cart:${activeUserId}:${activeStoreId}` : '';
+  const cartStorageKey =
+    activeUserId && activeStoreId ? `ziada-checkout-cart:v2:${activeUserId}:${activeStoreId}` : '';
   const updateCart = useCallback((action: SetStateAction<Record<string, number>>) => {
     setError('');
     setCart(action);
@@ -158,10 +160,11 @@ export default function CheckoutPage() {
     void load();
   }, [load]);
   useEffect(() => {
-    // Older builds stored one unscoped cart for every signed-in user and
-    // store. It cannot be safely assigned to this session, so discard it.
+    // Previous carts can contain product IDs from another store or catalog.
+    // Start with an empty cart after the store-aware checkout migration.
     window.localStorage.removeItem('ziada-checkout-cart');
-  }, []);
+    if (legacyCartStorageKey) window.localStorage.removeItem(legacyCartStorageKey);
+  }, [legacyCartStorageKey]);
   useEffect(() => {
     // Restore only after both the user/store identity and that store's fresh
     // catalog are known. Otherwise a saved ID from an old/deleted product can

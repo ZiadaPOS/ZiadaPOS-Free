@@ -76,7 +76,10 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
   responseHeaders.set('Content-Type', response.headers.get('Content-Type') || 'application/json');
   const disposition = response.headers.get('Content-Disposition');
   if (disposition) responseHeaders.set('Content-Disposition', disposition);
-  const result = new NextResponse(payload, { status: response.status, headers: responseHeaders });
+  const result = new NextResponse(response.status === 204 ? null : payload, {
+    status: response.status,
+    headers: responseHeaders
+  });
   if (response.status === 401) {
     result.cookies.delete('pos_access_token');
     result.cookies.delete('pos_refresh_token');

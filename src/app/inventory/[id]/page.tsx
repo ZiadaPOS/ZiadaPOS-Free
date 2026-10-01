@@ -64,7 +64,7 @@ export default function InventoryProductDetailPage() {
       transactions
         .flatMap((transaction) => transaction.lines || [])
         .filter((line) => line.product_id === params.id || line.product_name === product?.name)
-        .reduce((sum, line) => sum + line.total, 0),
+        .reduce((sum, line) => sum + line.unit_price * line.qty, 0),
     [params.id, product, transactions]
   );
   if (error)
@@ -121,7 +121,6 @@ export default function InventoryProductDetailPage() {
           </Card>
         ))}
       </div>
-      {isPharmacy && <MedicineProfileEditor productId={product.id} />}
       {(businessType === 'wholesale' || businessType === 'retail_wholesale') && (
         <WholesalePricingEditor product={product} onSaved={setProduct} />
       )}
@@ -197,6 +196,7 @@ export default function InventoryProductDetailPage() {
           </CardContent>
         </Card>
       </div>
+      {isPharmacy && <MedicineProfileEditor productId={product.id} />}
     </div>
   );
 }
