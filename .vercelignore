@@ -1,2 +1,7 @@
-# Exclude cleanup/reference files from Vercel build
+# Exclude generated, local, and cleanup/reference files from Vercel builds.
+/.git
+/.next
+/node_modules
+/.vercel
+/.env*
 __CLEANUP__
