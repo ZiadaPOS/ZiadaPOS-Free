@@ -37,6 +37,7 @@ export default function CheckoutPage() {
   const [paymentReference, setPaymentReference] = useState('');
   const [catalogView, setCatalogView] = useState<'grid' | 'list'>('grid');
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [checkoutViewResetKey, setCheckoutViewResetKey] = useState(0);
   const [scanCode, setScanCode] = useState('');
   const [receiptTransaction, setReceiptTransaction] = useState<PosTransaction | null>(null);
   const [cartRestored, setCartRestored] = useState(false);
@@ -307,6 +308,8 @@ export default function CheckoutPage() {
       });
       setCart({});
       setRxDetails({});
+      setMobileCartOpen(false);
+      setCheckoutViewResetKey((key) => key + 1);
       window.localStorage.removeItem('ziada-checkout-cart');
       window.localStorage.removeItem('ziada-checkout-step');
       setCustomerId('');
@@ -397,6 +400,7 @@ export default function CheckoutPage() {
           setCatalogView={setCatalogView}
           mobileCartOpen={mobileCartOpen}
           setMobileCartOpen={setMobileCartOpen}
+          checkoutViewResetKey={checkoutViewResetKey}
         />
         {receiptTransaction && (
           <ReceiptDialog

@@ -6,6 +6,7 @@ import { Icons } from '@/components/icons';
 
 interface ButtonProps extends ButtonPrimitive.Props {
   isLoading?: boolean;
+  loadingLabel?: string;
 }
 
 const buttonVariants = cva(
@@ -50,23 +51,35 @@ function Button({
   variant = 'default',
   size = 'default',
   isLoading = false,
+  loadingLabel = 'Loading…',
   disabled,
   children,
   ...props
 }: ButtonProps & VariantProps<typeof buttonVariants>) {
   return (
-    <ButtonPrimitive
-      data-slot='button'
-      className={cn(buttonVariants({ variant, size, className }), isLoading && 'grid grid-cols-1')}
-      disabled={isLoading || disabled}
-      aria-busy={isLoading || undefined}
-      {...props}
-    >
-      <span className={cn(isLoading && 'invisible col-start-1 row-start-1')}>{children}</span>
-      {isLoading && (
-        <Icons.spinner aria-hidden='true' className='col-start-1 row-start-1 animate-spin' />
-      )}
-    </ButtonPrimitive>
+    <>
+      <ButtonPrimitive
+        data-slot='button'
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          isLoading && 'grid grid-cols-1'
+        )}
+        disabled={isLoading || disabled}
+        aria-busy={isLoading || undefined}
+        {...props}
+      >
+        <span className={cn(isLoading && 'invisible col-start-1 row-start-1')}>{children}</span>
+        {isLoading && (
+          <Icons.spinner
+            aria-hidden='true'
+            className='text-current col-start-1 row-start-1 animate-spin'
+          />
+        )}
+      </ButtonPrimitive>
+      <span role='status' aria-live='polite' className='sr-only'>
+        {isLoading ? loadingLabel : ''}
+      </span>
+    </>
   );
 }
 

@@ -90,7 +90,8 @@ export function CheckoutWorkspace({
   catalogView,
   setCatalogView,
   mobileCartOpen,
-  setMobileCartOpen
+  setMobileCartOpen,
+  checkoutViewResetKey
 }: {
   products: PosProduct[];
   isPharmacy: boolean;
@@ -127,6 +128,7 @@ export function CheckoutWorkspace({
   setCatalogView: Dispatch<SetStateAction<'grid' | 'list'>>;
   mobileCartOpen: boolean;
   setMobileCartOpen: Dispatch<SetStateAction<boolean>>;
+  checkoutViewResetKey: number;
 }) {
   const text = useText();
   const [activeCategory, setActiveCategory] = useState('');
@@ -139,6 +141,11 @@ export function CheckoutWorkspace({
   useEffect(() => {
     window.localStorage.setItem('ziada-checkout-step', showCheckoutDetails ? 'details' : 'items');
   }, [showCheckoutDetails]);
+  useEffect(() => {
+    if (checkoutViewResetKey === 0) return;
+    setShowCheckoutDetails(false);
+    setMobileCartOpen(false);
+  }, [checkoutViewResetKey, setMobileCartOpen]);
   const visibleProducts = activeCategory
     ? filteredProducts.filter(
         (product) =>
@@ -457,7 +464,12 @@ export function CheckoutWorkspace({
                 size='icon'
                 variant='outline'
                 aria-label={`Open current sale, ${itemCount} items`}
-                onClick={() => setMobileCartOpen(true)}
+                onClick={() => {
+                  // Always show the selected products first when reopening the
+                  // mobile cart, even if payment details were cached earlier.
+                  setShowCheckoutDetails(false);
+                  setMobileCartOpen(true);
+                }}
               >
                 <Icons.cart className='h-4 w-4' />
                 {itemCount > 0 && (
