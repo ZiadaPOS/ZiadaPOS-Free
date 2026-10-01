@@ -163,28 +163,52 @@ export default function CheckoutPage() {
     window.localStorage.removeItem('ziada-checkout-cart');
   }, []);
   useEffect(() => {
-    if (!cartStorageKey || restoredCartStorageKey === cartStorageKey) return;
+    // Restore only after both the user/store identity and that store's fresh
+    // catalog are known. Otherwise a saved ID from an old/deleted product can
+    // briefly become the active cart and block the sale preflight.
+    if (!cartStorageKey || !productsLoaded || restoredCartStorageKey === cartStorageKey) return;
+
+    const productById = new Map(products.map((product) => [product.id, product]));
+    let removedUnavailableItem = false;
+    let restoredCart: Record<string, number> = {};
     try {
       const saved = window.localStorage.getItem(cartStorageKey);
       if (saved) {
-        const parsed = JSON.parse(saved) as Record<string, unknown>;
-        setCart(
-          Object.fromEntries(
-            Object.entries(parsed).filter(
-              ([, quantity]) => typeof quantity === 'number' && quantity > 0
-            )
-          ) as Record<string, number>
-        );
-      } else {
-        setCart({});
+        const parsed: unknown = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          for (const [productId, quantity] of Object.entries(parsed)) {
+            const product = productById.get(productId);
+            if (!product || !Number.isInteger(quantity) || (quantity as number) <= 0) {
+              removedUnavailableItem = true;
+              continue;
+            }
+
+            const safeQuantity = product.is_service
+              ? (quantity as number)
+              : Math.min(quantity as number, product.stock);
+            if (safeQuantity > 0) restoredCart[productId] = safeQuantity;
+            if (safeQuantity !== quantity) removedUnavailableItem = true;
+          }
+        } else {
+          removedUnavailableItem = true;
+        }
       }
     } catch {
-      window.localStorage.removeItem(cartStorageKey);
-      setCart({});
+      removedUnavailableItem = true;
     }
+
+    setCart(restoredCart);
     setRestoredCartStorageKey(cartStorageKey);
     setCartRestored(true);
-  }, [cartStorageKey, restoredCartStorageKey]);
+    if (removedUnavailableItem) {
+      setError(
+        text(
+          'The saved cart was updated to match the products and stock currently available at this store. Review it before continuing.',
+          'Kikapu kilichohifadhiwa kimerekebishwa kulingana na bidhaa na stoo inayopatikana sasa katika duka hili. Kihakiki kabla ya kuendelea.'
+        )
+      );
+    }
+  }, [cartStorageKey, products, productsLoaded, restoredCartStorageKey, text]);
   useEffect(() => {
     if (
       !cartRestored ||
@@ -199,16 +223,6 @@ export default function CheckoutPage() {
       window.localStorage.removeItem(cartStorageKey);
     }
   }, [cart, cartRestored, cartStorageKey, productsLoaded, restoredCartStorageKey]);
-  useEffect(() => {
-    if (!cartRestored || !productsLoaded) return;
-    const available = new Set(products.map((product) => product.id));
-    setCart((current) => {
-      const next = Object.fromEntries(
-        Object.entries(current).filter(([productId]) => available.has(productId))
-      ) as Record<string, number>;
-      return Object.keys(next).length === Object.keys(current).length ? current : next;
-    });
-  }, [cartRestored, productsLoaded, products]);
   useEffect(() => {
     document.documentElement.dataset.catalogView = catalogView;
     return () => {
