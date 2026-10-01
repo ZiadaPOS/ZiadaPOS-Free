@@ -235,21 +235,29 @@ export default function CheckoutPage() {
     setBusy(true);
     setError('');
     try {
-      const available = new Set(products.map((product) => product.id));
+      // A checkout tab may stay open after products are deleted or replaced.
+      // Validate against an uncached catalog so the UI cannot submit an old ID
+      // just because it is still present in this tab's in-memory product list.
+      const [catalog, session] = await Promise.all([
+        posApi<unknown>('/inventory/products?status=active&page=1&page_size=100&fresh=true'),
+        posApi<{ store?: { id?: string } }>('/accounts/me')
+      ]);
+      const latestProducts = unwrapList<PosProduct>(catalog.data);
+      const available = new Set(latestProducts.map((product) => product.id));
       const staleProductIds = Object.keys(cart).filter((productId) => !available.has(productId));
       if (staleProductIds.length) {
-        setCart((current) => {
-          const next = Object.fromEntries(
-            Object.entries(current).filter(([productId]) => available.has(productId))
-          );
-          return next;
-        });
-        throw new Error(
+        const currentCart = Object.fromEntries(
+          Object.entries(cart).filter(([productId]) => available.has(productId))
+        );
+        setCart(currentCart);
+        await load({ clearError: false });
+        setError(
           text(
-            'Your cart had products from another store or an old session. They were removed; review the cart and complete the sale again.',
-            'Kikapu kilikuwa na bidhaa za duka jingine au kipindi cha zamani. Zimeondolewa; kagua kikapu kisha kamilisha mauzo tena.'
+            'A product in this cart is no longer available in the active store. It was removed; add the current product and try again.',
+            'Bidhaa moja kwenye kikapu haipatikani tena kwenye duka linalotumika. Imeondolewa; ongeza bidhaa iliyopo kisha ujaribu tena.'
           )
         );
+        return;
       }
       const lines = Object.entries(cart)
         .filter(([, qty]) => qty > 0)
@@ -262,7 +270,6 @@ export default function CheckoutPage() {
         throw new Error(
           text('Select a customer for a credit sale.', 'Chagua mteja kwa mauzo ya mkopo.')
         );
-      const session = await posApi<{ store?: { id?: string } }>('/accounts/me');
       const currentStoreId = session.data.store?.id || '';
       if (!activeStoreId || !currentStoreId) {
         throw new Error(
