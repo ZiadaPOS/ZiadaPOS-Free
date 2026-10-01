@@ -310,13 +310,7 @@ export default function SignUpPage() {
       const verifiedBusinessType = result.data.business_type;
       if (verifiedBusinessType) localStorage.setItem('pos_business_type', verifiedBusinessType);
       if (result.data.outlet_type) localStorage.setItem('pos_outlet_type', result.data.outlet_type);
-      const destinations: Record<string, string> = {
-        pharmacy: '/dashboard/pharmacy/expiry',
-        retail: '/dashboard/overview',
-        wholesale: '/dashboard/overview',
-        retail_wholesale: '/dashboard/overview'
-      };
-      router.replace(destinations[verifiedBusinessType] || '/dashboard/overview');
+      router.replace('/dashboard/overview');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not verify phone.');
     } finally {
