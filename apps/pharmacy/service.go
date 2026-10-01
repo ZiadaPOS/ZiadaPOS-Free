@@ -75,7 +75,7 @@ func (s *Service) GetMedicineProfile(ctx context.Context, storeID, productID uui
 	var profile MedicineProfile
 	if err := s.db.WithContext(ctx).Where("store_id = ? AND product_id = ?", storeID, productID).First(&profile).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return &MedicineProfile{StoreID: storeID, ProductID: productID, MedicineSchedule: "unscheduled"}, nil
+			return &MedicineProfile{StoreID: storeID, ProductID: productID, MedicineSchedule: "otc"}, nil
 		}
 		return nil, err
 	}
