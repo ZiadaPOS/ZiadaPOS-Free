@@ -73,6 +73,9 @@ export default function CheckoutPage() {
         const pharmacy = type === 'pharmacy';
         setIsPharmacy(pharmacy);
         let productList = unwrapList<PosProduct>(p.data);
+        const catalogStoreId =
+          productList.find((product) => product.store_id)?.store_id || profile.data.store?.id || '';
+        setActiveStoreId(catalogStoreId);
         if (pharmacy) {
           const [batchResult, profileResult] = await Promise.all([
             posApi<unknown>('/pharmacy/batches'),

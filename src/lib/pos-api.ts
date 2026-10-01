@@ -41,6 +41,7 @@ export type PosUser = {
 };
 export type PosProduct = {
   id: string;
+  store_id?: string;
   name: string;
   unit?: string;
   sku: string;
