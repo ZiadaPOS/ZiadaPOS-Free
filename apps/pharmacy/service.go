@@ -53,7 +53,7 @@ func (s *Service) UpdateMedicineProfile(ctx context.Context, storeID, productID 
 	}
 	schedule := strings.TrimSpace(in.MedicineSchedule)
 	if schedule == "" {
-		schedule = "unscheduled"
+		schedule = "otc"
 	}
 	switch schedule {
 	case "otc", "addo_permitted", "prescription_only", "unscheduled":

@@ -18,7 +18,7 @@ type MedicineProfile struct {
 	Unit                 string    `gorm:"size:50" json:"unit"`
 	PackSize             string    `gorm:"size:50" json:"pack_size"`
 	RequiresPrescription bool      `gorm:"not null;default:false" json:"requires_prescription"`
-	MedicineSchedule     string    `gorm:"size:30;not null;default:unscheduled" json:"medicine_schedule"`
+	MedicineSchedule     string    `gorm:"size:30;not null;default:otc" json:"medicine_schedule"`
 	RegistrationNumber   string    `gorm:"size:100" json:"registration_number"`
 }
 
