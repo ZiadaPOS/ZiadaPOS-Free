@@ -1,7 +1,9 @@
 package transactions
 
 import (
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -53,6 +55,18 @@ func (h *Handler) CompleteSale(c *gin.Context) {
 	}
 	txn, err := h.svc.CompleteSale(c.Request.Context(), orgID, storeID, cashierID, &req)
 	if err != nil {
+		domainErr := apierr.Translate(err)
+		productIDs := make([]string, 0, len(req.Lines))
+		for _, line := range req.Lines {
+			productIDs = append(productIDs, line.ProductID.String())
+		}
+		expectedStoreID := "unset"
+		if req.ExpectedStoreID != nil {
+			expectedStoreID = req.ExpectedStoreID.String()
+		}
+		log.Printf("pos sale rejected rid=%s status=%d store_id=%s expected_store_id=%s product_ids=%s code=%s message=%q",
+			c.GetString("request_id"), domainErr.Status, storeID, expectedStoreID,
+			strings.Join(productIDs, ","), domainErr.Code, domainErr.Message)
 		writeErr(c, err)
 		return
 	}
