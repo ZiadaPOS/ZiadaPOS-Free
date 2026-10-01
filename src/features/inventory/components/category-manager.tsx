@@ -64,7 +64,7 @@ export function CategoryManager() {
           <CardHeader className='flex flex-row items-center justify-between space-y-0'>
             <CardTitle>Product categories</CardTitle>
             <div className='flex items-center gap-1'>
-              <Button variant='ghost' size='sm' render={<Link href='/dashboard/categories' />}>
+              <Button variant='ghost' size='sm' render={<Link href='/categories' />}>
                 View all
               </Button>
               <Button

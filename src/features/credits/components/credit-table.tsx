@@ -118,7 +118,7 @@ export function CreditTable({
                   <tr
                     key={tab.id}
                     className='hover:bg-muted/30 cursor-pointer'
-                    onClick={() => router.push(`/dashboard/credits/${tab.customer_id}`)}
+                    onClick={() => router.push(`/credits/${tab.customer_id}`)}
                   >
                     <td className='px-2 py-3'>
                       {customers.find((customer) => customer.id === tab.customer_id)?.name ||

@@ -145,7 +145,7 @@ const DOC_RULES = {
     {
       file: 'docs/forms.md',
       // The multi-step paragraph references the removed demo + use-stepper;
-      // the examples table references the removed /dashboard/forms routes.
+      // the examples table references the removed /forms routes.
       blocks: [{ start: '**Multi-step forms.**', end: 'multi-step-product-form.tsx' }],
       sections: ['## Examples in the dashboard']
     }
@@ -159,10 +159,10 @@ const FEATURES = {
     name: 'Clerk (Authentication, Organizations, Billing)',
     folders: [
       'src/app/auth',
-      'src/app/dashboard/workspaces',
-      'src/app/dashboard/billing',
-      'src/app/dashboard/profile',
-      'src/app/dashboard/exclusive',
+      'src/app/(dashboard)/workspaces',
+      'src/app/(dashboard)/billing',
+      'src/app/(dashboard)/profile',
+      'src/app/(dashboard)/exclusive',
       'src/features/auth',
       'src/features/profile',
       '.clerk'
@@ -184,16 +184,16 @@ const FEATURES = {
       'WEBHOOK_SECRET'
     ],
     navItemsToRemove: [
-      '/dashboard/workspaces',
-      '/dashboard/workspaces/team',
-      '/dashboard/billing',
-      '/dashboard/profile',
-      '/dashboard/exclusive'
+      '/workspaces',
+      '/workspaces/team',
+      '/billing',
+      '/profile',
+      '/exclusive'
     ]
   },
   kanban: {
     name: 'Kanban (Drag & Drop task board)',
-    folders: ['src/app/dashboard/kanban', 'src/features/kanban'],
+    folders: ['src/app/(dashboard)/kanban', 'src/features/kanban'],
     files: ['src/components/ui/kanban.tsx'],
     dependencies: [
       '@dnd-kit/core',
@@ -201,35 +201,35 @@ const FEATURES = {
       '@dnd-kit/sortable',
       '@dnd-kit/utilities'
     ],
-    navItemsToRemove: ['/dashboard/kanban']
+    navItemsToRemove: ['/kanban']
   },
   chat: {
     name: 'Chat (Messaging UI)',
-    folders: ['src/app/dashboard/chat', 'src/features/chat'],
+    folders: ['src/app/(dashboard)/chat', 'src/features/chat'],
     files: ['src/components/ui/file-preview.tsx'],
     dependencies: [],
-    navItemsToRemove: ['/dashboard/chat']
+    navItemsToRemove: ['/chat']
   },
   'ai-chat': {
     name: 'AI Chat (scripted useChat streaming demo)',
-    folders: ['src/app/dashboard/ai-chat', 'src/features/ai-chat'],
+    folders: ['src/app/(dashboard)/ai-chat', 'src/features/ai-chat'],
     files: [],
     dependencies: ['ai', '@ai-sdk/react', '@shadcn/helpers'],
-    navItemsToRemove: ['/dashboard/ai-chat']
+    navItemsToRemove: ['/ai-chat']
   },
   notifications: {
     name: 'Notifications (Notification center & page)',
-    folders: ['src/app/dashboard/notifications', 'src/features/notifications'],
+    folders: ['src/app/(dashboard)/notifications', 'src/features/notifications'],
     files: ['src/components/ui/notification-card.tsx'],
     dependencies: [],
-    navItemsToRemove: ['/dashboard/notifications']
+    navItemsToRemove: ['/notifications']
   },
   examples: {
     name: 'Examples (Forms, React Query demo, Icons)',
     folders: [
-      'src/app/dashboard/forms',
-      'src/app/dashboard/elements',
-      'src/app/dashboard/react-query',
+      'src/app/(dashboard)/forms',
+      'src/app/(dashboard)/elements',
+      'src/app/(dashboard)/react-query',
       'src/features/forms',
       'src/features/elements',
       'src/features/react-query-demo'
@@ -241,12 +241,12 @@ const FEATURES = {
     files: ['src/components/forms/demo-form.tsx', 'src/hooks/use-stepper.tsx'],
     dependencies: [],
     navItemsToRemove: [
-      '/dashboard/forms/basic',
-      '/dashboard/forms/multi-step',
-      '/dashboard/forms/sheet-form',
-      '/dashboard/forms/advanced',
-      '/dashboard/react-query',
-      '/dashboard/elements/icons'
+      '/forms/basic',
+      '/forms/multi-step',
+      '/forms/sheet-form',
+      '/forms/advanced',
+      '/react-query',
+      '/elements/icons'
     ]
   },
   themes: {
@@ -732,7 +732,7 @@ class FeatureCleanup {
 
     // Remove the Notifications dropdown menu item from the sidebar footer
     content = content.replace(
-      /\s*<DropdownMenuItem[^>]*onClick=\{[^}]*\/dashboard\/notifications[^}]*\}[^>]*>\s*(?:<[^>]+>\s*)?Notifications\s*<\/DropdownMenuItem>/g,
+      /\s*<DropdownMenuItem[^>]*onClick=\{[^}]*\/notifications[^}]*\}[^>]*>\s*(?:<[^>]+>\s*)?Notifications\s*<\/DropdownMenuItem>/g,
       ''
     );
 
@@ -850,7 +850,7 @@ class FeatureCleanup {
   }
 
   // The notifications demo hardcodes links to other feature pages
-  // (/dashboard/workspaces, /dashboard/billing, /dashboard/kanban, …).
+  // (/workspaces, /billing, /kanban, …).
   // When those features are removed but notifications is kept, point the
   // now-dead links at a surviving route.
   remapNotificationLinks(removedUrls) {
@@ -859,9 +859,9 @@ class FeatureCleanup {
     const notifDir = path.join(ROOT, 'src/features/notifications');
     if (!fs.existsSync(notifDir)) return;
 
-    // Longest first so '/dashboard/workspaces/team' wins over '/dashboard/workspaces'
+    // Longest first so '/workspaces/team' wins over '/workspaces'
     const urls = removedUrls
-      .filter((url) => url.startsWith('/dashboard'))
+      .filter((url) => url.startsWith('/'))
       .sort((a, b) => b.length - a.length);
 
     const walk = (dir) => {
@@ -873,7 +873,7 @@ class FeatureCleanup {
           const content = fs.readFileSync(full, 'utf8');
           let updated = content;
           for (const url of urls) {
-            updated = updated.split(url).join('/dashboard/overview');
+            updated = updated.split(url).join('/overview');
           }
           if (updated !== content) {
             if (!this.dryRun) fs.writeFileSync(full, updated, 'utf8');

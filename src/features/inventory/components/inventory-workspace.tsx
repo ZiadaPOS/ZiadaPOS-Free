@@ -165,7 +165,7 @@ export function InventoryWorkspace({
                 <Card
                   key={product.id}
                   className='cursor-pointer overflow-hidden transition-shadow hover:shadow-md'
-                  onClick={() => router.push(`/dashboard/inventory/${product.id}`)}
+                  onClick={() => router.push(`/inventory/${product.id}`)}
                 >
                   <div className='bg-muted/40 flex aspect-[4/3] items-center justify-center text-3xl font-semibold text-primary'>
                     {product.image ? (

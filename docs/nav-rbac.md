@@ -45,7 +45,7 @@ This document explains the fully client-side RBAC (Role-Based Access Control) sy
 ```typescript
 {
   title: 'Teams',
-  url: '/dashboard/workspaces/team',
+  url: '/workspaces/team',
   icon: 'userPen',
   // Simple: requireOrg (client-side check, instant)
   access: { requireOrg: true }
@@ -53,7 +53,7 @@ This document explains the fully client-side RBAC (Role-Based Access Control) sy
 
 {
   title: 'Admin Panel',
-  url: '/dashboard/admin',
+  url: '/admin',
   icon: 'settings',
   // All client-side checks - instant!
   access: {
@@ -108,7 +108,7 @@ Just add to `nav-config.ts`:
 ```typescript
 {
   title: 'New Feature',
-  url: '/dashboard/new',
+  url: '/new',
   icon: 'star',
   access: { plan: 'pro' }  // That's it!
 }

@@ -533,7 +533,7 @@ export function CheckoutWorkspace({
                           !product.medicine_profile_configured && (
                             <Link
                               className='text-primary text-xs underline underline-offset-4'
-                              href={`/dashboard/inventory/${product.id}`}
+                              href={`/inventory/${product.id}`}
                             >
                               Configure medicine details
                             </Link>

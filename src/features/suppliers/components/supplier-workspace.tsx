@@ -167,7 +167,7 @@ export function SupplierWorkspace() {
                     <tr
                       key={id}
                       className='hover:bg-muted/30 cursor-pointer'
-                      onClick={() => router.push(`/dashboard/suppliers/${id}`)}
+                      onClick={() => router.push(`/suppliers/${id}`)}
                     >
                       <td className='px-4 py-3'>
                         <p className='font-medium'>{String(supplier.name || 'Unnamed supplier')}</p>
@@ -192,7 +192,7 @@ export function SupplierWorkspace() {
                           variant='outline'
                           onClick={(event) => {
                             event.stopPropagation();
-                            router.push(`/dashboard/suppliers/${id}`);
+                            router.push(`/suppliers/${id}`);
                           }}
                         >
                           View

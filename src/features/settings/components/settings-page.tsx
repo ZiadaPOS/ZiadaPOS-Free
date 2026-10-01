@@ -78,7 +78,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className='grid gap-3 sm:grid-cols-2'>
             <Link
-              href='/dashboard/suppliers'
+              href='/suppliers'
               className='hover:bg-muted/50 focus-visible:ring-ring flex min-h-20 items-center gap-3 rounded-lg border p-4 transition-colors focus-visible:ring-2 focus-visible:outline-none'
             >
               <Icons.truckDelivery className='text-primary size-5 shrink-0' />
@@ -95,7 +95,7 @@ export default function SettingsPage() {
             </Link>
             {businessType === 'pharmacy' && (
               <Link
-                href='/dashboard/pharmacy/schedules'
+                href='/pharmacy/schedules'
                 className='hover:bg-muted/50 focus-visible:ring-ring flex min-h-20 items-center gap-3 rounded-lg border p-4 transition-colors focus-visible:ring-2 focus-visible:outline-none'
               >
                 <Icons.clipboardList className='text-primary size-5 shrink-0' />

@@ -237,7 +237,7 @@ give required numbers a human message: `z.number({ error: 'Price is required' })
 
 | Page | Route | Demonstrates |
 | --- | --- | --- |
-| Basic Form | `/dashboard/forms/basic` | All 16 field components incl. array-mode groups, pickers, OTP, tags, upload |
-| Advanced | `/dashboard/forms/advanced` | Async validation, linked fields (`onChangeListenTo`), nested paths, raw `form.Field` object-row arrays, listener side effects |
-| Multi-Step | `/dashboard/forms/multi-step` | Per-step schemas, validation gate, review step |
-| Sheet Form | `/dashboard/forms/sheet-form` | Sheet + Dialog forms with external submit buttons |
+| Basic Form | `/forms/basic` | All 16 field components incl. array-mode groups, pickers, OTP, tags, upload |
+| Advanced | `/forms/advanced` | Async validation, linked fields (`onChangeListenTo`), nested paths, raw `form.Field` object-row arrays, listener side effects |
+| Multi-Step | `/forms/multi-step` | Per-step schemas, validation gate, review step |
+| Sheet Form | `/forms/sheet-form` | Sheet + Dialog forms with external submit buttons |

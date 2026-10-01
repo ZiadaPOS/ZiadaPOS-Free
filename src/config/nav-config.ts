@@ -6,7 +6,7 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         title: 'Overview',
-        url: '/dashboard/overview',
+        url: '/overview',
         icon: 'dashboard',
         isActive: false,
         shortcut: ['d', 'd'],
@@ -14,7 +14,7 @@ export const navGroups: NavGroup[] = [
       },
       {
         title: 'POS',
-        url: '/dashboard/checkout',
+        url: '/checkout',
         icon: 'cashRegister',
         isActive: false,
         shortcut: ['c', 'o'],
@@ -22,12 +22,12 @@ export const navGroups: NavGroup[] = [
       },
       {
         title: 'Transactions',
-        url: '/dashboard/transactions',
+        url: '/transactions',
         icon: 'receipt',
         isActive: false,
         items: []
       },
-      { title: 'Sales', url: '/dashboard/sales', icon: 'trendingUp', isActive: false, items: [] }
+      { title: 'Sales', url: '/sales', icon: 'trendingUp', isActive: false, items: [] }
     ]
   },
   {
@@ -35,106 +35,106 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         title: 'Inventory',
-        url: '/dashboard/inventory',
+        url: '/inventory',
         icon: 'product',
         isActive: false,
         items: []
       },
       {
         title: 'Batches & Expiry',
-        url: '/dashboard/pharmacy/expiry',
+        url: '/pharmacy/expiry',
         icon: 'calendarTime',
         isActive: false,
         items: []
       },
       {
         title: 'Prescription records',
-        url: '/dashboard/pharmacy/prescriptions',
+        url: '/pharmacy/prescriptions',
         icon: 'prescription',
         isActive: false,
         items: []
       },
       {
         title: 'Categories',
-        url: '/dashboard/categories',
+        url: '/categories',
         icon: 'category',
         isActive: false,
         items: []
       },
       {
         title: 'Units',
-        url: '/dashboard/units',
+        url: '/units',
         icon: 'rulerMeasure',
         isActive: false,
         items: []
       },
       {
         title: 'Customers',
-        url: '/dashboard/customers',
+        url: '/customers',
         icon: 'teams',
         isActive: false,
         items: []
       },
       {
         title: 'Credits',
-        url: '/dashboard/credits',
+        url: '/credits',
         icon: 'wallet',
         isActive: false,
         items: []
       },
       {
         title: 'Expenses',
-        url: '/dashboard/expenses',
+        url: '/expenses',
         icon: 'cashMinus',
         isActive: false,
         items: []
       },
-      { title: 'Staff', url: '/dashboard/staff', icon: 'userCog', isActive: false, items: [] },
+      { title: 'Staff', url: '/staff', icon: 'userCog', isActive: false, items: [] },
       {
         title: 'Branches',
-        url: '/dashboard/stores',
+        url: '/stores',
         icon: 'store',
         isActive: false,
         items: []
       },
       {
         title: 'Analytics',
-        url: '/dashboard/analytics',
+        url: '/analytics',
         icon: 'chartHistogram',
         isActive: false,
         items: []
       },
       {
         title: 'Reports',
-        url: '/dashboard/reports',
+        url: '/reports',
         icon: 'reportAnalytics',
         isActive: false,
         items: []
       },
       {
         title: 'Notebook',
-        url: '/dashboard/notebook',
+        url: '/notebook',
         icon: 'notebook',
         isActive: false,
         items: []
       },
       {
         title: 'Subscriptions',
-        url: '/dashboard/billing',
+        url: '/billing',
         icon: 'billing',
         isActive: false,
         items: []
       },
       {
         title: 'SMS messaging',
-        url: '/dashboard/sms',
+        url: '/sms',
         icon: 'deviceMessage',
         isActive: false,
         items: []
       },
       {
         title: 'Ziada AI',
-        url: '/dashboard/ai-chat',
+        url: '/ai-chat',
         icon: 'sparkles',
         isActive: false,
         items: []
@@ -146,14 +146,14 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         title: 'Settings',
-        url: '/dashboard/settings',
+        url: '/settings',
         icon: 'settings',
         isActive: false,
         items: []
       },
       {
         title: 'Help & support',
-        url: '/dashboard/help',
+        url: '/help',
         icon: 'help',
         isActive: false,
         items: []

@@ -102,7 +102,7 @@ export function InventoryTable({
                 <tr
                   key={product.id}
                   className='cursor-pointer hover:bg-muted/30'
-                  onClick={() => router.push(`/dashboard/inventory/${product.id}`)}
+                  onClick={() => router.push(`/inventory/${product.id}`)}
                 >
                   <td className='px-4 py-3'>
                     <div className='bg-muted/50 flex h-10 w-10 items-center justify-center overflow-hidden rounded-md font-semibold text-primary'>

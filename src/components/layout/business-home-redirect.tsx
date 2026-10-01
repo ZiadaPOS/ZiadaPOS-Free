@@ -12,7 +12,7 @@ export function BusinessHomeRedirect() {
       .then((response) => {
         if (!response.ok) throw new Error('Unauthenticated');
         if (!active) return;
-        router.replace('/dashboard/overview');
+        router.replace('/overview');
       })
       .catch(() => {
         if (active) router.replace('/auth/sign-in');

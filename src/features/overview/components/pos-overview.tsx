@@ -278,7 +278,7 @@ export default function PosOverview() {
             </Button>
             <Button
               className='w-full min-w-0 flex-row whitespace-nowrap sm:w-auto sm:min-w-max'
-              onClick={() => router.push('/dashboard/checkout')}
+              onClick={() => router.push('/checkout')}
             >
               <span className='inline-flex items-center gap-1.5'>
                 <Icons.add className='size-4 shrink-0' />
@@ -651,11 +651,7 @@ export default function PosOverview() {
                     ? `${amountOf(smsBalance.balance)} SMS`
                     : 'Not configured'}
               </span>
-              <Button
-                size='sm'
-                variant='outline'
-                onClick={() => router.push('/dashboard/business-settings')}
-              >
+              <Button size='sm' variant='outline' onClick={() => router.push('/business-settings')}>
                 {text('Manage', 'Dhibiti')}
               </Button>
             </div>

@@ -106,10 +106,7 @@ export default function MedicineSchedulesPage() {
       pageTitle='Medicine schedules'
       pageDescription='Review schedule labels and understand how they affect pharmacy checkout.'
       pageHeaderAction={
-        <Button
-          className='w-full sm:w-auto'
-          onClick={() => (window.location.href = '/dashboard/inventory')}
-        >
+        <Button className='w-full sm:w-auto' onClick={() => (window.location.href = '/inventory')}>
           Manage medicines
         </Button>
       }
@@ -243,9 +240,7 @@ export default function MedicineSchedulesPage() {
                           <Button
                             variant='outline'
                             size='sm'
-                            onClick={() =>
-                              (window.location.href = `/dashboard/inventory/${product.id}`)
-                            }
+                            onClick={() => (window.location.href = `/inventory/${product.id}`)}
                           >
                             Review
                           </Button>

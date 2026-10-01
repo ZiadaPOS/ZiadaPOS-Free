@@ -549,7 +549,7 @@ export function CreateProduct({
                       </Button>
                       <Link
                         className={buttonVariants({ className: 'w-full sm:w-auto' })}
-                        href={`/dashboard/inventory/${createdProductId}`}
+                        href={`/inventory/${createdProductId}`}
                       >
                         Finish medicine setup
                       </Link>

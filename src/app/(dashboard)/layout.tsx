@@ -19,7 +19,8 @@ export const metadata: Metadata = {
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Persisting the sidebar state in the cookie.
   const cookieStore = await cookies();
-  if (!cookieStore.get('pos_access_token')?.value && !cookieStore.get('pos_refresh_token')?.value) redirect('/auth/sign-in');
+  if (!cookieStore.get('pos_access_token')?.value && !cookieStore.get('pos_refresh_token')?.value)
+    redirect('/auth/sign-in');
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
   return (
     <KBar>

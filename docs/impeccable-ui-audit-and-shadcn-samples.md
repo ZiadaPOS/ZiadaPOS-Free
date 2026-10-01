@@ -150,7 +150,7 @@ Use one shared `BusinessKpiCard` rather than rebuilding card markup on every pag
   helper={text('From matching sales', 'Kutoka mauzo yanayolingana')}
   trend={{ value: 12.4, label: text('vs previous period', 'dhidi ya kipindi kilichopita') }}
   icon={Icons.trendingUp}
-  href='/dashboard/transactions'
+  href='/transactions'
   actionLabel={text('View sales', 'Tazama mauzo')}
 />
 ```

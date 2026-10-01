@@ -83,8 +83,8 @@ The project follows a feature-based folder structure designed for scalability in
 /src
 ├── app/                    # Next.js App Router
 │   ├── auth/              # Authentication routes (sign-in, sign-up)
-│   ├── dashboard/         # Dashboard routes
-│   │   ├── overview/      # Parallel routes (@area_stats, @bar_stats, etc.)
+│   ├── (dashboard)/       # Authenticated workspace; route group adds no URL segment
+│   │   ├── overview/      # /overview, with parallel routes (@area_stats, @bar_stats, etc.)
 │   │   ├── product/       # Product management pages
 │   │   ├── kanban/        # Kanban board page
 │   │   ├── chat/          # Messaging page
@@ -94,6 +94,7 @@ The project follows a feature-based folder structure designed for scalability in
 │   │   ├── billing/       # Subscription billing
 │   │   ├── exclusive/     # Pro plan feature example
 │   │   └── profile/       # User profile
+│   ├── dashboard/        # Legacy URL redirects
 │   ├── api/               # API routes (if any)
 │   ├── layout.tsx         # Root layout with providers
 │   ├── page.tsx           # Landing page
@@ -213,8 +214,8 @@ CLERK_SECRET_KEY=sk_...
 # Redirect URLs
 NEXT_PUBLIC_CLERK_SIGN_IN_URL="/auth/sign-in"
 NEXT_PUBLIC_CLERK_SIGN_UP_URL="/auth/sign-up"
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/dashboard/overview"
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/dashboard/overview"
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/overview"
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/overview"
 ```
 
 ### Optional for Error Tracking (Sentry)
@@ -318,7 +319,7 @@ export const navGroups: NavGroup[] = [
     items: [
       {
         title: 'Dashboard',
-        url: '/dashboard/overview',
+        url: '/overview',
         icon: 'dashboard',
         shortcut: ['d', 'd'],
         items: [],
@@ -347,7 +348,11 @@ The `useFilteredNavItems()` hook in `src/hooks/use-nav.ts` filters navigation cl
 
 ### Protected Routes
 
-Dashboard routes use Clerk's middleware pattern. Pages that require organization:
+Workspace routes live under `src/app/(dashboard)/`, which shares the authenticated
+layout while keeping `/dashboard` out of their public URLs. For example, the overview
+page is `/overview`. Legacy `/dashboard/...` URLs redirect to the new paths.
+
+Pages that require an organization:
 
 ```tsx
 import { auth } from '@clerk/nextjs';
@@ -355,7 +360,7 @@ import { redirect } from 'next/navigation';
 
 export default async function Page() {
   const { orgId } = await auth();
-  if (!orgId) redirect('/dashboard/workspaces');
+  if (!orgId) redirect('/workspaces');
   // ...
 }
 ```
@@ -668,7 +673,7 @@ export const Icons = {
 
 ### Icon Showcase Page
 
-Browse all available icons at `/dashboard/elements/icons` — a searchable grid of every icon in the registry.
+Browse all available icons at `/elements/icons` — a searchable grid of every icon in the registry.
 
 ### Why This Pattern?
 
@@ -686,7 +691,7 @@ Browse all available icons at `/dashboard/elements/icons` — a searchable grid 
 1. Create `src/features/<name>/api/types.ts` — response types, filter types, mutation payloads
 2. Create `src/features/<name>/api/service.ts` — data access functions (mock by default)
 3. Create `src/features/<name>/api/queries.ts` — query key factory + `queryOptions`
-4. Create page route: `src/app/dashboard/<name>/page.tsx`
+4. Create page route: `src/app/(dashboard)/<name>/page.tsx`
 5. Create feature components in `src/features/<name>/components/`
 6. Add navigation item in `src/config/nav-config.ts`
 7. (Optional) Add route handlers in `src/app/api/<name>/` for REST API patterns

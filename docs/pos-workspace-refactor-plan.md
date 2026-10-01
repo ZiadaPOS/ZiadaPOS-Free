@@ -1,7 +1,7 @@
 # Ziada POS Workspace Refactor Plan
 
 Status: Proposed for review  
-Scope: Refactor `src/app/dashboard/pos-workspace.tsx` into clean route-level feature modules  
+Scope: Refactor `src/app/(dashboard)/pos-workspace.tsx` into clean route-level feature modules
 Current file size: Approximately 3,800 lines  
 Implementation status: Planning only
 
@@ -79,7 +79,7 @@ The primary design problem is not that these modules are all individually too la
 ## 3. Target architecture
 
 ```text
-src/app/dashboard/
+src/app/(dashboard)/
 ├── checkout/page.tsx              → <CheckoutPage />
 ├── inventory/page.tsx             → <InventoryPage />
 ├── customers/page.tsx             → <CustomersPage />
@@ -137,27 +137,27 @@ The existing service-layer convention remains the external seam. Components shou
 
 | Route | New owner | Current responsibility |
 |---|---|---|
-| `/dashboard/checkout` | `features/checkout` | Product catalog, cart, customer, payment, discount, checkout |
-| `/dashboard/inventory` | `features/inventory` | Product list, stock, categories, create/update/deactivate |
-| `/dashboard/product/[productId]` | `features/inventory` | Product detail and edit |
-| `/dashboard/customers` | `features/customers` | Directory, search, create |
-| `/dashboard/customers/[id]` | `features/customers` | Profile, purchases, receipt, SMS |
-| `/dashboard/credits` | `features/credits` | Outstanding tabs, filters, payments |
-| `/dashboard/credits/[id]` | `features/credits` | Credit history, payment, SMS reminder |
-| `/dashboard/suppliers` | `features/suppliers` | Directory, supplier operations |
-| `/dashboard/suppliers/[id]` | `features/suppliers` | Supplier detail |
-| `/dashboard/sales` | `features/sales` | Sales history, search, actions |
-| `/dashboard/sales/[id]` | `features/sales` | Sale detail and receipt |
-| `/dashboard/expenses` | `features/expenses` | Expense ledger and create form |
-| `/dashboard/stores` | `features/stores` | Branch list, create, switch |
-| `/dashboard/staff` | `features/staff` | Staff list and permissions |
-| `/dashboard/help` | `features/help` | Help article search and content |
-| `/dashboard/settings` | `features/settings` | Appearance, active store, account settings |
-| `/dashboard/business-settings` | `features/settings` | Business profile and integration settings |
-| `/dashboard/analytics` | `features/analytics` | New server-side analytics dashboard |
-| `/dashboard/reports` | `features/reports` | New report builder and export history |
-| `/dashboard/sms` | `features/sms` | SMS wallet, SendAfrica setup, logs |
-| `/dashboard/overview` | `features/overview` | Main owner dashboard |
+| `/checkout` | `features/checkout` | Product catalog, cart, customer, payment, discount, checkout |
+| `/inventory` | `features/inventory` | Product list, stock, categories, create/update/deactivate |
+| `/product/[productId]` | `features/inventory` | Product detail and edit |
+| `/customers` | `features/customers` | Directory, search, create |
+| `/customers/[id]` | `features/customers` | Profile, purchases, receipt, SMS |
+| `/credits` | `features/credits` | Outstanding tabs, filters, payments |
+| `/credits/[id]` | `features/credits` | Credit history, payment, SMS reminder |
+| `/suppliers` | `features/suppliers` | Directory, supplier operations |
+| `/suppliers/[id]` | `features/suppliers` | Supplier detail |
+| `/sales` | `features/sales` | Sales history, search, actions |
+| `/sales/[id]` | `features/sales` | Sale detail and receipt |
+| `/expenses` | `features/expenses` | Expense ledger and create form |
+| `/stores` | `features/stores` | Branch list, create, switch |
+| `/staff` | `features/staff` | Staff list and permissions |
+| `/help` | `features/help` | Help article search and content |
+| `/settings` | `features/settings` | Appearance, active store, account settings |
+| `/business-settings` | `features/settings` | Business profile and integration settings |
+| `/analytics` | `features/analytics` | New server-side analytics dashboard |
+| `/reports` | `features/reports` | New report builder and export history |
+| `/sms` | `features/sms` | SMS wallet, SendAfrica setup, logs |
+| `/overview` | `features/overview` | Main owner dashboard |
 
 ## 5. Shared module design
 
@@ -488,7 +488,7 @@ Do not use `/accounts/sms-balance` as the organisation wallet. That endpoint rep
 
 ## 7. Root workspace end state
 
-After extraction, `src/app/dashboard/pos-workspace.tsx` should either be deleted or reduced to a compatibility shell of fewer than 100 lines.
+After extraction, `src/app/(dashboard)/pos-workspace.tsx` should either be deleted or reduced to a compatibility shell of fewer than 100 lines.
 
 Preferred end state:
 

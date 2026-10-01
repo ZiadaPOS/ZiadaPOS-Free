@@ -12,10 +12,16 @@ import { posApi, unwrapList } from '@/lib/pos-api';
 const MAX_VISIBLE = 5;
 
 export function NotificationCenter() {
-  const [remoteNotifications, setRemoteNotifications] = useState<{ id: string; title: string; body?: string; read?: boolean }[]>([]);
+  const [remoteNotifications, setRemoteNotifications] = useState<
+    { id: string; title: string; body?: string; read?: boolean }[]
+  >([]);
   useEffect(() => {
     posApi<unknown>('/notifications?page=1&page_size=20')
-      .then((result) => setRemoteNotifications(unwrapList<{ id: string; title: string; body?: string; read?: boolean }>(result.data)))
+      .then((result) =>
+        setRemoteNotifications(
+          unwrapList<{ id: string; title: string; body?: string; read?: boolean }>(result.data)
+        )
+      )
       .catch(() => setRemoteNotifications([]));
   }, []);
   const count = remoteNotifications.filter((item) => !item.read).length;
@@ -33,7 +39,7 @@ export function NotificationCenter() {
       </PopoverTrigger>
       <PopoverContent align='end' className='w-[calc(100vw-2rem)] p-0 sm:w-[380px]' sideOffset={8}>
         <div className='flex items-center justify-between px-4 pt-3'>
-          <Link href='/dashboard/notifications' className='group flex items-center gap-1'>
+          <Link href='/notifications' className='group flex items-center gap-1'>
             <h4 className='text-sm font-semibold group-hover:underline'>Notifications</h4>
             <Icons.chevronRight className='text-muted-foreground h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5' />
           </Link>
@@ -49,7 +55,10 @@ export function NotificationCenter() {
                 size='sm'
                 className='text-muted-foreground h-auto px-2 py-1 text-xs'
                 onClick={async () => {
-                  await posApi<unknown>('/notifications/read-all', { method: 'PATCH', body: JSON.stringify({}) }).catch(() => undefined);
+                  await posApi<unknown>('/notifications/read-all', {
+                    method: 'PATCH',
+                    body: JSON.stringify({})
+                  }).catch(() => undefined);
                   setRemoteNotifications((items) => items.map((item) => ({ ...item, read: true })));
                 }}
               >
@@ -67,16 +76,35 @@ export function NotificationCenter() {
             </div>
           ) : (
             <div className='flex flex-col gap-1 p-2'>
-              {remoteNotifications.length > 0 && remoteNotifications.slice(0, MAX_VISIBLE).map((notification) => (
-                <div key={notification.id} className='rounded-md border p-3'>
-                  <p className='text-sm font-medium'>{notification.title}</p>
-                  {notification.body && <p className='text-muted-foreground mt-1 text-xs'>{notification.body}</p>}
-                  {!notification.read && <Button size='sm' variant='ghost' className='mt-1 h-7 px-2 text-xs' onClick={async () => {
-                    await posApi<unknown>(`/notifications/${notification.id}/read`, { method: 'PATCH', body: JSON.stringify({}) }).catch(() => undefined);
-                    setRemoteNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, read: true } : item));
-                  }}>Mark read</Button>}
-                </div>
-              ))}
+              {remoteNotifications.length > 0 &&
+                remoteNotifications.slice(0, MAX_VISIBLE).map((notification) => (
+                  <div key={notification.id} className='rounded-md border p-3'>
+                    <p className='text-sm font-medium'>{notification.title}</p>
+                    {notification.body && (
+                      <p className='text-muted-foreground mt-1 text-xs'>{notification.body}</p>
+                    )}
+                    {!notification.read && (
+                      <Button
+                        size='sm'
+                        variant='ghost'
+                        className='mt-1 h-7 px-2 text-xs'
+                        onClick={async () => {
+                          await posApi<unknown>(`/notifications/${notification.id}/read`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({})
+                          }).catch(() => undefined);
+                          setRemoteNotifications((items) =>
+                            items.map((item) =>
+                              item.id === notification.id ? { ...item, read: true } : item
+                            )
+                          );
+                        }}
+                      >
+                        Mark read
+                      </Button>
+                    )}
+                  </div>
+                ))}
             </div>
           )}
         </ScrollArea>

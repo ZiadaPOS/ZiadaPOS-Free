@@ -51,7 +51,7 @@ export default function SignInPage() {
       if (result.data.business_type)
         localStorage.setItem('pos_business_type', result.data.business_type);
       if (result.data.outlet_type) localStorage.setItem('pos_outlet_type', result.data.outlet_type);
-      router.replace('/dashboard/overview');
+      router.replace('/overview');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not sign in.');
     } finally {

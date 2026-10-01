@@ -178,11 +178,11 @@ export function SalesTable({
                     <tr
                       key={transaction.id}
                       className='hover:bg-muted/30 cursor-pointer'
-                      onClick={() => router.push(`/dashboard/sales/${transaction.id}`)}
+                      onClick={() => router.push(`/sales/${transaction.id}`)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault();
-                          router.push(`/dashboard/sales/${transaction.id}`);
+                          router.push(`/sales/${transaction.id}`);
                         }
                       }}
                       tabIndex={0}
@@ -206,7 +206,7 @@ export function SalesTable({
                             variant='outline'
                             onClick={(event) => {
                               event.stopPropagation();
-                              router.push(`/dashboard/sales/${transaction.id}`);
+                              router.push(`/sales/${transaction.id}`);
                             }}
                           >
                             View

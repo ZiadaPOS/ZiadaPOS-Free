@@ -1,5 +1,5 @@
-import { BusinessHomeRedirect } from '@/components/layout/business-home-redirect';
+import { redirect } from 'next/navigation';
 
-export default function Dashboard() {
-  return <BusinessHomeRedirect />;
+export default function LegacyDashboardPage() {
+  redirect('/overview');
 }

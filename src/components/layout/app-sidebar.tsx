@@ -113,7 +113,7 @@ export default function AppSidebar() {
   return (
     <Sidebar collapsible='icon'>
       <SidebarHeader className='px-4 py-4'>
-        <Link href='/dashboard/overview' className='flex items-center gap-2 font-bold'>
+        <Link href='/overview' className='flex items-center gap-2 font-bold'>
           <Image
             src='/ziada-final.jpeg'
             alt='Ziada'
@@ -201,7 +201,7 @@ export default function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => router.push('/dashboard/settings')}>
+            <SidebarMenuButton onClick={() => router.push('/settings')}>
               <Icons.adjustments />
               <span>{label('Business settings')}</span>
             </SidebarMenuButton>

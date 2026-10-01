@@ -112,7 +112,7 @@ export function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
                   <tr
                     key={customer.id}
                     className='hover:bg-muted/30 cursor-pointer'
-                    onClick={() => router.push(`/dashboard/customers/${customer.id}`)}
+                    onClick={() => router.push(`/customers/${customer.id}`)}
                   >
                     <td className='px-4 py-3'>
                       <div className='font-medium'>{customer.name}</div>
@@ -130,7 +130,7 @@ export function CustomerWorkspace({ customers }: { customers: PosCustomer[] }) {
                         variant='outline'
                         onClick={(event) => {
                           event.stopPropagation();
-                          router.push(`/dashboard/customers/${customer.id}`);
+                          router.push(`/customers/${customer.id}`);
                         }}
                       >
                         {text('View', 'Tazama')}
