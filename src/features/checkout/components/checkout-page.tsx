@@ -52,78 +52,83 @@ export default function CheckoutPage() {
       return Object.keys(remaining).length === Object.keys(current).length ? current : remaining;
     });
   }, [cart]);
-  const load = useCallback(async () => {
-    setError('');
-    try {
-      const [p, c, categoryResult, profile] = await Promise.all([
-        posApi<unknown>('/inventory/products?status=active&page=1&page_size=100'),
-        posApi<unknown>('/customers?page=1&page_size=100'),
-        posApi<unknown>('/inventory/categories'),
-        posApi<{ organisation?: { business_type?: string } }>('/accounts/me')
-      ]);
-      const type = profile.data.organisation?.business_type || 'retail';
-      setBusinessType(type);
-      setPriceMode(type === 'wholesale' ? 'wholesale' : 'retail');
-      const pharmacy = type === 'pharmacy';
-      setIsPharmacy(pharmacy);
-      let productList = unwrapList<PosProduct>(p.data);
-      if (pharmacy) {
-        const [batchResult, profileResult] = await Promise.all([
-          posApi<unknown>('/pharmacy/batches'),
-          posApi<unknown>('/pharmacy/products')
+  const load = useCallback(
+    async ({ clearError = true }: { clearError?: boolean } = {}) => {
+      if (clearError) setError('');
+      try {
+        const [p, c, categoryResult, profile] = await Promise.all([
+          posApi<unknown>('/inventory/products?status=active&page=1&page_size=100'),
+          posApi<unknown>('/customers?page=1&page_size=100'),
+          posApi<unknown>('/inventory/categories'),
+          posApi<{ organisation?: { business_type?: string } }>('/accounts/me')
         ]);
-        const profiles = new Map(
-          unwrapList<PosMedicineProfile>(profileResult.data).map((profile) => [
-            profile.product_id,
-            profile
-          ])
-        );
-        const today = new Date();
-        const batches = unwrapList<PosMedicineBatch>(batchResult.data).filter((batch) => {
-          const expiry = new Date(`${batch.expiry_date.slice(0, 10)}T00:00:00`);
-          return (
-            batch.quantity > 0 &&
-            expiry >= new Date(today.getFullYear(), today.getMonth(), today.getDate())
+        const type = profile.data.organisation?.business_type || 'retail';
+        setBusinessType(type);
+        setPriceMode(type === 'wholesale' ? 'wholesale' : 'retail');
+        const pharmacy = type === 'pharmacy';
+        setIsPharmacy(pharmacy);
+        let productList = unwrapList<PosProduct>(p.data);
+        if (pharmacy) {
+          const [batchResult, profileResult] = await Promise.all([
+            posApi<unknown>('/pharmacy/batches'),
+            posApi<unknown>('/pharmacy/products')
+          ]);
+          const profiles = new Map(
+            unwrapList<PosMedicineProfile>(profileResult.data).map((profile) => [
+              profile.product_id,
+              profile
+            ])
           );
-        });
-        const stockByProduct = new Map<string, { quantity: number; earliest: string }>();
-        for (const batch of batches) {
-          const current = stockByProduct.get(batch.product_id);
-          stockByProduct.set(batch.product_id, {
-            quantity: (current?.quantity || 0) + batch.quantity,
-            earliest:
-              !current || batch.expiry_date < current.earliest
-                ? batch.expiry_date
-                : current.earliest
+          const today = new Date();
+          const batches = unwrapList<PosMedicineBatch>(batchResult.data).filter((batch) => {
+            const expiry = new Date(`${batch.expiry_date.slice(0, 10)}T00:00:00`);
+            return (
+              batch.quantity > 0 &&
+              expiry >= new Date(today.getFullYear(), today.getMonth(), today.getDate())
+            );
+          });
+          const stockByProduct = new Map<string, { quantity: number; earliest: string }>();
+          for (const batch of batches) {
+            const current = stockByProduct.get(batch.product_id);
+            stockByProduct.set(batch.product_id, {
+              quantity: (current?.quantity || 0) + batch.quantity,
+              earliest:
+                !current || batch.expiry_date < current.earliest
+                  ? batch.expiry_date
+                  : current.earliest
+            });
+          }
+          productList = productList.map((product) => {
+            const stock = stockByProduct.get(product.id);
+            const profile = profiles.get(product.id);
+            return {
+              ...product,
+              stock: stock?.quantity || 0,
+              next_expiry_date: stock?.earliest,
+              medicine_profile_configured: Boolean(profile),
+              ...profile,
+              requires_prescription: Boolean(
+                profile?.requires_prescription || profile?.medicine_schedule === 'prescription_only'
+              )
+            };
           });
         }
-        productList = productList.map((product) => {
-          const stock = stockByProduct.get(product.id);
-          const profile = profiles.get(product.id);
-          return {
-            ...product,
-            stock: stock?.quantity || 0,
-            next_expiry_date: stock?.earliest,
-            medicine_profile_configured: Boolean(profile),
-            ...profile,
-            requires_prescription: Boolean(
-              profile?.requires_prescription || profile?.medicine_schedule === 'prescription_only'
-            )
-          };
-        });
+        setProducts(productList);
+        setCustomers(unwrapList<PosCustomer>(c.data));
+        setCategories(unwrapList<PosCategory>(categoryResult.data));
+        setProductsLoaded(true);
+      } catch (reason) {
+        if (clearError) {
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : text('Could not load data.', 'Imeshindikana kupakia taarifa.')
+          );
+        }
       }
-      setProducts(productList);
-      setCustomers(unwrapList<PosCustomer>(c.data));
-      setCategories(unwrapList<PosCategory>(categoryResult.data));
-      setProductsLoaded(true);
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : text('Could not load data.', 'Imeshindikana kupakia taarifa.')
-      );
-    }
-  }, []);
+    },
+    [text]
+  );
   useEffect(() => {
     void load();
   }, [load]);
@@ -240,7 +245,7 @@ export default function CheckoutPage() {
       }
       const lines = Object.entries(cart)
         .filter(([, qty]) => qty > 0)
-        .map(([product_id, qty]) => ({ product_id, qty, ...(rxDetails[product_id] || {}) }));
+        .map(([product_id, qty]) => ({ product_id, qty, ...rxDetails[product_id] }));
       if (!lines.length)
         throw new Error(
           text('Add at least one product to the sale.', 'Ongeza bidhaa angalau moja kwenye mauzo.')
@@ -276,11 +281,24 @@ export default function CheckoutPage() {
       await load();
       if (result.data?.id) setReceiptTransaction(result.data);
     } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : text('Sale could not be completed.', 'Mauzo hayakuweza kukamilika.')
-      );
+      if (
+        reason instanceof Error &&
+        reason.message === 'One or more products were not found in this store'
+      ) {
+        await load({ clearError: false });
+        setError(
+          text(
+            'The store or product list changed during checkout. Unavailable items were removed from the cart; review it and complete the sale again.',
+            'Duka au orodha ya bidhaa imebadilika wakati wa mauzo. Bidhaa zisizopatikana zimeondolewa kwenye kikapu; kagua kisha kamilisha mauzo tena.'
+          )
+        );
+      } else {
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : text('Sale could not be completed.', 'Mauzo hayakuweza kukamilika.')
+        );
+      }
     } finally {
       setBusy(false);
     }
