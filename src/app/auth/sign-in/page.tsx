@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Icons } from '@/components/icons';
 import { tanzaniaPhoneLocalNumber, tanzaniaPhoneNationalDigits } from '@/lib/tanzania-phone';
+import { identifyCamelUser } from '@/lib/camel-analytics';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -48,6 +49,7 @@ export default function SignInPage() {
       if (remember) localStorage.setItem('pos_login_identifier', phone);
       else localStorage.removeItem('pos_login_identifier');
       localStorage.setItem('pos_user', JSON.stringify(result.data.user));
+      identifyCamelUser(result.data.user.id);
       if (result.data.business_type)
         localStorage.setItem('pos_business_type', result.data.business_type);
       if (result.data.outlet_type) localStorage.setItem('pos_outlet_type', result.data.outlet_type);

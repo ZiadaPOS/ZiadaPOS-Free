@@ -18,6 +18,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Icons } from '@/components/icons';
 import { tanzaniaPhoneLocalNumber, tanzaniaPhoneNationalDigits } from '@/lib/tanzania-phone';
+import { identifyCamelUser } from '@/lib/camel-analytics';
 
 const steps = [
   [
@@ -306,6 +307,10 @@ export default function SignUpPage() {
       const result = await response.json();
       if (!response.ok || !result.success)
         throw new Error(result.message || 'Could not verify phone.');
+      if (result.data.user?.id) {
+        localStorage.setItem('pos_user', JSON.stringify(result.data.user));
+        identifyCamelUser(result.data.user.id);
+      }
       localStorage.removeItem(REGISTRATION_PROGRESS_KEY);
       const verifiedBusinessType = result.data.business_type;
       if (verifiedBusinessType) localStorage.setItem('pos_business_type', verifiedBusinessType);

@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
     if (!verified.ok || !pair?.access_token || !pair?.refresh_token) {
       return NextResponse.json(verifiedEnvelope, { status: verified.status });
     }
+    let user: Record<string, unknown> | undefined;
     let organisation: { business_type?: string; outlet_type?: string } = {};
     try {
       const profile = await fetch(`${API_URL}/accounts/me`, {
@@ -39,13 +40,18 @@ export async function POST(request: NextRequest) {
         cache: 'no-store'
       });
       const profileEnvelope = await profile.json();
+      user = profileEnvelope.data?.user;
       organisation = profileEnvelope.data?.organisation || {};
     } catch {
       // The user can retry loading their profile after verification.
     }
     const response = NextResponse.json({
       success: true,
-      data: { business_type: organisation.business_type, outlet_type: organisation.outlet_type }
+      data: {
+        user,
+        business_type: organisation.business_type,
+        outlet_type: organisation.outlet_type
+      }
     });
     response.cookies.set('pos_access_token', pair.access_token, {
       httpOnly: true,

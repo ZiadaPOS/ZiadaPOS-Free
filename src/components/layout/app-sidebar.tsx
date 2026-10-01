@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useLanguage, type TranslationKey } from '@/lib/i18n';
 import { posApi } from '@/lib/pos-api';
+import { clearCamelIdentity } from '@/lib/camel-analytics';
 
 export default function AppSidebar() {
   const pathname = usePathname();
@@ -59,6 +60,7 @@ export default function AppSidebar() {
     };
   }, []);
   async function signOut() {
+    clearCamelIdentity();
     try {
       await fetch('/api/pos-session', { method: 'DELETE' });
     } catch {
