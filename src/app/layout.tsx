@@ -1,4 +1,5 @@
 import Providers from '@/components/layout/providers';
+import { AppShell } from '@/components/layout/app-shell';
 import { Toaster } from '@/components/ui/sonner';
 import { fontVariables } from '@/components/themes/font.config';
 import { DEFAULT_THEME, THEMES } from '@/components/themes/theme.config';
@@ -58,6 +59,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const activeThemeValue = cookieStore.get('active_theme')?.value;
+  const defaultSidebarOpen = cookieStore.get('sidebar_state')?.value === 'true';
   const isValidTheme = THEMES.some((t) => t.value === activeThemeValue);
   const themeToApply = isValidTheme ? activeThemeValue! : DEFAULT_THEME;
 
@@ -94,7 +96,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           >
             <Providers activeThemeValue={themeToApply}>
               <Toaster />
-              {children}
+              <AppShell defaultOpen={defaultSidebarOpen}>{children}</AppShell>
             </Providers>
           </ThemeProvider>
         </NuqsAdapter>
