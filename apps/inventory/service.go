@@ -395,7 +395,7 @@ func (s *Service) ListProducts(ctx context.Context, storeID uuid.UUID, f Product
 		storeID, f.Page, f.PageSize, f.CategoryID, f.Search, f.Status, f.LowStock)
 
 	var out map[string]interface{}
-	if s.cache != nil && !f.Minimal {
+	if s.cache != nil && !f.Minimal && !f.NoCache {
 		if err := s.cache.GetJSON(ctx, queryKey, &out); err == nil && out != nil {
 			return out, nil
 		}
@@ -452,7 +452,7 @@ func (s *Service) ListProducts(ctx context.Context, storeID uuid.UUID, f Product
 		}
 		out["pages"] = pages
 	}
-	if s.cache != nil && !f.Minimal {
+	if s.cache != nil && !f.Minimal && !f.NoCache {
 		_ = s.cache.SetJSONTTL(ctx, queryKey, out, 2*time.Minute)
 	}
 	return out, nil

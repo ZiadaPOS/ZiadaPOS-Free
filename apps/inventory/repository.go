@@ -126,6 +126,7 @@ type ProductFilter struct {
 	Status     string // "", "active", "inactive"
 	LowStock   bool
 	Minimal    bool
+	NoCache    bool
 	Page       int
 	PageSize   int
 }

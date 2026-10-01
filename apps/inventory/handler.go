@@ -223,6 +223,7 @@ func (h *Handler) ListProducts(c *gin.Context) {
 	f.CategoryID, _ = uuid.Parse(c.Query("category_id"))
 	f.Status = c.Query("status")
 	f.LowStock, _ = strconv.ParseBool(c.Query("low_stock"))
+	f.NoCache, _ = strconv.ParseBool(c.Query("fresh"))
 	f.Page, _ = strconv.Atoi(c.DefaultQuery("page", "1"))
 	f.PageSize, _ = strconv.Atoi(c.DefaultQuery("page_size", "20"))
 	out, err := h.svc.ListProducts(c.Request.Context(), storeID, f)
