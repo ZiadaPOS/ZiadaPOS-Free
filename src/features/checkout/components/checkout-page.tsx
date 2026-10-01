@@ -47,9 +47,11 @@ export default function CheckoutPage() {
   const legacyCartStorageKey =
     activeUserId && activeStoreId ? `ziada-checkout-cart:${activeUserId}:${activeStoreId}` : '';
   const previousCartStorageKey =
+    activeUserId && activeStoreId ? `ziada-checkout-cart:v3:${activeUserId}:${activeStoreId}` : '';
+  const olderCartStorageKey =
     activeUserId && activeStoreId ? `ziada-checkout-cart:v2:${activeUserId}:${activeStoreId}` : '';
   const cartStorageKey =
-    activeUserId && activeStoreId ? `ziada-checkout-cart:v3:${activeUserId}:${activeStoreId}` : '';
+    activeUserId && activeStoreId ? `ziada-checkout-cart:v4:${activeUserId}:${activeStoreId}` : '';
   const updateCart = useCallback((action: SetStateAction<Record<string, number>>) => {
     setError('');
     setCart(action);
@@ -130,7 +132,11 @@ export default function CheckoutPage() {
               stock: stock?.quantity || 0,
               next_expiry_date: stock?.earliest,
               medicine_profile_configured: Boolean(profile),
-              ...profile,
+              // Pharmacy profiles have their own database ID; sale lines must
+              // keep the inventory product ID from `product` above.
+              generic_name: profile?.generic_name,
+              brand_name: profile?.brand_name,
+              medicine_schedule: profile?.medicine_schedule,
               requires_prescription: Boolean(
                 profile?.requires_prescription || profile?.medicine_schedule === 'prescription_only'
               )
@@ -163,11 +169,13 @@ export default function CheckoutPage() {
   }, [load]);
   useEffect(() => {
     // Previous carts can contain product IDs from another store or catalog.
-    // Start with an empty cart after the catalog reconciliation migration.
+    // Discard saved carts that may contain pharmacy profile IDs instead of
+    // inventory product IDs.
     window.localStorage.removeItem('ziada-checkout-cart');
     if (legacyCartStorageKey) window.localStorage.removeItem(legacyCartStorageKey);
     if (previousCartStorageKey) window.localStorage.removeItem(previousCartStorageKey);
-  }, [legacyCartStorageKey, previousCartStorageKey]);
+    if (olderCartStorageKey) window.localStorage.removeItem(olderCartStorageKey);
+  }, [legacyCartStorageKey, olderCartStorageKey, previousCartStorageKey]);
   useEffect(() => {
     // Restore only after both the user/store identity and that store's fresh
     // catalog are known. Otherwise a saved ID from an old/deleted product can
