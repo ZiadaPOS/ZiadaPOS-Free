@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 @import 'tw-animate-css';
@@ -18,6 +18,22 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Outfit', sans-serif !important;
+  }
+
+  :is(
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .font-heading,
+    [data-slot='dialog-title'],
+    [data-slot='sheet-title'],
+    [data-slot='alert-dialog-title']
+  ) {
+    font-family: 'Bricolage Grotesque', sans-serif !important;
   }
 
   /* Give native and shared form controls a dependable edge in every theme. */
