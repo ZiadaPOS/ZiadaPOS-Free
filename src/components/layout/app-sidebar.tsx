@@ -124,7 +124,7 @@ export default function AppSidebar() {
             className='size-7 rounded-full object-cover'
             priority
           />
-          <span>
+          <span className='font-heading'>
             {businessType === 'pharmacy'
               ? 'Duka la Dawa'
               : businessType === 'wholesale'
