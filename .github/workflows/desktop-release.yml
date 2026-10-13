@@ -95,7 +95,7 @@ jobs:
         shell: pwsh
         run: |
           if (-not (Test-Path 'apps/desktop/build/windows/icon.ico')) { throw 'Wails did not produce the Windows icon.ico' }
-          if (-not (Test-Path 'apps/desktop/ZiadaPOS-res.syso')) { throw 'Wails did not embed the Windows icon resources' }
+          # Wails removes its temporary -res.syso after linking it into the executable.
 
       - name: Verify macOS app-bundle icon
         if: runner.os == 'macOS'
