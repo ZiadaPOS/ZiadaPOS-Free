@@ -37,6 +37,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set application version from release tag
+        shell: bash
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
