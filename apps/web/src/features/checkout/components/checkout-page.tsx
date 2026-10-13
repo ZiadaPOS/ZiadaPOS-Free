@@ -12,10 +12,50 @@ import {
   type PosProduct,
   type PosTransaction
 } from '@/lib/pos-api';
-import { FormEvent, useCallback, useEffect, useMemo, useState, type SetStateAction } from 'react';
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type SetStateAction
+} from 'react';
 import { useText } from '@/lib/i18n';
 import { CheckoutWorkspace } from '@/features/checkout/components/checkout-workspace';
 import { ReceiptDialog } from '@/features/sales/components/receipt-dialog';
+
+async function getSaleIdempotencyKey(
+  requestRef: { current: { signature: string; idempotencyKey: string } | null },
+  payload: object
+): Promise<string> {
+  const bytes = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(JSON.stringify(payload))
+  );
+  const signature = Array.from(new Uint8Array(bytes), (byte) =>
+    byte.toString(16).padStart(2, '0')
+  ).join('');
+  if (!requestRef.current || requestRef.current.signature !== signature) {
+    let saved: { signature?: string; idempotencyKey?: string } | null = null;
+    try {
+      saved = JSON.parse(localStorage.getItem('ziadapos_pending_sale_request_v1') || 'null');
+    } catch {
+      saved = null;
+    }
+    const idempotencyKey =
+      saved?.signature === signature && saved.idempotencyKey
+        ? saved.idempotencyKey
+        : crypto.randomUUID();
+    requestRef.current = { signature, idempotencyKey };
+    try {
+      localStorage.setItem('ziadapos_pending_sale_request_v1', JSON.stringify(requestRef.current));
+    } catch {
+      // The in-memory key still protects retries while this app session is open.
+    }
+  }
+  return requestRef.current.idempotencyKey;
+}
 
 export default function CheckoutPage() {
   const text = useText();
@@ -24,6 +64,7 @@ export default function CheckoutPage() {
   const [products, setProducts] = useState<PosProduct[]>([]);
   const [activeUserId, setActiveUserId] = useState('');
   const [activeStoreId, setActiveStoreId] = useState('');
+  const [localMode, setLocalMode] = useState(false);
   const [isPharmacy, setIsPharmacy] = useState(false);
   const [businessType, setBusinessType] = useState('retail');
   const [priceMode, setPriceMode] = useState<'retail' | 'wholesale'>('retail');
@@ -44,6 +85,7 @@ export default function CheckoutPage() {
   const [cartRestored, setCartRestored] = useState(false);
   const [restoredCartStorageKey, setRestoredCartStorageKey] = useState('');
   const [productsLoaded, setProductsLoaded] = useState(false);
+  const saleRequestRef = useRef<{ signature: string; idempotencyKey: string } | null>(null);
   const legacyCartStorageKey =
     activeUserId && activeStoreId ? `ziada-checkout-cart:${activeUserId}:${activeStoreId}` : '';
   const previousCartStorageKey =
@@ -74,11 +116,13 @@ export default function CheckoutPage() {
           posApi<unknown>('/customers?page=1&page_size=100'),
           posApi<unknown>('/inventory/categories'),
           posApi<{
+            offline_mode?: boolean;
             organisation?: { business_type?: string };
             store?: { id?: string };
             user?: { id?: string };
           }>('/accounts/me')
         ]);
+        setLocalMode(Boolean(profile.data.offline_mode));
         setActiveUserId(profile.data.user?.id || '');
         setActiveStoreId(profile.data.store?.id || '');
         const type = profile.data.organisation?.business_type || 'retail';
@@ -388,23 +432,31 @@ export default function CheckoutPage() {
           text('Select a customer for a credit sale.', 'Chagua mteja kwa mauzo ya mkopo.')
         );
       const customer = customers.find((item) => item.id === customerId);
+      const salePayload = {
+        expected_store_id: activeStoreId,
+        lines,
+        payment_method: paymentMethod,
+        price_mode:
+          businessType === 'wholesale' || businessType === 'retail_wholesale'
+            ? priceMode
+            : 'retail',
+        customer_id: customerId || undefined,
+        customer_name: customer?.name || undefined,
+        customer_phone: customer?.phone || undefined,
+        discount_pct: Number(discountPct),
+        payment_reference: paymentReference
+      };
+      const idempotencyKey = await getSaleIdempotencyKey(saleRequestRef, salePayload);
       const result = await posApi<PosTransaction>('/pos/sale', {
         method: 'POST',
-        body: JSON.stringify({
-          expected_store_id: activeStoreId,
-          lines,
-          payment_method: paymentMethod,
-          price_mode:
-            businessType === 'wholesale' || businessType === 'retail_wholesale'
-              ? priceMode
-              : 'retail',
-          customer_id: customerId || undefined,
-          customer_name: customer?.name || undefined,
-          customer_phone: customer?.phone || undefined,
-          discount_pct: Number(discountPct),
-          payment_reference: paymentReference
-        })
+        body: JSON.stringify({ ...salePayload, idempotency_key: idempotencyKey })
       });
+      saleRequestRef.current = null;
+      try {
+        localStorage.removeItem('ziadapos_pending_sale_request_v1');
+      } catch {
+        // A local receipt is authoritative even if browser storage is unavailable.
+      }
       setCart({});
       setRxDetails({});
       setMobileCartOpen(false);
@@ -462,8 +514,15 @@ export default function CheckoutPage() {
             {error}
           </div>
         )}
+        {localMode && (
+          <div className='rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm'>
+            <strong>Local-only POS.</strong> Cash sales and products are saved on this computer.
+            They are not synced to an online account.
+          </div>
+        )}
         <CheckoutWorkspace
           products={products}
+          localMode={localMode}
           isPharmacy={isPharmacy}
           priceMode={priceMode}
           setPriceMode={setPriceMode}
@@ -503,6 +562,7 @@ export default function CheckoutPage() {
         {receiptTransaction && (
           <ReceiptDialog
             transaction={receiptTransaction}
+            localMode={localMode}
             onClose={() => setReceiptTransaction(null)}
           />
         )}

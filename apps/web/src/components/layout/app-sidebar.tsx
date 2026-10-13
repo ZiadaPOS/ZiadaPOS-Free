@@ -30,6 +30,7 @@ export default function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState('staff');
+  const [localMode, setLocalMode] = useState(false);
   const [occupation, setOccupation] = useState('');
   const [businessType, setBusinessType] = useState('retail');
   const { t } = useLanguage();
@@ -45,11 +46,15 @@ export default function AppSidebar() {
   }, []);
   useEffect(() => {
     let active = true;
-    posApi<{ organisation?: { business_type?: string; outlet_type?: string } }>('/accounts/me')
+    posApi<{
+      offline_mode?: boolean;
+      organisation?: { business_type?: string; outlet_type?: string };
+    }>('/accounts/me')
       .then(({ data }) => {
         const type = data.organisation?.business_type || 'retail';
         if (!active) return;
         setBusinessType(type);
+        setLocalMode(Boolean(data.offline_mode));
         localStorage.setItem('pos_business_type', type);
         if (data.organisation?.outlet_type)
           localStorage.setItem('pos_outlet_type', data.organisation.outlet_type);
@@ -73,6 +78,7 @@ export default function AppSidebar() {
     }
   }
   const managerOnly = new Set(['Staff', 'Branches', 'Reports', 'SMS messaging', 'Settings']);
+  const localNavigation = new Set(['POS', 'Sales', 'Inventory']);
   const canViewPrescriptionRegister =
     role === 'owner' ||
     role === 'admin' ||
@@ -143,6 +149,7 @@ export default function AppSidebar() {
               {group.items
                 .filter(
                   (item) =>
+                    (!localMode || localNavigation.has(item.title)) &&
                     ((item.title !== 'Batches & Expiry' && item.title !== 'Prescription records') ||
                       businessType === 'pharmacy') &&
                     (item.title !== 'Prescription records' || canViewPrescriptionRegister) &&
@@ -173,7 +180,7 @@ export default function AppSidebar() {
                           {item.items.map((child) => (
                             <SidebarMenuSubItem key={child.title}>
                               <SidebarMenuSubButton
-                                render={<Link href={child.url} />}
+                                render={<Link href={child.url} aria-label={label(child.title)} />}
                                 isActive={pathname === child.url}
                               >
                                 {label(child.title)}
@@ -186,7 +193,7 @@ export default function AppSidebar() {
                   ) : (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
-                        render={<Link href={item.url} />}
+                        render={<Link href={item.url} aria-label={label(item.title)} />}
                         tooltip={label(item.title)}
                         isActive={pathname === item.url}
                       >

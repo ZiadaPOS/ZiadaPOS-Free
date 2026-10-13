@@ -23,6 +23,7 @@ const build = spawnSync('bun', ['run', 'build'], {
   env: {
     ...process.env,
     BUILD_STANDALONE: 'true',
+    NEXT_PUBLIC_ZIADAPOS_LOCAL_MODE: '1',
     NEXT_PUBLIC_SENTRY_DISABLED: '1',
     NEXT_TELEMETRY_DISABLED: '1'
   }

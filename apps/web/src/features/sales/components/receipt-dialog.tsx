@@ -8,9 +8,11 @@ import { useState } from 'react';
 
 export function ReceiptDialog({
   transaction,
+  localMode = false,
   onClose
 }: {
   transaction: PosTransaction;
+  localMode?: boolean;
   onClose: () => void;
 }) {
   const [email, setEmail] = useState('');
@@ -32,24 +34,28 @@ export function ReceiptDialog({
         <CardHeader>
           <CardTitle>Sale complete · {transaction.txn_number}</CardTitle>
           <CardDescription>
-            Receipt total {money(transaction.total)}. Print this receipt or email a copy.
+            {localMode
+              ? `Receipt total ${money(transaction.total)}. This sale is saved on this computer and is not synced online.`
+              : `Receipt total ${money(transaction.total)}. Print this receipt or email a copy.`}
           </CardDescription>
         </CardHeader>
         <CardContent className='space-y-3'>
           <Button className='w-full' onClick={() => window.print()}>
             Print receipt
           </Button>
-          <div className='flex gap-2'>
-            <Input
-              type='email'
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder='Customer email'
-            />
-            <Button variant='outline' onClick={() => void send()}>
-              Email
-            </Button>
-          </div>
+          {!localMode && (
+            <div className='flex gap-2'>
+              <Input
+                type='email'
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder='Customer email'
+              />
+              <Button variant='outline' onClick={() => void send()}>
+                Email
+              </Button>
+            </div>
+          )}
           {status && (
             <p role='status' className='text-sm'>
               {status}

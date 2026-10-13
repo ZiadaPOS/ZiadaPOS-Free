@@ -17,13 +17,14 @@ export function AppShell({
   defaultOpen: boolean;
 }) {
   const pathname = usePathname();
+  const isDesktopLocalMode = process.env.NEXT_PUBLIC_ZIADAPOS_LOCAL_MODE === '1';
   const isPublicOrRedirectRoute =
     pathname === '/' ||
     pathname === '/auth' ||
     pathname.startsWith('/auth/') ||
     pathname.startsWith('/dashboard');
 
-  const tracker = (
+  const tracker = !isDesktopLocalMode && (
     <Script
       id='camel-analytics-tracker'
       src='https://analytics.camelcreatives.com/tracker.js'

@@ -9,10 +9,11 @@ export function BusinessHomeRedirect() {
   useEffect(() => {
     let active = true;
     fetch('/api/pos-session', { cache: 'no-store' })
-      .then((response) => {
+      .then(async (response) => {
         if (!response.ok) throw new Error('Unauthenticated');
         if (!active) return;
-        router.replace('/overview');
+        const session = await response.json();
+        router.replace(session.data?.offline_mode ? '/checkout' : '/overview');
       })
       .catch(() => {
         if (active) router.replace('/auth/sign-in');

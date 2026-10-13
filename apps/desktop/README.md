@@ -28,7 +28,7 @@ Start the existing Next.js development server in one terminal:
 ```sh
 cd apps/web
 bun install --frozen-lockfile
-bun run dev --hostname 127.0.0.1 --port 3000
+NEXT_PUBLIC_ZIADAPOS_LOCAL_MODE=1 bun run dev --hostname 127.0.0.1 --port 3000
 ```
 
 Then start Wails in another terminal:
@@ -38,13 +38,13 @@ cd apps/desktop
 ZIADAPOS_DESKTOP_DEV_URL=http://127.0.0.1:3000 wails dev -s
 ```
 
-On PowerShell, set `$env:ZIADAPOS_DESKTOP_DEV_URL = 'http://127.0.0.1:3000'` before running `wails dev -s`.
+On PowerShell, set `$env:NEXT_PUBLIC_ZIADAPOS_LOCAL_MODE = '1'` before starting Next.js, then set `$env:ZIADAPOS_DESKTOP_DEV_URL = 'http://127.0.0.1:3000'` before running `wails dev -s`.
 
 ## Open the packaged UI in the ordinary browser
 
 Build the app for the current platform, then run the resulting executable with `--browser`. The same bundled Next.js server starts on loopback and the default system browser opens it. For development, use the Next.js dev server above and open `http://127.0.0.1:3000` in the normal browser.
 
-The browser mode is local to the computer and does not expose a listening service to the LAN. It still needs the existing Go API: `POS_API_URL` configures that API and defaults to `http://localhost:8080/api/v1`. Set `POS_API_URL` before launching the desktop executable if the API is deployed elsewhere. The Go API, PostgreSQL, Redis and object storage are **not** bundled by this shell; this first desktop slice is not an offline POS implementation.
+Packaged `--browser` mode is local to this computer and does not expose a listening service to the LAN. It uses the same embedded SQLite service as the Wails window and does **not** require `POS_API_URL`, PostgreSQL, Redis, MinIO, a hosted account, or an internet connection for the implemented local flows. First launch lets the owner create a shop stored in the OS user-config directory (`ZiadaPOS/pos.sqlite`; directory permissions 0700, database file 0600). The current offline slice supports one local shop on one computer, product/inventory basics, cash sales, local receipts and sales history. It has no server sync yet: sale events remain in the local outbox, other payment methods and cloud-only modules are unavailable, and the SQLite file is not encrypted or backed up automatically. Do not use this limited slice as a multi-terminal or fully reconciled production system.
 
 ## Build for the current platform
 
@@ -68,4 +68,4 @@ Builds use a Node.js executable and Next.js standalone dependencies produced on 
 
 The Linux download is a raw executable archive, not a native package: it gets the application window icon but does not install a `.desktop` launcher/menu entry. The Windows ZIP and macOS ZIP likewise contain the app binary/bundle, not MSI/DMG installers.
 
-The first release archives are unsigned, have no native installer or updater, and depend on the existing ZiadaPOS API. Linux needs GTK 3 and WebKit2GTK 4.1; Windows needs the WebView2 Runtime. macOS signing/notarization and platform-specific smoke tests are not yet provided. See [`../../docs/desktop-architecture.md`](../../docs/desktop-architecture.md) for the architecture and [`RELEASE.md`](RELEASE.md) for user-facing runtime notes.
+The release archives are unsigned and have no native installer or updater. Linux needs GTK 3 and WebKit2GTK 4.1; Windows needs the WebView2 Runtime. macOS signing/notarization and platform-specific smoke tests are not yet provided. Offline sync, encrypted local data, backup/recovery and the rest of the hosted feature set are not implemented. See [`../../docs/desktop-architecture.md`](../../docs/desktop-architecture.md) for the architecture and [`RELEASE.md`](RELEASE.md) for user-facing runtime notes.

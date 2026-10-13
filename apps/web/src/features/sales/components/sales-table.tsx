@@ -12,9 +12,11 @@ import { BusinessKpiCard } from '@/components/business/business-kpi-card';
 
 export function SalesTable({
   transactions,
+  localMode = false,
   onUpdated
 }: {
   transactions: PosTransaction[];
+  localMode?: boolean;
   onUpdated: () => void;
 }) {
   const text = useText();
@@ -81,9 +83,15 @@ export function SalesTable({
           icon={Icons.trendingUp}
         />
         <BusinessKpiCard
-          label={text('Refund / void ready', 'Marejesho / kufuta tayari')}
-          value={String(filtered.filter((item) => item.status === 'paid').length)}
-          helper={text('Paid sales available', 'Mauzo yaliyolipwa yapo')}
+          label={
+            localMode ? 'Local receipts' : text('Refund / void ready', 'Marejesho / kufuta tayari')
+          }
+          value={String(
+            localMode ? filtered.length : filtered.filter((item) => item.status === 'paid').length
+          )}
+          helper={
+            localMode ? 'Not synced online' : text('Paid sales available', 'Mauzo yaliyolipwa yapo')
+          }
           icon={Icons.toastInfo}
         />
       </div>
@@ -211,7 +219,7 @@ export function SalesTable({
                           >
                             View
                           </Button>
-                          {transaction.status === 'paid' && (
+                          {!localMode && transaction.status === 'paid' && (
                             <>
                               <Button
                                 size='sm'

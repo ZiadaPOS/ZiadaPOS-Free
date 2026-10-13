@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,9 +43,12 @@ function ProductImage({ image, name }: { image?: string | null; name: string }) 
   return (
     <div className='pos-product-image'>
       {image && !failed ? (
-        <img
+        <Image
           src={image}
           alt=''
+          width={64}
+          height={64}
+          unoptimized
           className='h-full w-full object-cover'
           onError={() => setFailed(true)}
         />
@@ -57,6 +61,7 @@ function ProductImage({ image, name }: { image?: string | null; name: string }) 
 
 export function CheckoutWorkspace({
   products,
+  localMode,
   isPharmacy,
   priceMode,
   setPriceMode,
@@ -94,6 +99,7 @@ export function CheckoutWorkspace({
   checkoutViewResetKey
 }: {
   products: PosProduct[];
+  localMode: boolean;
   isPharmacy: boolean;
   priceMode: 'retail' | 'wholesale';
   setPriceMode: Dispatch<SetStateAction<'retail' | 'wholesale'>>;
@@ -131,7 +137,6 @@ export function CheckoutWorkspace({
   checkoutViewResetKey: number;
 }) {
   const text = useText();
-  const [activeCategory, setActiveCategory] = useState('');
   const [showCheckoutDetails, setShowCheckoutDetails] = useState(false);
   useEffect(() => {
     // Do not restore payment details from a previous checkout/session. A
@@ -143,12 +148,7 @@ export function CheckoutWorkspace({
     setShowCheckoutDetails(false);
     setMobileCartOpen(false);
   }, [checkoutViewResetKey, setMobileCartOpen]);
-  const visibleProducts = activeCategory
-    ? filteredProducts.filter(
-        (product) =>
-          product.category_id === activeCategory || product.category?.id === activeCategory
-      )
-    : filteredProducts;
+  const visibleProducts = filteredProducts;
   const itemCount = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
   function updatePrescriptionField(
     productId: string,
@@ -350,9 +350,11 @@ export function CheckoutWorkspace({
               value={paymentMethod}
               onChange={(event) => setPaymentMethod(event.target.value)}
             >
-              {['Cash', 'M-Pesa', 'Tigo Pesa', 'Bank', 'Credit'].map((method) => (
-                <option key={method}>{method}</option>
-              ))}
+              {(localMode ? ['Cash'] : ['Cash', 'M-Pesa', 'Tigo Pesa', 'Bank', 'Credit']).map(
+                (method) => (
+                  <option key={method}>{method}</option>
+                )
+              )}
             </select>
           </label>
           <div className='grid grid-cols-2 gap-2'>
@@ -367,15 +369,17 @@ export function CheckoutWorkspace({
                 onChange={(event) => setDiscountPct(event.target.value)}
               />
             </label>
-            <label className='text-sm'>
-              {text('Reference', 'Kumbukumbu')}
-              <Input
-                className='mt-1 h-11'
-                value={paymentReference}
-                onChange={(event) => setPaymentReference(event.target.value)}
-                placeholder='Optional'
-              />
-            </label>
+            {!localMode && (
+              <label className='text-sm'>
+                {text('Reference', 'Kumbukumbu')}
+                <Input
+                  className='mt-1 h-11'
+                  value={paymentReference}
+                  onChange={(event) => setPaymentReference(event.target.value)}
+                  placeholder='Optional'
+                />
+              </label>
+            )}
           </div>
           <div className='border-t pt-3 text-sm'>
             <div className='flex justify-between'>
@@ -583,15 +587,18 @@ export function CheckoutWorkspace({
         </Card>
       </div>
       {mobileCartOpen && (
-        <div
-          className='fixed inset-0 z-50 bg-black/50 xl:hidden'
-          onClick={() => setMobileCartOpen(false)}
-        >
+        <div className='fixed inset-0 z-50 xl:hidden'>
+          <button
+            type='button'
+            aria-label={text('Close current sale', 'Funga mauzo ya sasa')}
+            className='absolute inset-0 h-full w-full bg-black/50'
+            onClick={() => setMobileCartOpen(false)}
+          />
           <section
             role='dialog'
             aria-modal='true'
+            aria-label={text('Current sale', 'Mauzo ya sasa')}
             className='bg-background absolute inset-x-0 bottom-0 max-h-[90svh] overflow-y-auto rounded-t-2xl border p-4 shadow-2xl'
-            onClick={(event) => event.stopPropagation()}
           >
             <div className='mb-4 flex items-center justify-between'>
               <div className='flex min-w-0 items-center gap-3'>

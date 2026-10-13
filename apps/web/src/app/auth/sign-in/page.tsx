@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,8 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
+  const [localMode, setLocalMode] = useState(false);
+  const [localShopConfigured, setLocalShopConfigured] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('pos_login_identifier');
@@ -30,6 +33,18 @@ export default function SignInPage() {
         localStorage.removeItem('pos_login_identifier');
       }
     }
+  }, []);
+
+  useEffect(() => {
+    void fetch('/api/local/status', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success && result.data?.local_mode) {
+          setLocalMode(true);
+          setLocalShopConfigured(Boolean(result.data.configured));
+        }
+      })
+      .catch(() => undefined);
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -53,7 +68,7 @@ export default function SignInPage() {
       if (result.data.business_type)
         localStorage.setItem('pos_business_type', result.data.business_type);
       if (result.data.outlet_type) localStorage.setItem('pos_outlet_type', result.data.outlet_type);
-      router.replace('/overview');
+      router.replace(result.data.offline_mode ? '/checkout' : '/overview');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not sign in.');
     } finally {
@@ -66,7 +81,13 @@ export default function SignInPage() {
       <Card className='w-full max-w-md'>
         <CardHeader className='space-y-4'>
           <div className='flex items-center justify-center gap-3'>
-            <img src='/ziada-final.jpeg' alt='' className='size-10 rounded-full object-cover' />
+            <Image
+              src='/ziada-final.jpeg'
+              alt=''
+              width={40}
+              height={40}
+              className='size-10 rounded-full object-cover'
+            />
             <span className='text-primary font-bold tracking-wide'>ZIADA POS</span>
           </div>
           <div className='space-y-2 text-center'>
@@ -133,14 +154,17 @@ export default function SignInPage() {
               <label className='flex items-center gap-2'>
                 <input
                   type='checkbox'
+                  aria-label='Remember me'
                   checked={remember}
                   onChange={(event) => setRemember(event.target.checked)}
                 />{' '}
                 Remember me
               </label>
-              <Link href='/auth/forgot-password' className='text-primary hover:underline'>
-                Forgot password?
-              </Link>
+              {!localMode && (
+                <Link href='/auth/forgot-password' className='text-primary hover:underline'>
+                  Forgot password?
+                </Link>
+              )}
             </div>
             {error && (
               <p className='text-destructive text-sm' role='alert'>
@@ -150,12 +174,27 @@ export default function SignInPage() {
             <Button className='h-11 w-full' type='submit' isLoading={pending}>
               Sign in
             </Button>
-            <p className='text-muted-foreground text-center text-sm'>
-              Don&apos;t have an account?{' '}
-              <Link href='/auth/sign-up' className='text-primary font-medium hover:underline'>
-                Create one
-              </Link>
-            </p>
+            {localMode ? (
+              <p className='text-muted-foreground text-center text-sm'>
+                {localShopConfigured ? (
+                  'Local-only mode · sign in to the shop stored on this computer.'
+                ) : (
+                  <Link
+                    href='/auth/local-setup'
+                    className='text-primary font-medium hover:underline'
+                  >
+                    Set up a shop on this computer
+                  </Link>
+                )}
+              </p>
+            ) : (
+              <p className='text-muted-foreground text-center text-sm'>
+                Don&apos;t have an account?{' '}
+                <Link href='/auth/sign-up' className='text-primary font-medium hover:underline'>
+                  Create one
+                </Link>
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>

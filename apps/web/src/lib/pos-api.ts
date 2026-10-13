@@ -130,6 +130,7 @@ export type PosTransaction = {
   txn_number: string;
   payment_method: string;
   status: string;
+  sync_status?: 'pending' | 'synced' | string;
   subtotal: number;
   discount_amount: number;
   tax_amount: number;

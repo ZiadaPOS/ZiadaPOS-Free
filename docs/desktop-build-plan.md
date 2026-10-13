@@ -128,7 +128,7 @@ Offline is a product/data capability, not a framework toggle. The current centra
 - Keep `.github/workflows/desktop-build.yml` manual-only for build/test artifacts. The separate `.github/workflows/desktop-release.yml` publishes only when an approved `vMAJOR.MINOR.PATCH` tag is pushed; review the exact source and outputs before creating a tag.
 - Add architectures only with matching native runners. Embedded Node and traced native dependencies must match the target architecture; Go cross-compile alone is insufficient.
 - Use the square brand mark as `apps/desktop/build/appicon.png`: set it as the Linux Wails window icon, and let Wails generate the Windows executable icon and macOS app-bundle icon on their native runners.
-- The initial download formats are unsigned Linux tar.gz, Windows ZIP and macOS ZIP archives—not native installers. They include no Linux `.desktop` launcher entry; document runtime prerequisites and checksums without implying installer, updater, or offline support.
+- The initial download formats are unsigned Linux tar.gz, Windows ZIP and macOS ZIP archives—not native installers. They include no Linux `.desktop` launcher entry; document runtime prerequisites and checksums without implying installer, updater, full sync, or complete hosted-feature parity.
 - Before shipping signed native installers or enabling updates, complete connected-mode platform smoke tests and choose OS-specific install/update/uninstall behavior.
 - Add signing credentials only through protected CI secrets when a release is explicitly approved. Keep credentials out of repository files/artifacts.
 - The tag-triggered public-release workflow is prepared but not run; no tag or release has been created in this local review.
@@ -163,7 +163,7 @@ cd apps/desktop
 ZIADAPOS_DESKTOP_DEV_URL=http://127.0.0.1:3000 wails dev -s
 ```
 
-The packaged local-browser mode uses the same UI after building: run the desktop executable with `--browser`. For macOS/Linux, export `POS_API_URL` before launching if the default `localhost:8080` is unsuitable. In PowerShell: `$env:POS_API_URL = 'http://127.0.0.1:8080/api/v1'`.
+The packaged local-browser mode uses the desktop executable as a loopback gateway and local SQLite host: build the desktop app, then run its executable with `--browser`. It does not require `POS_API_URL`. Opening the standalone Next dev server directly in an ordinary browser is a different, hosted-API path; use the Wails dev window when testing the desktop-local service.
 
 ## Completion criteria for the first build session
 
@@ -176,7 +176,7 @@ The packaged local-browser mode uses the same UI after building: run the desktop
 7. Offline is not claimed until Milestone 5's persistence, idempotency, conflict, sync and recovery tests pass.
 8. All changes remain local until reviewed; do not push or create a public release.
 
-## Verification checkpoint (working copy, 2026-10-13)
+## Previous connected-mode verification checkpoint (working copy, before local-mode work, 2026-10-13)
 
 | Check | Result |
 |---|---|
@@ -186,3 +186,16 @@ The packaged local-browser mode uses the same UI after building: run the desktop
 | App icons | Shared 1024×1024 source derived from the existing ZiadaPOS logo; Linux window icon configured and PNG embed tested. Wails generates Windows/macOS icons on native runners; CI asserts those generated assets before packaging. |
 | Not verified here | Native WebView window, API/Compose-backed login/sale, and Windows/macOS builds. The manual, artifact-only Actions workflow has not been triggered. |
 | Local artifact / publication | `apps/desktop/build/bin/ZiadaPOS` (ELF x86-64, about 165 MB). No code was pushed and no public release was created. |
+
+## Local-only desktop implementation checkpoint (working tree, 2026-10-13)
+
+The working tree now contains the first local-only vertical slice; this supersedes the earlier checkpoint’s statement that no offline POS implementation existed, but it does **not** meet the full sync/recovery acceptance above.
+
+- Wails and packaged `--browser` mode route `/api/pos/*`, `/api/pos-session`, and the local setup/status endpoints directly to a desktop-only Go service. Those calls do not reach `POS_API_URL`.
+- The Go service stores one owner/shop, sessions, products, stock, cash sales, sale lines and a pending outbox in SQLite at the OS user-config directory. Database file permissions are restricted to the current user. Owner passwords are bcrypt-hashed; session tokens are stored hashed.
+- Local setup/sign-in, product create/read/update/archive, stock adjustment, cash checkout, receipt printing, sale history/detail and local status are wired. Sale/stock/outbox writes are transactional, stock cannot go below zero, non-cash checkout is rejected, and idempotency keys plus request fingerprints protect retries.
+- Desktop builds set `NEXT_PUBLIC_ZIADAPOS_LOCAL_MODE=1`, disable third-party analytics, and show only the supported POS, Sales and Inventory navigation. The hosted web app’s normal analytics/API behavior is unchanged.
+- **Not implemented:** upstream enrollment or sync, outbox upload/acknowledgement, conflict resolution, encrypted SQLite, automated backup/restore, multiple terminals, online payments, refunds/voids, customer/category management, full reporting/pharmacy workflows, or native printer/scanner platform validation. Pending events remain local. This is a one-computer, cash-only starter flow, not a replacement for the complete hosted feature set.
+- The earlier v0.1.0 publication approval does not apply to these changes. Nothing in this checkpoint pushes code, creates a tag, builds a release, or publishes artifacts.
+
+Current validation for this checkpoint: desktop Go tests and vet pass; the desktop Go executable compiles; the production Next.js standalone build completes with local mode enabled; frontend TypeScript passes; and `oxlint` reports zero issues on the edited frontend files. The freshly embedded Linux `--browser` app passed an end-to-end HTTP smoke test with `POS_API_URL` deliberately pointed at an unreachable loopback port: local setup/sign-in, authenticated profile, Checkout page, product creation, cash sale, exact idempotent retry, changed-payload conflict rejection, stock decrement, sales history and pending outbox all worked without a hosted service. The native Wails window and Windows/macOS runtime behavior have not been smoke-tested.

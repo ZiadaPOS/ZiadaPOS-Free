@@ -13,6 +13,7 @@ export function proxy(request: NextRequest) {
   const isPublicRoute =
     pathname === '/auth' ||
     pathname === '/auth/sign-in' ||
+    pathname === '/auth/local-setup' ||
     pathname === '/auth/sign-up' ||
     pathname === '/auth/forgot-password';
   if (
@@ -27,7 +28,7 @@ export function proxy(request: NextRequest) {
     pathname === '/auth/sign-in' &&
     (request.cookies.has('pos_access_token') || request.cookies.has('pos_refresh_token'))
   ) {
-    return NextResponse.redirect(new URL('/overview', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
   return NextResponse.next();
 }
