@@ -1,0 +1,177 @@
+name: Desktop releases
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.artifact }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux/amd64
+            tags: webkit2_41
+            artifact: ziadapos-linux-amd64
+          - runner: windows-latest
+            platform: windows/amd64
+            tags: ''
+            artifact: ziadapos-windows-amd64
+          - runner: macos-latest
+            platform: darwin
+            tags: ''
+            artifact: ziadapos-macos-native
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Set application version from release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const tag = process.env.RELEASE_TAG;
+          if (!/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(tag)) {
+            throw new Error(`Expected a vMAJOR.MINOR.PATCH tag, got: ${tag}`);
+          }
+          const configPath = 'apps/desktop/wails.json';
+          const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+          config.info.productVersion = tag.slice(1);
+          fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+          NODE
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/desktop/go.mod
+          cache-dependency-path: apps/desktop/go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Linux WebView build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Test desktop Go package
+        working-directory: apps/desktop
+        run: go test ./...
+
+      - name: Build Wails application
+        shell: bash
+        env:
+          TARGET_PLATFORM: ${{ matrix.platform }}
+          EXTRA_TAGS: ${{ matrix.tags }}
+        run: |
+          cd apps/desktop
+          if [ -n "$EXTRA_TAGS" ]; then
+            go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -platform "$TARGET_PLATFORM" -clean -tags "$EXTRA_TAGS"
+          else
+            go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -platform "$TARGET_PLATFORM" -clean
+          fi
+
+      - name: Verify Windows app icon resources
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Test-Path 'apps/desktop/build/windows/icon.ico')) { throw 'Wails did not produce the Windows icon.ico' }
+          if (-not (Test-Path 'apps/desktop/ZiadaPOS-res.syso')) { throw 'Wails did not embed the Windows icon resources' }
+
+      - name: Verify macOS app-bundle icon
+        if: runner.os == 'macOS'
+        shell: bash
+        run: test -s apps/desktop/build/bin/ZiadaPOS.app/Contents/Resources/iconfile.icns
+
+      - name: Package Linux executable
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          test -x apps/desktop/build/bin/ZiadaPOS
+          tar -czf "dist/ziadapos-${version}-linux-amd64.tar.gz" -C apps/desktop/build/bin ZiadaPOS
+
+      - name: Package Windows executable
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $source = 'apps/desktop/build/bin/ZiadaPOS.exe'
+          if (-not (Test-Path $source)) { throw "Expected build output not found: $source" }
+          New-Item -ItemType Directory -Force -Path 'dist/package' | Out-Null
+          Copy-Item $source 'dist/package/ZiadaPOS.exe'
+          Compress-Archive -Path 'dist/package/*' -DestinationPath "dist/ziadapos-$version-windows-amd64.zip" -Force
+          Remove-Item 'dist/package' -Recurse -Force
+
+      - name: Package macOS application bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          test -d apps/desktop/build/bin/ZiadaPOS.app
+          ditto -c -k --sequesterRsrc --keepParent apps/desktop/build/bin/ZiadaPOS.app "dist/ziadapos-${version}-macos-native.zip"
+
+      - name: Upload packaged platform asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out tagged release notes
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Download platform assets
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Add installation notes and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp apps/desktop/RELEASE.md release-assets/INSTALLATION.md
+          cd release-assets
+          sha256sum * > SHA256SUMS
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ZiadaPOS ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: release-assets/*

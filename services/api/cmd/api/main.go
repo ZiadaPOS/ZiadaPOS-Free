@@ -94,13 +94,13 @@ func main() {
 	sched.Start()
 
 	httpServer := &http.Server{
-		Addr:              ":" + cfg.Port,
+		Addr:              cfg.ListenAddr,
 		Handler:           srv.Engine,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	go func() {
-		log.Printf("server: listening on :%s (%s)", cfg.Port, cfg.Environment)
+		log.Printf("server: listening on %s (%s)", cfg.ListenAddr, cfg.Environment)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server: %v", err)
 		}

@@ -115,3 +115,4 @@ Tests exist in several domain packages (including transactions, inventory, pharm
 - Do not log passwords, bearer/refresh tokens, provider credentials, or sensitive prescription register data.
 
 See [03 — Auth & Security](docs/03-auth-and-security.md) for token, role and OTP details and [07 — Deployment](docs/07-deployment.md) for production operations.
+The development Compose stack publishes its ports on `127.0.0.1` by default. Set `HOST_BIND_ADDRESS=0.0.0.0` only when you intentionally need LAN access. When running the API directly with `go run ./cmd/api`, set `API_LISTEN_ADDR=127.0.0.1:8080` for local-only access; without it the existing `:8080` default is preserved.

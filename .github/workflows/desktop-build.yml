@@ -1,0 +1,76 @@
+name: Desktop builds
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.artifact }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux/amd64
+            tags: webkit2_41
+            artifact: ziadapos-linux-amd64
+          - runner: windows-latest
+            platform: windows/amd64
+            tags: ''
+            artifact: ziadapos-windows-amd64
+          - runner: macos-latest
+            platform: darwin
+            tags: ''
+            artifact: ziadapos-macos-native
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/desktop/go.mod
+          cache-dependency-path: apps/desktop/go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Linux WebView build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Test desktop Go package
+        working-directory: apps/desktop
+        run: go test ./...
+
+      - name: Build Wails application
+        shell: bash
+        env:
+          TARGET_PLATFORM: ${{ matrix.platform }}
+          EXTRA_TAGS: ${{ matrix.tags }}
+        run: |
+          cd apps/desktop
+          if [ -n "$EXTRA_TAGS" ]; then
+            go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -platform "$TARGET_PLATFORM" -clean -tags "$EXTRA_TAGS"
+          else
+            go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 build -platform "$TARGET_PLATFORM" -clean
+          fi
+
+      - name: Upload build artifact (not a release)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: apps/desktop/build/bin/**
+          if-no-files-found: error
+          retention-days: 14

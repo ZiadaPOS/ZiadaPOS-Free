@@ -1,0 +1,18 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "ZiadaPOS",
+  "outputfilename": "ZiadaPOS",
+  "frontend:dir": "../web",
+  "frontend:install": "bun install --frozen-lockfile",
+  "frontend:build": "node ../desktop/scripts/prepare-frontend.mjs",
+  "author": {
+    "name": "ZiadaPOS"
+  },
+  "info": {
+    "companyName": "ZiadaPOS",
+    "productName": "ZiadaPOS",
+    "productVersion": "0.1.0",
+    "copyright": "Copyright © ZiadaPOS",
+    "comments": "ZiadaPOS desktop application"
+  }
+}

@@ -5,14 +5,14 @@ import { Icons } from '@/components/icons';
 import { StatsErrorAlert } from '@/features/overview/components/stats-error';
 import { useRouter } from 'next/navigation';
 import { useEffect, useTransition } from 'react';
-import * as Sentry from '@sentry/nextjs';
+import { captureException } from '@/lib/sentry-client';
 
 export default function OverviewError({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    Sentry.captureException(error);
+    void captureException(error);
   }, [error]);
 
   // Defer the refresh until the next render phase so React settles pending states first

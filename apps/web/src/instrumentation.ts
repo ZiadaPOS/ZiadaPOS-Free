@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/nextjs';
+import type * as Sentry from '@sentry/nextjs'
 
 const sentryOptions: Sentry.NodeOptions | Sentry.EdgeOptions = {
   // Sentry DSN
@@ -15,20 +15,22 @@ const sentryOptions: Sentry.NodeOptions | Sentry.EdgeOptions = {
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false
-};
+}
+
+type CaptureRequestError = typeof import('@sentry/nextjs').captureRequestError
 
 export async function register() {
-  if (!process.env.NEXT_PUBLIC_SENTRY_DISABLED) {
-    if (process.env.NEXT_RUNTIME === 'nodejs') {
-      // Node.js Sentry configuration
-      Sentry.init(sentryOptions);
-    }
+  if (process.env.NEXT_PUBLIC_SENTRY_DISABLED) return
 
-    if (process.env.NEXT_RUNTIME === 'edge') {
-      // Edge Sentry configuration
-      Sentry.init(sentryOptions);
-    }
+  const Sentry = await import('@sentry/nextjs')
+  if (process.env.NEXT_RUNTIME === 'nodejs' || process.env.NEXT_RUNTIME === 'edge') {
+    Sentry.init(sentryOptions)
   }
 }
 
-export const onRequestError = Sentry.captureRequestError;
+export async function onRequestError(...args: Parameters<CaptureRequestError>) {
+  if (process.env.NEXT_PUBLIC_SENTRY_DISABLED) return
+
+  const Sentry = await import('@sentry/nextjs')
+  return Sentry.captureRequestError(...args)
+}

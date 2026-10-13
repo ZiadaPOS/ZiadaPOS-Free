@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (/\.(?:avif|gif|ico|jpe?g|png|svg|webp|woff2?|ttf|otf|txt)$/i.test(pathname)) {
+    return NextResponse.next();
+  }
   if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
     const nextPath = pathname === '/dashboard' ? '/overview' : pathname.slice('/dashboard'.length);
     return NextResponse.redirect(new URL(`${nextPath}${request.nextUrl.search}`, request.url));

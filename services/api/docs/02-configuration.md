@@ -11,6 +11,7 @@ Defaults are development-friendly; set real values in production.
 | `APP_ENV` | `Environment` | `development` | `production`/`development`/… |
 | `DEBUG` | `Debug` | `true` in development | Gin debug mode. |
 | `PORT` | `Port` | `8080` | HTTP listen port. |
+| `API_LISTEN_ADDR` | `ListenAddr` | `:<PORT>` | Optional full bind address, e.g. `127.0.0.1:8080` to accept local-only connections. |
 | `API_BASE_PATH` | `APIBasePath` | `/api/v1` | Prefix for all app routes. |
 | `SITE_URL` | `SiteURL` | `http://localhost:3000` | Frontend origin, used in email links. |
 | `APP_TIMEZONE` | `Timezone` | `Africa/Dar_es_Salaam` | Scheduler + "today" logic. |

@@ -19,6 +19,7 @@ type Config struct {
 	Environment string
 	Debug       bool
 	Port        string
+	ListenAddr  string
 	APIBasePath string
 	SiteURL     string
 
@@ -145,12 +146,14 @@ func Load(envFile string) (*Config, error) {
 	}
 
 	environment := env("APP_ENV", "development")
+	port := env("PORT", "8080")
 
 	cfg := &Config{
 		AppName:     env("APP_NAME", "ZiadaPOS API"),
 		Environment: environment,
 		Debug:       envBool("DEBUG", environment == "development"),
-		Port:        env("PORT", "8080"),
+		Port:        port,
+		ListenAddr:  env("API_LISTEN_ADDR", ":"+port),
 		APIBasePath: env("API_BASE_PATH", "/api/v1"),
 		SiteURL:     env("SITE_URL", "http://localhost:3000"),
 

@@ -14,3 +14,16 @@ coverage/
 __pycache__/
 .pytest_cache/
 .venv/
+
+# Track the Wails app-icon source while leaving generated build output ignored.
+!/apps/desktop/build/
+/apps/desktop/build/*
+!/apps/desktop/build/appicon.png
+
+# Generated desktop runtime resources (Next.js output and bundled Node.js)
+/apps/desktop/resources/runtime/
+/apps/desktop/resources/web/
+
+# Wails-generated frontend bindings and install fingerprint
+/apps/web/wailsjs/
+/apps/web/package.json.md5
