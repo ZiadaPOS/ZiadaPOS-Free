@@ -14,4 +14,4 @@ Each component retains its own README, configuration, and development instructio
 
 ## License
 
-The proposed license structure is GNU AGPL version 3 for the API, agent, and repository-level project material, with the web app's existing MIT license preserved at `apps/web/LICENSE`. See [`LICENSES.md`](LICENSES.md) for scope and third-party terms.
+The API, agent, and repository-level project material are licensed under GNU AGPL version 3. The web app's existing MIT license is preserved at `apps/web/LICENSE`. See [`LICENSES.md`](LICENSES.md) for scope and third-party terms.
