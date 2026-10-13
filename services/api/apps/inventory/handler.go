@@ -1,0 +1,495 @@
+package inventory
+
+import (
+	"encoding/csv"
+	"strconv"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"github.com/troubleman96/ziadapos/internal/apierr"
+	"github.com/troubleman96/ziadapos/internal/middleware"
+	"github.com/troubleman96/ziadapos/internal/response"
+)
+
+// Handler exposes inventory HTTP endpoints.
+type Handler struct {
+	svc *Service
+}
+
+// NewHandler builds an inventory Handler.
+func NewHandler(svc *Service) *Handler { return &Handler{svc: svc} }
+
+// ── Categories ──────────────────────────────────────────────────────────────
+
+// CreateCategory godoc: POST /inventory/categories
+func (h *Handler) CreateCategory(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	var req struct {
+		Name        string `json:"name" binding:"required"`
+		Description string `json:"description"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	cat, err := h.svc.CreateCategory(c.Request.Context(), orgID, req.Name, req.Description)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Created(c, cat, "Category created")
+}
+
+// ListCategories godoc: GET /inventory/categories
+func (h *Handler) ListCategories(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	cats, err := h.svc.ListCategories(c.Request.Context(), orgID)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, cats)
+}
+
+// UpdateCategory godoc: PATCH /inventory/categories/{id}
+func (h *Handler) UpdateCategory(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid category id", nil)
+		return
+	}
+	var req struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		SortOrder   int    `json:"sort_order"`
+		IsActive    *bool  `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	cat, err := h.svc.UpdateCategory(c.Request.Context(), orgID, id, req.Name, req.Description, req.SortOrder, req.IsActive)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, cat)
+}
+
+// DeleteCategory godoc: DELETE /inventory/categories/{id}
+func (h *Handler) DeleteCategory(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid category id", nil)
+		return
+	}
+	if err := h.svc.DeleteCategory(c.Request.Context(), orgID, id); err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.NoContent(c)
+}
+
+// CreateUnit godoc: POST /inventory/units
+func (h *Handler) CreateUnit(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	var req struct {
+		Name        string `json:"name" binding:"required"`
+		Description string `json:"description"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	unit, err := h.svc.CreateUnit(c.Request.Context(), orgID, req.Name, req.Description)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Created(c, unit, "Unit created")
+}
+func (h *Handler) ListUnits(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	units, err := h.svc.ListUnits(c.Request.Context(), orgID)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, units)
+}
+func (h *Handler) UpdateUnit(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid unit id", nil)
+		return
+	}
+	var req struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		IsActive    *bool  `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	unit, err := h.svc.UpdateUnit(c.Request.Context(), orgID, id, req.Name, req.Description, req.IsActive)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, unit)
+}
+func (h *Handler) DeleteUnit(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid unit id", nil)
+		return
+	}
+	if err := h.svc.DeleteUnit(c.Request.Context(), orgID, id); err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.NoContent(c)
+}
+
+// ── Products ────────────────────────────────────────────────────────────────
+
+// CreateProduct godoc: POST /inventory/products
+func (h *Handler) CreateProduct(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	var req ProductInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	req.CreatedBy, _ = uuid.Parse(middleware.UserID(c))
+	p, err := h.svc.CreateProduct(c.Request.Context(), storeID, &req)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Created(c, productResponse(p), "Product created")
+}
+
+// ListProducts godoc: GET /inventory/products
+func (h *Handler) ListProducts(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	f := ProductFilter{StoreID: storeID, Search: c.Query("search")}
+	f.CategoryID, _ = uuid.Parse(c.Query("category_id"))
+	f.Status = c.Query("status")
+	f.LowStock, _ = strconv.ParseBool(c.Query("low_stock"))
+	f.NoCache, _ = strconv.ParseBool(c.Query("fresh"))
+	if rawIDs := strings.TrimSpace(c.Query("ids")); rawIDs != "" {
+		for _, rawID := range strings.Split(rawIDs, ",") {
+			id, parseErr := uuid.Parse(strings.TrimSpace(rawID))
+			if parseErr != nil {
+				response.BadRequest(c, "Invalid product id", nil)
+				return
+			}
+			f.IDs = append(f.IDs, id)
+		}
+		f.NoCache = true
+	}
+	f.Page, _ = strconv.Atoi(c.DefaultQuery("page", "1"))
+	f.PageSize, _ = strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	out, err := h.svc.ListProducts(c.Request.Context(), storeID, f)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, out)
+}
+
+// GetProduct godoc: GET /inventory/products/{id}
+func (h *Handler) GetProduct(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid product id", nil)
+		return
+	}
+	p, err := h.svc.GetProduct(c.Request.Context(), storeID, id)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, productResponse(p))
+}
+
+// UpdateProduct godoc: PATCH /inventory/products/{id}
+func (h *Handler) UpdateProduct(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid product id", nil)
+		return
+	}
+	var req UpdateProductInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	p, err := h.svc.UpdateProduct(c.Request.Context(), storeID, id, &req)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, productResponse(p))
+}
+
+// DeleteProduct godoc: DELETE /inventory/products/{id}
+func (h *Handler) DeleteProduct(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid product id", nil)
+		return
+	}
+	if err := h.svc.DeleteProduct(c.Request.Context(), storeID, id); err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.NoContent(c)
+}
+
+// ByBarcode godoc: GET /inventory/products/barcode/{code}
+func (h *Handler) ByBarcode(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	p, err := h.svc.ByBarcode(c.Request.Context(), storeID, c.Param("code"))
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, productResponse(p))
+}
+
+// LowStock godoc: GET /inventory/low-stock
+func (h *Handler) LowStock(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	items, err := h.svc.LowStock(c.Request.Context(), storeID)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, items)
+}
+
+// AdjustStock godoc: POST /inventory/products/{id}/adjust
+func (h *Handler) AdjustStock(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	productID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid product id", nil)
+		return
+	}
+	userID, _ := uuid.Parse(middleware.UserID(c))
+	var req struct {
+		QtyChange int    `json:"qty_change" binding:"required"`
+		Reason    string `json:"reason" binding:"required"`
+		Note      string `json:"note"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request", nil)
+		return
+	}
+	p, err := h.svc.AdjustStock(c.Request.Context(), storeID, productID, userID, req.QtyChange, req.Reason, req.Note)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, productResponse(p))
+}
+
+// Adjustments godoc: GET /inventory/products/{id}/adjustments
+func (h *Handler) Adjustments(c *gin.Context) {
+	productID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid product id", nil)
+		return
+	}
+	limit := 50
+	if l, err := strconv.Atoi(c.DefaultQuery("limit", "50")); err == nil && l > 0 && l <= 200 {
+		limit = l
+	}
+	adj, err := h.svc.repo.ListAdjustments(productID, limit)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, adj)
+}
+
+// ListBatches godoc: GET /inventory/batches?product_id={id}
+func (h *Handler) ListBatches(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	productID := uuid.Nil
+	if raw := c.Query("product_id"); raw != "" {
+		productID, err = uuid.Parse(raw)
+		if err != nil {
+			response.BadRequest(c, "Invalid product id", nil)
+			return
+		}
+	}
+	batches, err := h.svc.ListBatches(c.Request.Context(), storeID, productID)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, batches)
+}
+
+// ReceiveBatch godoc: POST /inventory/products/{id}/batches
+func (h *Handler) ReceiveBatch(c *gin.Context) {
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	productID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		response.BadRequest(c, "Invalid product id", nil)
+		return
+	}
+	userID, err := uuid.Parse(middleware.UserID(c))
+	if err != nil {
+		response.Unauthorized(c, "Invalid user")
+		return
+	}
+	var req ReceiveBatchInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid batch details", nil)
+		return
+	}
+	batch, err := h.svc.ReceiveBatch(c.Request.Context(), storeID, productID, userID, req)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.Created(c, batch, "Batch received")
+}
+
+// Import godoc: POST /inventory/import — bulk-create products from an uploaded CSV.
+// Columns (project template): name, sku, category, price, cost, unit, barcode, stock, min_stock, max_stock.
+func (h *Handler) Import(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
+	storeID, err := uuid.Parse(middleware.StoreID(c))
+	if err != nil {
+		response.NotFound(c, "Store not found")
+		return
+	}
+	userID, _ := uuid.Parse(middleware.UserID(c))
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		response.BadRequest(c, "A CSV file is required", nil)
+		return
+	}
+	if file.Size > 5<<20 {
+		response.BadRequest(c, "File too large — max 5 MB", nil)
+		return
+	}
+	f, err := file.Open()
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	defer f.Close()
+
+	r := csv.NewReader(f)
+	r.FieldsPerRecord = -1
+	r.TrimLeadingSpace = true
+	rows, err := r.ReadAll()
+	if err != nil {
+		response.BadRequest(c, "Could not parse CSV — use the template format", nil)
+		return
+	}
+	out, err := h.svc.ImportProducts(c.Request.Context(), orgID, storeID, userID, rows)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, out)
+}
+
+func writeErr(c *gin.Context, err error) {
+	e := apierr.Translate(err)
+	response.Error(c, e.Status, e.Message, e.Fields)
+}
