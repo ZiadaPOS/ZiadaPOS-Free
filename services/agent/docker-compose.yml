@@ -1,0 +1,23 @@
+# ZiadaPOS MCP agent — deploy this next to (or near) the API as its own
+# service. It logs in to the API as the shop owner (JWT) and exposes the
+# MCP endpoint on port 8081.
+#
+# Usage:
+#   cp .env.example .env   # fill ZIADA_API_URL, ZIADA_IDENTIFIER, ZIADA_PASSWORD, keys
+#   docker compose up -d
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ziada-agent
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8081/mcp/', timeout=5)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
