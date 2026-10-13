@@ -1,0 +1,16 @@
+# Local development secrets and environment files
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+
+# Common local/build outputs
+node_modules/
+.next/
+dist/
+build/
+coverage/
+__pycache__/
+.pytest_cache/
+.venv/
