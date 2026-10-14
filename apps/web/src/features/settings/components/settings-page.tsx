@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useText } from '@/lib/i18n';
 import { StoreSwitcher } from '@/features/settings/components/store-switcher';
 import { BusinessSettings } from '@/features/settings/components/business-settings';
+import { ProviderIntegrations } from '@/features/settings/components/provider-integrations';
 import Link from 'next/link';
 import { Icons } from '@/components/icons';
 
@@ -116,9 +117,12 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
         {(user?.role === 'owner' || user?.role === 'admin') && (
-          <BusinessSettings
-            initialValue={settingsData?.organisation as Record<string, unknown> | undefined}
-          />
+          <>
+            <BusinessSettings
+              initialValue={settingsData?.organisation as Record<string, unknown> | undefined}
+            />
+            <ProviderIntegrations />
+          </>
         )}
       </div>
     </PageContainer>

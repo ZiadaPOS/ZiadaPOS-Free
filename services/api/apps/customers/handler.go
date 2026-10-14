@@ -131,6 +131,11 @@ func (h *Handler) CreditCustomers(c *gin.Context) {
 
 // SendSms godoc: POST /customers/{id}/sms — send an SMS to a customer.
 func (h *Handler) SendSms(c *gin.Context) {
+	orgID, err := uuid.Parse(middleware.OrgID(c))
+	if err != nil {
+		response.NotFound(c, "Organisation not found")
+		return
+	}
 	storeID, err := uuid.Parse(middleware.StoreID(c))
 	if err != nil {
 		response.NotFound(c, "Store not found")
@@ -142,18 +147,23 @@ func (h *Handler) SendSms(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Message string `json:"message"`
+		Message   string `json:"message"`
+		Confirmed bool   `json:"confirmed"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Invalid request", nil)
 		return
 	}
-	out, err := h.svc.SendSMS(c.Request.Context(), storeID, id, req.Message)
+	if !req.Confirmed {
+		response.BadRequest(c, "Confirm the recipient, message, and provider charges before sending", nil)
+		return
+	}
+	out, err := h.svc.SendSMS(c.Request.Context(), orgID, storeID, id, req.Message)
 	if err != nil {
 		writeErr(c, err)
 		return
 	}
-	response.Created(c, out, "SMS sent")
+	response.Created(c, out, "SendAfrica accepted the SMS request; handset delivery is not confirmed")
 }
 
 func writeErr(c *gin.Context, err error) {

@@ -73,11 +73,16 @@ func (h *Handler) StartChat(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Message string `json:"message" binding:"required"`
-		Title   string `json:"title"`
+		Message            string `json:"message" binding:"required"`
+		Title              string `json:"title"`
+		DataSharingConsent bool   `json:"data_sharing_consent"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Message is required", nil)
+		return
+	}
+	if !req.DataSharingConsent {
+		response.BadRequest(c, "Confirm that your message and minimized shop context may be sent to the configured AI provider", nil)
 		return
 	}
 	out, err := h.svc.StartChat(c.Request.Context(), orgID, storeID, userID, req.Message, req.Title)
@@ -99,10 +104,15 @@ func (h *Handler) ContinueChat(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Message string `json:"message" binding:"required"`
+		Message            string `json:"message" binding:"required"`
+		DataSharingConsent bool   `json:"data_sharing_consent"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "Message is required", nil)
+		return
+	}
+	if !req.DataSharingConsent {
+		response.BadRequest(c, "Confirm that your message and minimized shop context may be sent to the configured AI provider", nil)
 		return
 	}
 	out, err := h.svc.ContinueChat(c.Request.Context(), userID, convID, req.Message)
@@ -173,6 +183,20 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 	response.OK(c, out)
+}
+
+// Models godoc: GET /ai/models — owner-triggered Ngamia model catalog lookup.
+func (h *Handler) Models(c *gin.Context) {
+	orgID, ok := h.orgID(c)
+	if !ok {
+		return
+	}
+	models, err := h.svc.ListModels(c.Request.Context(), orgID)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, models)
 }
 
 // Suggestions godoc: GET /ai/suggestions — contextual prompt chips + credits.

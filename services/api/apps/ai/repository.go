@@ -207,6 +207,34 @@ func (r *Repo) TopProducts(ctx context.Context, storeID uuid.UUID, from, to time
 	return rows, err
 }
 
+// NgamiaSettings returns only the organisation-owned AI credential ciphertext
+// and non-secret model choice for a single authenticated organisation.
+func (r *Repo) NgamiaSettings(ctx context.Context, orgID uuid.UUID) (string, string, error) {
+	var settings struct {
+		APIKey string `gorm:"column:ngamia_api_key"`
+		Model  string `gorm:"column:ngamia_model"`
+	}
+	err := r.db.WithContext(ctx).Table("organisations").
+		Select("ngamia_api_key, ngamia_model").
+		Where("id = ?", orgID).
+		Take(&settings).Error
+	return settings.APIKey, settings.Model, err
+}
+
+// CreditSummary returns counts and sums only; customer identifiers and contact
+// details are deliberately excluded from AI provider context.
+func (r *Repo) CreditSummary(ctx context.Context, storeID uuid.UUID) (int64, int64, error) {
+	var summary struct {
+		Customers int64 `gorm:"column:customers"`
+		Total     int64 `gorm:"column:total"`
+	}
+	err := r.db.WithContext(ctx).Table("customers").
+		Select("COUNT(*) AS customers, COALESCE(SUM(open_credit), 0) AS total").
+		Where("store_id = ? AND is_active = true AND open_credit > 0", storeID).
+		Scan(&summary).Error
+	return summary.Customers, summary.Total, err
+}
+
 // CustomersWithCredit returns customers carrying open balances.
 func (r *Repo) CustomersWithCredit(ctx context.Context, storeID uuid.UUID, limit int) ([]map[string]interface{}, int64, error) {
 	var rows []map[string]interface{}

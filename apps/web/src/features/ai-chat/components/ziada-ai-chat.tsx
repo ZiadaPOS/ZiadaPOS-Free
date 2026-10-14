@@ -39,7 +39,7 @@ interface ChatResponse {
 const suggestions = [
   'How are sales performing today?',
   'Which products need restocking?',
-  'Who owes us money?',
+  'Summarise outstanding customer credit balances',
   'Summarise this month’s expenses'
 ];
 
@@ -49,6 +49,7 @@ export function ZiadaAiChat() {
   const [draft, setDraft] = useState('');
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
+  const [aiConsent, setAiConsent] = useState(false);
   const [error, setError] = useState('');
 
   async function loadConversations() {
@@ -62,6 +63,7 @@ export function ZiadaAiChat() {
   }, []);
   async function openConversation(id: string) {
     setError('');
+    setAiConsent(false);
     try {
       const result = await posApi<ConversationDetail>(`/ai/conversations/${id}`);
       setActive(result.data);
@@ -73,6 +75,10 @@ export function ZiadaAiChat() {
     event?.preventDefault();
     const message = draft.trim();
     if (!message || busy) return;
+    if (!aiConsent) {
+      setError('Confirm that your message and minimized shop context may be sent to Ngamia.');
+      return;
+    }
     setDraft('');
     setBusy(true);
     setError('');
@@ -80,11 +86,15 @@ export function ZiadaAiChat() {
       const result = active
         ? await posApi<ChatResponse>(`/ai/conversations/${active.id}/chat`, {
             method: 'POST',
-            body: JSON.stringify({ message })
+            body: JSON.stringify({ message, data_sharing_consent: true })
           })
         : await posApi<ChatResponse>('/ai/chat', {
             method: 'POST',
-            body: JSON.stringify({ message, title: message.slice(0, 60) })
+            body: JSON.stringify({
+              message,
+              title: message.slice(0, 60),
+              data_sharing_consent: true
+            })
           });
       const reply = result.data.message;
       const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: message };
@@ -105,6 +115,7 @@ export function ZiadaAiChat() {
       setError(reason instanceof Error ? reason.message : 'Ziada AI could not reply.');
       setDraft(message);
     } finally {
+      setAiConsent(false);
       setBusy(false);
     }
   }
@@ -129,7 +140,10 @@ export function ZiadaAiChat() {
             size='icon'
             variant='outline'
             aria-label='New conversation'
-            onClick={() => setActive(null)}
+            onClick={() => {
+              setActive(null);
+              setAiConsent(false);
+            }}
           >
             <Icons.add className='h-4 w-4' />
           </Button>
@@ -170,11 +184,19 @@ export function ZiadaAiChat() {
             <div>
               <h1 className='font-semibold'>{active?.title || 'Ziada AI'}</h1>
               <p className='text-muted-foreground text-xs'>
-                Ask about your shop, sales, stock, and customers
+                Ask about sales, stock, and aggregate credit totals
               </p>
             </div>
           </div>
-          <Button className='md:hidden' size='sm' variant='outline' onClick={() => setActive(null)}>
+          <Button
+            className='md:hidden'
+            size='sm'
+            variant='outline'
+            onClick={() => {
+              setActive(null);
+              setAiConsent(false);
+            }}
+          >
             New chat
           </Button>
         </header>
@@ -197,6 +219,7 @@ export function ZiadaAiChat() {
                       className='hover:border-primary/50 rounded-xl border p-3 text-left text-sm transition-colors'
                       onClick={() => {
                         setDraft(suggestion);
+                        setAiConsent(false);
                       }}
                     >
                       {suggestion}
@@ -237,10 +260,29 @@ export function ZiadaAiChat() {
           </div>
         </div>
         <form onSubmit={send} className='border-t p-3 sm:p-4'>
+          <label className='text-muted-foreground mx-auto mb-3 flex max-w-3xl items-start gap-2 text-xs'>
+            <input
+              type='checkbox'
+              className='mt-0.5'
+              checked={aiConsent}
+              onChange={(event) => setAiConsent(event.target.checked)}
+            />
+            <span>
+              I agree to send my message and recent chat history, plus a minimized shop summary
+              (sales totals, low-stock product names/SKUs, and aggregate credit totals) to the
+              configured Ngamia AI provider. Customer names, phone numbers, addresses, and
+              transaction IDs are excluded from that summary. My own message may contain sensitive
+              details, so I will avoid including personal or payment data. The selected API key’s
+              Ngamia balance may be charged.
+            </span>
+          </label>
           <div className='mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border bg-muted/20 p-2'>
             <Textarea
               value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                setAiConsent(false);
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
@@ -254,7 +296,7 @@ export function ZiadaAiChat() {
             <Button
               type='submit'
               size='icon'
-              disabled={!draft.trim() || busy}
+              disabled={!draft.trim() || busy || !aiConsent}
               aria-label='Send message'
             >
               <Icons.send className='h-4 w-4' />

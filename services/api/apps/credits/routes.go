@@ -22,7 +22,7 @@ func Migrate(db *gorm.DB) error {
 //   - a credit sale auto-creates a tab
 //   - a refunded/voided credit sale settles its tab
 func RegisterHandlers(bus *events.Bus, deps *server.Deps) {
-	custSvc := customers.NewService(customers.NewRepo(deps.DB), deps.Cache, deps.DB, deps.SMS)
+	custSvc := customers.NewService(customers.NewRepo(deps.DB), deps.Cache, deps.DB, deps.SMS, deps.Secrets)
 	svc := NewService(NewRepo(deps.DB), deps.Cache, bus, custSvc, deps.DB, deps.SMS)
 
 	bus.On("transaction.created", func(ctx context.Context, e events.Event) error {
@@ -67,7 +67,7 @@ func RegisterHandlers(bus *events.Bus, deps *server.Deps) {
 
 // RegisterRoutes wires the credits router.
 func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
-	custSvc := customers.NewService(customers.NewRepo(deps.DB), deps.Cache, deps.DB, deps.SMS)
+	custSvc := customers.NewService(customers.NewRepo(deps.DB), deps.Cache, deps.DB, deps.SMS, deps.Secrets)
 	svc := NewService(NewRepo(deps.DB), deps.Cache, deps.Bus, custSvc, deps.DB, deps.SMS)
 	h := NewHandler(svc)
 

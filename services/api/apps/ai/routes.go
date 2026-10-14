@@ -15,7 +15,7 @@ func Migrate(db *gorm.DB) error {
 
 // RegisterRoutes wires the ai router.
 func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
-	svc := NewService(NewRepo(deps.DB), deps.AI)
+	svc := NewService(NewRepo(deps.DB), deps.AI, deps.Cfg, deps.Secrets)
 	h := NewHandler(svc)
 
 	authed := base.Group("/ai", middleware.Auth(deps.Tokens))
@@ -27,5 +27,6 @@ func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 		authed.PATCH("/conversations/:id", h.Update)
 		authed.GET("/suggestions", h.Suggestions)
 		authed.GET("/usage", h.Usage)
+		authed.GET("/models", middleware.RequireOwner(), h.Models)
 	}
 }

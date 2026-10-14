@@ -55,6 +55,8 @@ type Config struct {
 	JWTAccessTTL     time.Duration
 	JWTRefreshTTL    time.Duration
 	MFAEncryptionKey string
+	// Dedicated key for encrypting organisation-owned provider credentials at rest.
+	IntegrationEncryptionKey string
 
 	// SMTP (email)
 	SMTPHost     string
@@ -180,11 +182,12 @@ func Load(envFile string) (*Config, error) {
 		MinIORegion:    env("MINIO_REGION", "us-east-1"),
 		PublicBaseURL:  env("PUBLIC_BASE_URL", "http://localhost:9000/ziada"),
 
-		JWTAccessSecret:  env("JWT_ACCESS_SECRET", "change-me-access"),
-		JWTRefreshSecret: env("JWT_REFRESH_SECRET", "change-me-refresh"),
-		JWTAccessTTL:     envDuration("JWT_ACCESS_TTL", 15*time.Minute),
-		JWTRefreshTTL:    envDuration("JWT_REFRESH_TTL", 7*24*time.Hour),
-		MFAEncryptionKey: env("MFA_ENCRYPTION_KEY", env("JWT_REFRESH_SECRET", "change-me-refresh")),
+		JWTAccessSecret:          env("JWT_ACCESS_SECRET", "change-me-access"),
+		JWTRefreshSecret:         env("JWT_REFRESH_SECRET", "change-me-refresh"),
+		JWTAccessTTL:             envDuration("JWT_ACCESS_TTL", 15*time.Minute),
+		JWTRefreshTTL:            envDuration("JWT_REFRESH_TTL", 7*24*time.Hour),
+		MFAEncryptionKey:         env("MFA_ENCRYPTION_KEY", env("JWT_REFRESH_SECRET", "change-me-refresh")),
+		IntegrationEncryptionKey: env("INTEGRATION_ENCRYPTION_KEY", ""),
 
 		SMTPHost:     env("SMTP_HOST", "smtp.zoho.com"),
 		SMTPPort:     envInt("SMTP_PORT", 587),

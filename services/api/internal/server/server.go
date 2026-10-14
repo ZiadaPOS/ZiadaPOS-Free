@@ -31,6 +31,7 @@ type Deps struct {
 	AI        *ai.Client
 	Bus       *events.Bus
 	Tokens    *security.Manager
+	Secrets   *security.SecretBox
 	Scheduler *scheduler.Scheduler
 }
 

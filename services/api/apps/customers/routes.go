@@ -19,7 +19,7 @@ func Migrate(db *gorm.DB) error {
 
 // RegisterHandlers keeps customer spend stats in sync with POS events.
 func RegisterHandlers(bus *events.Bus, deps *server.Deps) {
-	svc := NewService(NewRepo(deps.DB), deps.Cache, deps.DB, deps.SMS)
+	svc := NewService(NewRepo(deps.DB), deps.Cache, deps.DB, deps.SMS, deps.Secrets)
 
 	// On a completed sale, bump spend / last visit / segment.
 	bus.On("transaction.created", func(ctx context.Context, e events.Event) error {
@@ -52,7 +52,7 @@ func RegisterHandlers(bus *events.Bus, deps *server.Deps) {
 
 // RegisterRoutes wires the customers router.
 func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
-	svc := NewService(NewRepo(deps.DB), deps.Cache, deps.DB, deps.SMS)
+	svc := NewService(NewRepo(deps.DB), deps.Cache, deps.DB, deps.SMS, deps.Secrets)
 	h := NewHandler(svc)
 
 	customers := base.Group("/customers", middleware.Auth(deps.Tokens))

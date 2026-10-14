@@ -16,7 +16,7 @@ func Migrate(db *gorm.DB) error { return nil }
 // group is manager-level (owner/admin).
 func RegisterRoutes(base *gin.RouterGroup, deps *server.Deps) {
 	repo := NewRepo(deps.DB)
-	svc := NewService(repo, deps.DB, deps.Cache, deps.Bus, deps.Cfg)
+	svc := NewService(repo, deps.DB, deps.Cache, deps.Bus, deps.Cfg, deps.Secrets)
 	h := NewHandler(svc)
 
 	g := base.Group("/staff", middleware.Auth(deps.Tokens), middleware.RequireOwner())

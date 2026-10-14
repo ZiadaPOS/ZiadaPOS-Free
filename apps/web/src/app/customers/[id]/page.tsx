@@ -18,11 +18,17 @@ export default function CustomerDetailPage() {
   const [transactions, setTransactions] = useState<PosTransaction[]>([]);
   const [email, setEmail] = useState('');
   const [sms, setSms] = useState('');
+  const [smsConfirmed, setSmsConfirmed] = useState(false);
   const [smsStatus, setSmsStatus] = useState('');
   const [sendingSms, setSendingSms] = useState(false);
   const [error, setError] = useState('');
 
+  // Route changes must immediately discard the previous customer's SMS draft and consent.
+  // oxlint-disable react/set-state-in-effect
   useEffect(() => {
+    setSms('');
+    setSmsConfirmed(false);
+    setSmsStatus('');
     void Promise.all([
       posApi<PosCustomer>(`/customers/${params.id}`),
       posApi<unknown>('/pos/transactions?page=1&page_size=100')
@@ -45,6 +51,7 @@ export default function CustomerDetailPage() {
         )
       );
   }, [params.id]);
+  // oxlint-enable react/set-state-in-effect
 
   if (error)
     return (
@@ -63,19 +70,23 @@ export default function CustomerDetailPage() {
   const average = visits ? customer.total_spent / visits : 0;
   const currentCustomer = customer;
   async function sendSms() {
-    if (!sms.trim() || !currentCustomer.phone) return;
+    if (!sms.trim() || !currentCustomer.phone || !smsConfirmed) return;
     setSendingSms(true);
     setSmsStatus('');
     try {
       await posApi<unknown>(`/customers/${currentCustomer.id}/sms`, {
         method: 'POST',
-        body: JSON.stringify({ message: sms.trim() })
+        body: JSON.stringify({ message: sms.trim(), confirmed: true })
       });
       setSms('');
-      setSmsStatus('SMS sent successfully.');
+      setSmsConfirmed(false);
+      setSmsStatus(
+        'SendAfrica accepted the SMS request. Delivery to the handset is not confirmed.'
+      );
     } catch (reason) {
       setSmsStatus(reason instanceof Error ? reason.message : 'SMS could not be sent.');
     } finally {
+      setSmsConfirmed(false);
       setSendingSms(false);
     }
   }
@@ -188,20 +199,37 @@ export default function CustomerDetailPage() {
             <CardContent className='space-y-3'>
               <Textarea
                 value={sms}
-                onChange={(event) => setSms(event.target.value)}
+                onChange={(event) => {
+                  setSms(event.target.value);
+                  setSmsConfirmed(false);
+                }}
                 placeholder={
                   customer.phone
                     ? 'Write a short customer message…'
                     : 'Customer has no phone number'
                 }
-                disabled={!customer.phone}
+                disabled={!customer.phone || sendingSms}
                 maxLength={480}
               />
+              <label className='text-muted-foreground flex items-start gap-2 text-xs'>
+                <input
+                  type='checkbox'
+                  className='mt-0.5'
+                  checked={smsConfirmed}
+                  onChange={(event) => setSmsConfirmed(event.target.checked)}
+                  disabled={!customer.phone || !sms.trim() || sendingSms}
+                />
+                <span>
+                  Confirm sending this exact message to {customer.phone || 'the customer'} using
+                  this organisation’s SendAfrica account and its provider credits. Carrier delivery
+                  is not guaranteed.
+                </span>
+              </label>
               <div className='flex items-center justify-between gap-2'>
                 <span className='text-muted-foreground text-xs'>{sms.length}/480</span>
                 <Button
                   onClick={() => void sendSms()}
-                  disabled={!customer.phone || !sms.trim()}
+                  disabled={!customer.phone || !sms.trim() || !smsConfirmed}
                   isLoading={sendingSms}
                 >
                   <Icons.send className='size-4' /> Send SMS

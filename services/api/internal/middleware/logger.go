@@ -3,6 +3,7 @@ package middleware
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,8 +14,8 @@ import (
 // X-Request-Id header for end-to-end tracing.
 func RequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.GetHeader("X-Request-Id")
-		if id == "" {
+		id := strings.TrimSpace(c.GetHeader("X-Request-Id"))
+		if _, err := uuid.Parse(id); err != nil {
 			id = uuid.NewString()
 		}
 		c.Set("request_id", id)
@@ -40,7 +41,9 @@ func Recovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("panic: %v", r)
+				// Panic payloads can contain request or credential data. Keep logs
+				// non-sensitive rather than serializing arbitrary panic values.
+				log.Printf("panic: recovered unexpected server error")
 				c.AbortWithStatusJSON(500, gin.H{
 					"success": false,
 					"message": "Internal server error",

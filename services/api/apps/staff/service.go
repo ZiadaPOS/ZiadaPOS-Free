@@ -12,6 +12,7 @@ import (
 	"github.com/troubleman96/ziadapos/internal/cache"
 	"github.com/troubleman96/ziadapos/internal/config"
 	"github.com/troubleman96/ziadapos/internal/events"
+	"github.com/troubleman96/ziadapos/internal/security"
 	"github.com/troubleman96/ziadapos/internal/util"
 	"gorm.io/gorm"
 )
@@ -25,10 +26,10 @@ type Service struct {
 
 // NewService wires the staff service, reusing the accounts app for identity
 // CRUD so that staff.created keeps firing the SMS temp-password listener.
-func NewService(repo *Repo, db *gorm.DB, cacheSvc *cache.Cache, bus *events.Bus, cfg *config.Config) *Service {
+func NewService(repo *Repo, db *gorm.DB, cacheSvc *cache.Cache, bus *events.Bus, cfg *config.Config, secrets *security.SecretBox) *Service {
 	return &Service{
 		repo:    repo,
-		account: accounts.NewAccountService(accounts.NewRepo(db), cacheSvc, bus, cfg),
+		account: accounts.NewAccountService(accounts.NewRepo(db), cacheSvc, bus, cfg, secrets),
 		cache:   cacheSvc,
 	}
 }

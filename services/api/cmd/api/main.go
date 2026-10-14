@@ -49,6 +49,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("config: %v", err)
 	}
+	secretBox, err := security.NewSecretBox(cfg.IntegrationEncryptionKey)
+	if err != nil {
+		log.Fatalf("integration credential encryption configuration: %v", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -84,6 +88,7 @@ func main() {
 		AI:        ai.New(cfg.NgamiaBaseURL, cfg.NgamiaAPIKey, cfg.NgamiaModel),
 		Bus:       bus,
 		Tokens:    security.NewManager(cfg),
+		Secrets:   secretBox,
 		Scheduler: sched,
 	}
 
@@ -122,6 +127,9 @@ func main() {
 func registerApps(db *gorm.DB, deps *server.Deps, srv *server.Server) {
 	if err := accounts.Migrate(db); err != nil {
 		log.Fatalf("accounts migrate: %v", err)
+	}
+	if err := accounts.MigrateIntegrationSecrets(db, deps.Secrets); err != nil {
+		log.Fatalf("integration credential migration: %v", err)
 	}
 	accounts.RegisterHandlers(deps.Bus, deps)
 	accounts.RegisterRoutes(srv.Base, deps)

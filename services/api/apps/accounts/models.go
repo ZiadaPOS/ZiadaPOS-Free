@@ -56,10 +56,11 @@ type Organisation struct {
 	Email    string `gorm:"size:255" json:"email"`
 	Logo     string `gorm:"size:500" json:"logo"`
 
-	// Integration keys (pasted by owner in Settings -> Integrations)
-	SendAfricaAPIKey string `gorm:"size:200" json:"-"`
+	// Integration keys are encrypted by the account service before persistence.
+	SendAfricaAPIKey string `gorm:"type:text" json:"-"`
 	SMSSenderID      string `gorm:"size:20" json:"-"`
-	NgamiaAPIKey     string `gorm:"size:200" json:"-"`
+	NgamiaAPIKey     string `gorm:"type:text" json:"-"`
+	NgamiaModel      string `gorm:"size:100" json:"-"`
 
 	MaxStores        int        `gorm:"default:3" json:"max_stores"`
 	AICreditsMonthly int        `gorm:"default:500" json:"ai_credits_monthly"`

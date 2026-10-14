@@ -27,12 +27,28 @@ type Client struct {
 // New builds a SendAfrica client. When no API key is configured the client
 // runs in dry-run mode (message logged, nothing sent).
 func New(cfg *config.Config) *Client {
+	return NewForCredentials(cfg.SendAfricaBaseURL, cfg.SendAfricaAPIKey, cfg.SendAfricaSenderID)
+}
+
+// NewForCredentials creates a client for one account without sharing its key
+// or sender ID with any other tenant. The base URL is supplied by trusted server
+// configuration, never by a request.
+func NewForCredentials(baseURL, apiKey, senderID string) *Client {
 	return &Client{
-		baseURL:  strings.TrimRight(cfg.SendAfricaBaseURL, "/"),
-		apiKey:   cfg.SendAfricaAPIKey,
-		senderID: cfg.SendAfricaSenderID,
+		baseURL:  strings.TrimRight(baseURL, "/"),
+		apiKey:   apiKey,
+		senderID: senderID,
 		http:     &http.Client{Timeout: 10 * time.Second},
 	}
+}
+
+// ForAccount returns an isolated client using the trusted base URL of this
+// client and the supplied tenant-owned credential pair.
+func (c *Client) ForAccount(apiKey, senderID string) *Client {
+	if c == nil {
+		return nil
+	}
+	return NewForCredentials(c.baseURL, apiKey, senderID)
 }
 
 // Error classifies SMS failures.
@@ -48,8 +64,8 @@ func (e *Error) Error() string {
 
 // Response is the successful SendAfrica response envelope.
 type Response struct {
-	Success   bool `json:"success"`
-	Data      struct {
+	Success bool `json:"success"`
+	Data    struct {
 		MessageID   string `json:"message_id"`
 		Status      string `json:"status"`
 		Cost        string `json:"cost"`
@@ -96,26 +112,25 @@ func (c *Client) Send(ctx context.Context, to, message, from string) (*Response,
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, &Error{Code: "network_error", Message: err.Error()}
+		return nil, &Error{Code: "network_error", Message: "Could not reach the SMS provider"}
 	}
 	defer resp.Body.Close()
 
-	data, _ := io.ReadAll(resp.Body)
+	data, readErr := io.ReadAll(io.LimitReader(resp.Body, 64*1024))
+	if readErr != nil {
+		return nil, &Error{Code: "provider_error", Message: "Could not read the SMS provider response"}
+	}
 
 	var out Response
 	if err := json.Unmarshal(data, &out); err != nil {
-		return nil, &Error{Code: "server_error", Message: string(data)}
+		return nil, &Error{Code: "invalid_response", Message: "The SMS provider returned an invalid response"}
 	}
 
 	if resp.StatusCode >= 400 {
-		msg := out.Error
-		if msg == "" {
-			msg = strings.TrimSpace(string(data))
-		}
-		return nil, &Error{Code: fmt.Sprintf("http_%d", resp.StatusCode), Message: msg, Status: resp.StatusCode}
+		return nil, &Error{Code: fmt.Sprintf("http_%d", resp.StatusCode), Message: "The SMS provider rejected the request", Status: resp.StatusCode}
 	}
 	if !out.Success {
-		return nil, &Error{Code: "server_error", Message: string(data)}
+		return nil, &Error{Code: "provider_rejected", Message: "The SMS provider did not accept the request"}
 	}
 	return &out, nil
 }
@@ -133,7 +148,7 @@ func (c *Client) Balance(ctx context.Context) (float64, error) {
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, err
+		return 0, &Error{Code: "network_error", Message: "Could not reach the SMS provider"}
 	}
 	defer resp.Body.Close()
 
@@ -144,10 +159,13 @@ func (c *Client) Balance(ctx context.Context) (float64, error) {
 		} `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return 0, err
+		return 0, &Error{Code: "invalid_response", Message: "The SMS provider returned an invalid balance response"}
 	}
 	if resp.StatusCode >= 400 {
 		return 0, &Error{Code: fmt.Sprintf("http_%d", resp.StatusCode), Message: "balance request failed", Status: resp.StatusCode}
+	}
+	if !out.Success {
+		return 0, &Error{Code: "provider_rejected", Message: "The SMS provider did not return a balance"}
 	}
 	return out.Data.Balance, nil
 }

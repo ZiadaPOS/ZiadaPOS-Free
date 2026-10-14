@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -13,20 +14,22 @@ import (
 	"github.com/troubleman96/ziadapos/internal/config"
 	"github.com/troubleman96/ziadapos/internal/events"
 	"github.com/troubleman96/ziadapos/internal/integrations/sms"
+	"github.com/troubleman96/ziadapos/internal/security"
 	"github.com/troubleman96/ziadapos/internal/util"
 )
 
 // AccountService handles /accounts/* endpoints.
 type AccountService struct {
-	repo  *Repo
-	cache *cache.Cache
-	bus   *events.Bus
-	cfg   *config.Config
+	repo    *Repo
+	cache   *cache.Cache
+	bus     *events.Bus
+	cfg     *config.Config
+	secrets *security.SecretBox
 }
 
 // NewAccountService wires an AccountService.
-func NewAccountService(repo *Repo, cache *cache.Cache, bus *events.Bus, cfg *config.Config) *AccountService {
-	return &AccountService{repo: repo, cache: cache, bus: bus, cfg: cfg}
+func NewAccountService(repo *Repo, cache *cache.Cache, bus *events.Bus, cfg *config.Config, secrets *security.SecretBox) *AccountService {
+	return &AccountService{repo: repo, cache: cache, bus: bus, cfg: cfg, secrets: secrets}
 }
 
 // UserResponse is the public shape of a user.
@@ -140,6 +143,7 @@ type OrgResponse struct {
 	SMSSenderID   string          `json:"sms_sender_id"`
 	SMSConfigured bool            `json:"sms_configured"`
 	NGAMIASetup   bool            `json:"ngamia_configured"`
+	NgamiaModel   string          `json:"ngamia_model,omitempty"`
 	Stores        []StoreResponse `json:"stores,omitempty"`
 }
 
@@ -255,6 +259,7 @@ func (s *AccountService) Me(ctx context.Context, userID uuid.UUID) (*ProfileCont
 			SMSSenderID:   org.SMSSenderID,
 			SMSConfigured: org.SendAfricaAPIKey != "",
 			NGAMIASetup:   org.NgamiaAPIKey != "",
+			NgamiaModel:   org.NgamiaModel,
 			Stores:        storeList,
 		}
 		out.Organisation = orgResp
@@ -350,10 +355,25 @@ type UpdateOrganisationRequest struct {
 	SendAfricaKey *string  `json:"sendafrica_api_key"`
 	SMSSenderID   *string  `json:"sms_sender_id"`
 	NgamiaAPIKey  *string  `json:"ngamia_api_key"`
+	NgamiaModel   *string  `json:"ngamia_model"`
 }
 
 // UpdateOrganisation persists org settings.
 func (s *AccountService) UpdateOrganisation(ctx context.Context, orgID uuid.UUID, req *UpdateOrganisationRequest) (*OrgResponse, error) {
+	var sendAfricaKey, ngamiaKey string
+	var err error
+	if req.SendAfricaKey != nil {
+		sendAfricaKey, err = s.encryptIntegrationKey(strings.TrimSpace(*req.SendAfricaKey))
+		if err != nil {
+			return nil, err
+		}
+	}
+	if req.NgamiaAPIKey != nil {
+		ngamiaKey, err = s.encryptIntegrationKey(strings.TrimSpace(*req.NgamiaAPIKey))
+		if err != nil {
+			return nil, err
+		}
+	}
 	org, err := s.repo.GetOrgByID(orgID)
 	if err != nil {
 		return nil, apierr.NotFound("Organisation not found")
@@ -422,19 +442,49 @@ func (s *AccountService) UpdateOrganisation(ctx context.Context, orgID uuid.UUID
 		org.Logo = *req.Logo
 	}
 	if req.SendAfricaKey != nil {
-		org.SendAfricaAPIKey = strings.TrimSpace(*req.SendAfricaKey)
+		org.SendAfricaAPIKey = sendAfricaKey
 	}
 	if req.SMSSenderID != nil {
-		org.SMSSenderID = *req.SMSSenderID
+		senderID := strings.TrimSpace(*req.SMSSenderID)
+		if len([]rune(senderID)) > 20 {
+			return nil, apierr.BadRequest("Sender ID must be 20 characters or fewer").WithField("sms_sender_id", "too long")
+		}
+		for _, r := range senderID {
+			if unicode.IsControl(r) {
+				return nil, apierr.BadRequest("Sender ID contains unsupported characters").WithField("sms_sender_id", "invalid")
+			}
+		}
+		org.SMSSenderID = senderID
 	}
 	if req.NgamiaAPIKey != nil {
-		org.NgamiaAPIKey = strings.TrimSpace(*req.NgamiaAPIKey)
+		org.NgamiaAPIKey = ngamiaKey
+	}
+	if req.NgamiaModel != nil {
+		model := strings.TrimSpace(*req.NgamiaModel)
+		if len(model) > 100 || strings.ContainsAny(model, "\r\n\t ") {
+			return nil, apierr.BadRequest("Choose a valid Ngamia model ID").WithField("ngamia_model", "invalid")
+		}
+		org.NgamiaModel = model
 	}
 	if err := s.repo.UpdateOrg(org); err != nil {
 		return nil, err
 	}
 	_ = s.cacheDelete("accounts:org:" + orgID.String())
 	return s.orgResponse(orgID)
+}
+
+func (s *AccountService) encryptIntegrationKey(value string) (string, error) {
+	if value == "" {
+		return "", nil
+	}
+	if s.secrets == nil {
+		return "", apierr.Internal("Provider credentials are disabled until INTEGRATION_ENCRYPTION_KEY is configured")
+	}
+	ciphertext, err := s.secrets.Encrypt(value)
+	if err != nil {
+		return "", apierr.Internal("Provider credential could not be secured")
+	}
+	return ciphertext, nil
 }
 
 // SwitchStore updates the user's active store.
@@ -581,6 +631,30 @@ func (s *AccountService) ActivateUser(ctx context.Context, orgID, targetID uuid.
 	return nil
 }
 
+// SMSBalance checks the balance for the authenticated organisation's own
+// SendAfrica account. The API key is never returned or placed in a response.
+func (s *AccountService) SMSBalance(ctx context.Context, orgID uuid.UUID) (float64, bool, error) {
+	org, err := s.repo.GetOrgByID(orgID)
+	if err != nil {
+		return 0, false, apierr.NotFound("Organisation not found")
+	}
+	if org.SendAfricaAPIKey == "" {
+		return 0, false, nil
+	}
+	if s.secrets == nil {
+		return 0, false, apierr.Internal("SendAfrica credentials cannot be opened; check INTEGRATION_ENCRYPTION_KEY")
+	}
+	apiKey, err := s.secrets.Decrypt(org.SendAfricaAPIKey)
+	if err != nil {
+		return 0, false, apierr.Internal("SendAfrica credentials cannot be opened; check INTEGRATION_ENCRYPTION_KEY")
+	}
+	balance, err := sms.NewForCredentials(s.cfg.SendAfricaBaseURL, apiKey, org.SMSSenderID).Balance(ctx)
+	if err != nil {
+		return 0, false, apierr.Internal("SendAfrica balance could not be checked; verify the key and provider availability")
+	}
+	return balance, true, nil
+}
+
 // GetAICredits returns the org's monthly AI credit usage.
 func (s *AccountService) GetAICredits(ctx context.Context, orgID uuid.UUID) (map[string]interface{}, error) {
 	org, err := s.repo.GetOrgByID(orgID)
@@ -630,8 +704,8 @@ func (s *AccountService) orgResponse(orgID uuid.UUID) (*OrgResponse, error) {
 		MaxStores: org.MaxStores, CanAddStore: storeCount < int64(org.MaxStores),
 		AIUsed: aiUsed, AIAllocated: aiAlloc,
 		SMSSenderID: org.SMSSenderID, SMSConfigured: org.SendAfricaAPIKey != "",
-		NGAMIASetup: org.NgamiaAPIKey != "",
-		Stores:      storeList,
+		NGAMIASetup: org.NgamiaAPIKey != "", NgamiaModel: org.NgamiaModel,
+		Stores: storeList,
 	}, nil
 }
 

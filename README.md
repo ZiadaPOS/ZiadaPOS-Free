@@ -13,6 +13,10 @@ ZiadaPOS is a point-of-sale and retail-management monorepo. It combines the API,
 
 Each component retains its own README, configuration, and development instructions. Start in the component directory you want to work on.
 
+## Provider integrations
+
+SendAfrica SMS and Ngamia AI tenant setup, secret encryption, data sharing, and migration guidance is documented in [`docs/provider-integrations.md`](docs/provider-integrations.md).
+
 ## Desktop application
 
 The Wails app reuses `apps/web/` in both its embedded desktop WebView and optional local-browser mode (`ZiadaPOS --browser`). The browser/desktop build is still the normal Next.js UI; it is not a WebAssembly port. See [`apps/desktop/README.md`](apps/desktop/README.md) for build and run commands, [`docs/desktop-architecture.md`](docs/desktop-architecture.md) for the architecture, and [`docs/desktop-release.md`](docs/desktop-release.md) for the proposed release assets and review status.

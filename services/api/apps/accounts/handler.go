@@ -445,16 +445,17 @@ func (h *AccountHandler) DeactivateUser(c *gin.Context) {
 
 // SmSBalance godoc: GET /accounts/sms-balance — remaining SendAfrica credits.
 func (h *AccountHandler) SmSBalance(c *gin.Context) {
-	if h.sms == nil {
-		response.OK(c, gin.H{"balance": 0, "configured": false})
-		return
-	}
-	bal, err := h.sms.Balance(c.Request.Context())
+	orgID, err := uuid.Parse(middleware.OrgID(c))
 	if err != nil {
-		response.OK(c, gin.H{"balance": 0, "configured": false})
+		response.NotFound(c, "Organisation not found")
 		return
 	}
-	response.OK(c, gin.H{"balance": bal, "configured": true})
+	bal, configured, err := h.svc.SMSBalance(c.Request.Context(), orgID)
+	if err != nil {
+		writeErr(c, err)
+		return
+	}
+	response.OK(c, gin.H{"balance": bal, "configured": configured})
 }
 
 // AICredits godoc: GET /accounts/ai-credits

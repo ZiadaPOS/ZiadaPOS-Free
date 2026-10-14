@@ -9,17 +9,23 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/troubleman96/ziadapos/internal/apierr"
+	"github.com/troubleman96/ziadapos/internal/config"
 	"github.com/troubleman96/ziadapos/internal/integrations/ai"
+	"github.com/troubleman96/ziadapos/internal/security"
 )
 
 // Service implements the AI assistant business rules.
 type Service struct {
-	repo *Repo
-	ai   *ai.Client
+	repo    *Repo
+	ai      *ai.Client
+	cfg     *config.Config
+	secrets *security.SecretBox
 }
 
 // NewService wires an ai Service.
-func NewService(repo *Repo, ai *ai.Client) *Service { return &Service{repo: repo, ai: ai} }
+func NewService(repo *Repo, aiClient *ai.Client, cfg *config.Config, secrets *security.SecretBox) *Service {
+	return &Service{repo: repo, ai: aiClient, cfg: cfg, secrets: secrets}
+}
 
 var eatZone = time.FixedZone("EAT", 3*3600)
 
@@ -153,13 +159,18 @@ func (s *Service) ContinueChat(ctx context.Context, userID, conversationID uuid.
 // chatTurn saves the user message, calls the LLM and stores the reply.
 func (s *Service) chatTurn(ctx context.Context, conv *Conversation, userMessage string) (*Message, error) {
 	orgID := conv.OrgID
+	client, tenantKey, model, err := s.clientForOrg(ctx, orgID)
+	if err != nil {
+		return nil, apierr.Internal("Ngamia credentials could not be opened; check the server encryption key")
+	}
 
-	// Free platform credits exhausted → polite fallback (no own-key path in Go).
+	// Use the organisation's own Ngamia balance when configured. Platform credits
+	// apply only when the centrally configured provider key is being used.
 	credit, err := s.repo.Credit(ctx, orgID)
 	if err != nil {
 		return nil, err
 	}
-	if credit.Remaining() <= 0 {
+	if !tenantKey && credit.Remaining() <= 0 {
 		fallback := &Message{
 			ConversationID: conv.ID,
 			Role:           "assistant",
@@ -190,7 +201,8 @@ func (s *Service) chatTurn(ctx context.Context, conv *Conversation, userMessage 
 		msgs = append(msgs, ai.Message{Role: history[i].Role, Content: history[i].Content})
 	}
 
-	completion, err := s.ai.Chat(ctx, ai.ChatRequest{
+	completion, err := client.Chat(ctx, ai.ChatRequest{
+		Model:    model,
 		Messages: msgs,
 		Stream:   false,
 	})
@@ -202,7 +214,7 @@ func (s *Service) chatTurn(ctx context.Context, conv *Conversation, userMessage 
 		}
 		_ = s.repo.CreateMessage(ctx, errorMsg)
 		_ = s.repo.TouchConversation(ctx, conv.ID)
-		return errorMsg, err
+		return errorMsg, apierr.Internal("Ngamia could not complete this request; check the model, API key, and provider balance")
 	}
 
 	reply := ""
@@ -221,18 +233,61 @@ func (s *Service) chatTurn(ctx context.Context, conv *Conversation, userMessage 
 	if err := s.repo.CreateMessage(ctx, assistant); err != nil {
 		return nil, err
 	}
-	_ = s.repo.IncrementCredit(ctx, orgID)
+	if !tenantKey {
+		_ = s.repo.IncrementCredit(ctx, orgID)
+	}
 	_ = s.repo.TouchConversation(ctx, conv.ID)
 	return assistant, nil
 }
 
-// buildSystemPrompt assembles the store-context system prompt.
+func (s *Service) clientForOrg(ctx context.Context, orgID uuid.UUID) (*ai.Client, bool, string, error) {
+	storedKey, model, err := s.repo.NgamiaSettings(ctx, orgID)
+	if err != nil {
+		return nil, false, "", err
+	}
+	if model == "" && s.cfg != nil {
+		model = s.cfg.NgamiaModel
+	}
+	if storedKey != "" {
+		if s.secrets == nil {
+			return nil, false, "", fmt.Errorf("integration encryption is unavailable")
+		}
+		apiKey, err := s.secrets.Decrypt(storedKey)
+		if err != nil {
+			return nil, false, "", fmt.Errorf("integration credential cannot be opened")
+		}
+		if s.cfg == nil {
+			return nil, false, "", fmt.Errorf("Ngamia configuration is unavailable")
+		}
+		return ai.New(s.cfg.NgamiaBaseURL, apiKey, model), true, model, nil
+	}
+	if s.ai == nil {
+		return nil, false, "", fmt.Errorf("Ngamia client is unavailable")
+	}
+	return s.ai, false, model, nil
+}
+
+// ListModels fetches the Ngamia catalog using this organisation's key when set,
+// otherwise the server's configured platform key. Only public model metadata is returned.
+func (s *Service) ListModels(ctx context.Context, orgID uuid.UUID) ([]ai.ModelInfo, error) {
+	client, _, _, err := s.clientForOrg(ctx, orgID)
+	if err != nil || client == nil {
+		return nil, apierr.Internal("Ngamia model catalog could not be loaded; verify the server encryption configuration")
+	}
+	models, err := client.ListModels(ctx)
+	if err != nil {
+		return nil, apierr.Internal("Ngamia model catalog could not be loaded; verify the API key and provider service")
+	}
+	return models, nil
+}
+
+// buildSystemPrompt assembles only shop-level aggregates and inventory facts.
+// Customer names, phone numbers, addresses and transaction identifiers are not
+// queried for or sent to the AI provider.
 func (s *Service) buildSystemPrompt(ctx context.Context, storeID uuid.UUID) (string, []string) {
 	sources := []string{"Sales data"}
 	now := time.Now().In(eatZone)
 	todayStart, todayEnd := dayRangeUTC(now)
-
-	storeName, storeArea, _ := s.repo.StoreInfo(ctx, storeID)
 	today, _ := s.repo.SalesAgg(ctx, storeID, todayStart, todayEnd)
 
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, eatZone).UTC()
@@ -246,88 +301,43 @@ func (s *Service) buildSystemPrompt(ctx context.Context, storeID uuid.UUID) (str
 	if len(lowStock) > 0 {
 		sources = append(sources, "Inventory")
 	}
-	topProducts, _ := s.repo.TopProducts(ctx, storeID, now.AddDate(0, 0, -7).UTC(), now.UTC(), 5)
-	if len(topProducts) > 0 && !hasSource(sources, "Inventory") {
-		sources = append(sources, "Inventory")
-	}
-
-	creditCustomers, totalCredit, _ := s.repo.CustomersWithCredit(ctx, storeID, 10)
-	if len(creditCustomers) > 0 {
+	creditCount, totalCredit, _ := s.repo.CreditSummary(ctx, storeID)
+	if creditCount > 0 {
 		sources = append(sources, "Credits")
 	}
-	recent, _ := s.repo.RecentTxns(ctx, storeID, 5)
 
-	lowStockText := "LOW STOCK ITEMS: None — all products sufficiently stocked."
+	lowStockText := "LOW STOCK: None — all products are above their reorder points."
 	if len(lowStock) > 0 {
 		lines := make([]string, 0, len(lowStock))
 		for _, item := range lowStock {
-			lines = append(lines, fmt.Sprintf("  - %v (%v): %v left (min: %v)",
+			lines = append(lines, fmt.Sprintf("- %v (SKU %v): %v remaining; reorder point %v",
 				item["name"], item["sku"], item["stock"], item["min_stock"]))
 		}
-		lowStockText = "LOW STOCK ITEMS (need restocking):\n" + strings.Join(lines, "\n")
+		lowStockText = "LOW STOCK PRODUCTS:\n" + strings.Join(lines, "\n")
+	}
+	creditText := "OUTSTANDING CREDIT: No open customer credit balances."
+	if creditCount > 0 {
+		creditText = fmt.Sprintf("OUTSTANDING CREDIT: %d accounts; aggregate balance TZS %d. No customer identities or contact details are included.", creditCount, totalCredit)
 	}
 
-	creditText := "OUTSTANDING CREDIT: No open credit tabs."
-	if len(creditCustomers) > 0 {
-		lines := make([]string, 0, len(creditCustomers))
-		for _, c := range creditCustomers {
-			lines = append(lines, fmt.Sprintf("  - %v (%v): outstanding %v", c["name"], c["phone"], c["open_credit"]))
-		}
-		creditText = fmt.Sprintf("OUTSTANDING CREDIT — Total: %d\nCustomers with open balances:\n%s",
-			totalCredit, strings.Join(lines, "\n"))
-	}
-
-	recentText := "RECENT TRANSACTIONS:\n"
-	if len(recent) == 0 {
-		recentText += "  (none)"
-	} else {
-		for _, t := range recent {
-			recentText += fmt.Sprintf("  - %v: %v (%v) - %v [%v]\n",
-				t["txn_number"], t["total"], t["payment_method"], t["customer_name"], t["status"])
-		}
-	}
-
-	return fmt.Sprintf(`You are Ziada AI — a business intelligence assistant for African retail shops.
-You are talking to a staff member of **%s** (%s).
+	prompt := fmt.Sprintf(`You are Ziada AI — a concise business intelligence assistant for African retail shops.
 Today is %s.
 
-YOUR PERSONA:
-- Helpful, concise, and business-focused
-- Fluent in both Swahili and English — respond in the same language the user writes in
-- Address specific products, customers, and numbers from the data below
-- Sign off as "Ziada AI" when needed
+Respond in the same language as the user's message (English or Swahili). Be helpful and business-focused. Do not infer or request customer identities from aggregate data.
 
-LIVE STORE DATA (as of right now):
-
-TODAY'S PERFORMANCE (%s):
-  - Revenue (paid sales): TZS %d
-  - Gross profit: TZS %d
-  - Transactions completed: %d
-
-MONTH-TO-DATE (%s):
-  - Revenue: TZS %d
-  - Gross profit: TZS %d (%.1f%% margin)
-  - Transactions: %d
-  - Operating expenses recorded: TZS %d
-  - Net (profit − expenses): TZS %d
+MINIMIZED SHOP CONTEXT (no store name, customer names, phone numbers, addresses, or transaction identifiers):
+TODAY (%s): paid revenue TZS %d; gross profit TZS %d; transaction count %d.
+MONTH TO DATE (%s): revenue TZS %d; gross profit TZS %d; margin %.1f%%; transaction count %d; expenses TZS %d; net TZS %d.
 
 %s
-
 %s
 
-%s
-
-RESPONSE RULES:
-1. ALWAYS ground your answers in the actual data above — never make up numbers
-2. Use markdown formatting: **bold** for numbers/names, bullet lists — avoid tables
-3. Be concise — aim for 3-5 short paragraphs max unless a detailed breakdown is requested
-4. Answer in Swahili if the user writes in Swahili, English otherwise`,
-		storeName, storeArea, now.Format("Monday, January 02, 2006"),
+Ground numeric answers only in the data above; do not invent figures. Use concise Markdown, with short paragraphs or bullets.`,
 		now.Format("Monday, January 02, 2006"),
-		today.Revenue, today.Profit, today.Count,
-		now.Format("January 2006"),
-		month.Revenue, month.Profit, margin, month.Count, monthExpenses, monthNet,
-		lowStockText, creditText, recentText), sources
+		now.Format("Monday, January 02, 2006"), today.Revenue, today.Profit, today.Count,
+		now.Format("January 2006"), month.Revenue, month.Profit, margin, month.Count, monthExpenses, monthNet,
+		lowStockText, creditText)
+	return prompt, sources
 }
 
 // ── Suggestions & usage ──────────────────────────────────────────────────────
@@ -402,6 +412,14 @@ func (s *Service) Usage(ctx context.Context, storeID, orgID uuid.UUID) (map[stri
 			monthComp += int64(r["completion_tokens"].(int))
 		}
 	}
+	storedKey, _, settingsErr := s.repo.NgamiaSettings(ctx, orgID)
+	if settingsErr != nil {
+		return nil, settingsErr
+	}
+	ngamiaConfigured := storedKey != ""
+	if s.cfg != nil && s.cfg.NgamiaAPIKey != "" {
+		ngamiaConfigured = true
+	}
 	return map[string]interface{}{
 		"totals": map[string]interface{}{
 			"messages":          totalCount,
@@ -420,7 +438,7 @@ func (s *Service) Usage(ctx context.Context, storeID, orgID uuid.UUID) (map[stri
 			"allocated": credit.Allocated,
 			"pct_used":  pctOf(int64(credit.Used), int64(credit.Allocated)),
 		},
-		"ngamia_configured": false,
+		"ngamia_configured": ngamiaConfigured,
 	}, nil
 }
 

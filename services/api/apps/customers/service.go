@@ -12,19 +12,21 @@ import (
 	"github.com/troubleman96/ziadapos/internal/apierr"
 	"github.com/troubleman96/ziadapos/internal/cache"
 	"github.com/troubleman96/ziadapos/internal/integrations/sms"
+	"github.com/troubleman96/ziadapos/internal/security"
 )
 
 // Service implements customer business rules.
 type Service struct {
-	repo  *Repo
-	cache *cache.Cache
-	db    *gorm.DB
-	sms   *sms.Client
+	repo    *Repo
+	cache   *cache.Cache
+	db      *gorm.DB
+	sms     *sms.Client
+	secrets *security.SecretBox
 }
 
 // NewService wires a customers Service.
-func NewService(repo *Repo, cache *cache.Cache, db *gorm.DB, sms *sms.Client) *Service {
-	return &Service{repo: repo, cache: cache, db: db, sms: sms}
+func NewService(repo *Repo, cache *cache.Cache, db *gorm.DB, sms *sms.Client, secrets *security.SecretBox) *Service {
+	return &Service{repo: repo, cache: cache, db: db, sms: sms, secrets: secrets}
 }
 
 // Input is the create/update payload.
@@ -114,13 +116,14 @@ func (s *Service) Update(ctx context.Context, storeID, id uuid.UUID, in *Input) 
 
 // SendResult is what SendSMS returns after the SMS provider accepts the send.
 type SendResult struct {
-	MessageID   string `json:"message_id"`
-	Status      string `json:"status"`
-	CreditsUsed int    `json:"credits_used"`
+	MessageID        string `json:"message_id"`
+	Status           string `json:"status"`
+	CreditsUsed      int    `json:"credits_used"`
+	ProviderAccepted bool   `json:"provider_accepted"`
 }
 
 // SendSMS sends a free-form SMS to a customer's phone via SendAfrica.
-func (s *Service) SendSMS(ctx context.Context, storeID, id uuid.UUID, message string) (*SendResult, error) {
+func (s *Service) SendSMS(ctx context.Context, orgID, storeID, id uuid.UUID, message string) (*SendResult, error) {
 	if s.sms == nil {
 		return nil, apierr.Internal("SMS service is not configured")
 	}
@@ -135,7 +138,25 @@ func (s *Service) SendSMS(ctx context.Context, storeID, id uuid.UUID, message st
 	if c.Phone == nil || strings.TrimSpace(*c.Phone) == "" {
 		return nil, apierr.BadRequest("Customer has no phone number").WithField("phone", "required for SMS")
 	}
-	resp, err := s.sms.Send(ctx, *c.Phone, msg, "")
+	var integration struct {
+		APIKey   string `gorm:"column:send_africa_api_key"`
+		SenderID string `gorm:"column:sms_sender_id"`
+	}
+	if err := s.db.WithContext(ctx).Table("organisations").Select("send_africa_api_key", "sms_sender_id").Where("id = ?", orgID).Take(&integration).Error; err != nil {
+		return nil, apierr.NotFound("Organisation not found")
+	}
+	if integration.APIKey == "" {
+		return nil, apierr.BadRequest("Connect a SendAfrica API key for this organisation before sending SMS")
+	}
+	if s.secrets == nil {
+		return nil, apierr.Internal("SendAfrica credentials cannot be opened; check INTEGRATION_ENCRYPTION_KEY")
+	}
+	apiKey, err := s.secrets.Decrypt(integration.APIKey)
+	if err != nil {
+		return nil, apierr.Internal("SendAfrica credentials cannot be opened; check INTEGRATION_ENCRYPTION_KEY")
+	}
+	client := s.sms.ForAccount(apiKey, integration.SenderID)
+	resp, err := client.Send(ctx, *c.Phone, msg, "")
 	if err != nil {
 		return nil, err
 	}
@@ -143,9 +164,10 @@ func (s *Service) SendSMS(ctx context.Context, storeID, id uuid.UUID, message st
 		return nil, apierr.Internal("SMS provider returned an empty response")
 	}
 	return &SendResult{
-		MessageID:   resp.Data.MessageID,
-		Status:      resp.Data.Status,
-		CreditsUsed: resp.Data.CreditsUsed,
+		MessageID:        resp.Data.MessageID,
+		Status:           resp.Data.Status,
+		CreditsUsed:      resp.Data.CreditsUsed,
+		ProviderAccepted: true,
 	}, nil
 }
 
