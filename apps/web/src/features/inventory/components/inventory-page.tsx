@@ -19,6 +19,7 @@ export default function InventoryPage() {
   const [batches, setBatches] = useState<PosMedicineBatch[]>([]);
   const [isPharmacy, setIsPharmacy] = useState(false);
   const [businessType, setBusinessType] = useState('retail');
+  const [offlineMode, setOfflineMode] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   useEffect(() => {
     try {
@@ -41,9 +42,13 @@ export default function InventoryPage() {
     try {
       const result = await posApi<unknown>('/inventory/products?page=1&page_size=100');
       const productList = unwrapList<PosProduct>(result.data);
-      const profile = await posApi<{ organisation?: { business_type?: string } }>('/accounts/me');
+      const profile = await posApi<{
+        offline_mode?: boolean;
+        organisation?: { business_type?: string };
+      }>('/accounts/me');
       const type = profile.data.organisation?.business_type || 'retail';
       const pharmacy = type === 'pharmacy';
+      setOfflineMode(Boolean(profile.data.offline_mode));
       setBusinessType(type);
       setIsPharmacy(pharmacy);
       if (pharmacy) {
@@ -109,8 +114,14 @@ export default function InventoryPage() {
         'Bidhaa na stoo ya sasa ya tawi hili.'
       )}
       pageHeaderAction={
-        <div className='grid w-full grid-cols-[2fr_3fr] gap-2 sm:flex sm:w-auto'>
-          <CategoryManager />
+        <div
+          className={
+            offlineMode
+              ? 'grid w-full grid-cols-1 gap-2 sm:w-auto'
+              : 'grid w-full grid-cols-[2fr_3fr] gap-2 sm:flex sm:w-auto'
+          }
+        >
+          {!offlineMode && <CategoryManager />}
           <Button className='w-full sm:w-auto' onClick={() => setCreateDialogOpen(!showCreate)}>
             {showCreate ? text('Close', 'Funga') : text('Add product', 'Ongeza bidhaa')}
           </Button>
@@ -130,6 +141,7 @@ export default function InventoryPage() {
           <CreateProduct
             isPharmacy={isPharmacy}
             businessType={businessType}
+            offlineMode={offlineMode}
             onCreated={() => {
               setCreateDialogOpen(false);
               void load();

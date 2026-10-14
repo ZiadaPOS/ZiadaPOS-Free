@@ -43,11 +43,13 @@ function generateOpeningBatchNumber() {
 export function CreateProduct({
   onCreated,
   isPharmacy = false,
-  businessType = 'retail'
+  businessType = 'retail',
+  offlineMode = false
 }: {
   onCreated: () => void;
   isPharmacy?: boolean;
   businessType?: string;
+  offlineMode?: boolean;
 }) {
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
@@ -326,44 +328,59 @@ export function CreateProduct({
                     <Input name='name' required />
                   </label>
                   <div className='col-span-2 grid grid-cols-2 gap-3 sm:col-span-1 sm:col-start-2'>
-                    <label className='grid gap-1.5 text-sm font-medium'>
-                      <span>
-                        Category <RequiredMark />
-                      </span>
-                      <select
-                        name='category_id'
-                        required
-                        className='bg-background h-10 w-full rounded-md border px-3 font-normal'
-                      >
-                        <option value=''>Choose a category</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className='grid gap-1.5 text-sm font-medium'>
+                    {!offlineMode && (
+                      <label className='grid gap-1.5 text-sm font-medium'>
+                        <span>
+                          Category <RequiredMark />
+                        </span>
+                        <select
+                          name='category_id'
+                          required
+                          className='bg-background h-10 w-full rounded-md border px-3 font-normal'
+                        >
+                          <option value=''>Choose a category</option>
+                          {categories.map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <label
+                      className={`grid gap-1.5 text-sm font-medium ${offlineMode ? 'col-span-2' : ''}`}
+                    >
                       <span>
                         Unit <RequiredMark />
                       </span>
-                      <select
-                        name='unit'
-                        defaultValue=''
-                        required
-                        className='bg-background h-10 w-full rounded-md border px-3 font-normal'
-                      >
-                        <option value=''>Choose a unit</option>
-                        {units.map((unit) => (
-                          <option key={unit.id} value={unit.name}>
-                            {unit.name}
-                          </option>
-                        ))}
-                      </select>
-                      {!units.length && (
-                        <span className='text-muted-foreground text-xs'>
-                          Add units from the Units page first.
-                        </span>
+                      {offlineMode ? (
+                        <>
+                          <Input name='unit' required defaultValue='piece' maxLength={40} />
+                          <span className='text-muted-foreground text-xs'>
+                            Use a short unit label such as piece, kg, or bag.
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <select
+                            name='unit'
+                            defaultValue=''
+                            required
+                            className='bg-background h-10 w-full rounded-md border px-3 font-normal'
+                          >
+                            <option value=''>Choose a unit</option>
+                            {units.map((unit) => (
+                              <option key={unit.id} value={unit.name}>
+                                {unit.name}
+                              </option>
+                            ))}
+                          </select>
+                          {!units.length && (
+                            <span className='text-muted-foreground text-xs'>
+                              Add units from the Units page first.
+                            </span>
+                          )}
+                        </>
                       )}
                     </label>
                     <div className='col-span-2 space-y-3 border-t pt-3'>
